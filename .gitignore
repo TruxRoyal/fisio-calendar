@@ -1,0 +1,38 @@
+# Bases de datos SQLite (contienen datos reales de pacientes en producción — NUNCA deben subirse)
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.sqlite
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+
+# Backups de base de datos
+*.backup
+*.bak
+backups/
+backup/
+
+# Variables de entorno (los .env.example SÍ se suben, sirven de plantilla)
+.env
+.env.*
+!.env.example
+!*.env.example
+
+# Backend (Go)
+backend/*.exe
+backend/server
+backend/web/*
+!backend/web/.gitkeep
+!backend/web/embed.go
+
+# Frontend (Node / Vite)
+frontend/node_modules/
+frontend/dist/
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

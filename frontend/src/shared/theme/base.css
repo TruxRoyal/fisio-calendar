@@ -1,0 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #FBFAFC;
+  --s1: #FFFFFF;
+  --s2: #FAF9FB;
+  --s3: #F4F1F6;
+  --s4: #F1EEF3;
+  --bd: #EAE6EE;
+  --bd2: #DDD6E2;
+  --grid: #F0EDF2;
+  --t1: #1B181D;
+  --t2: #3E3846;
+  --t3: #6E6875;
+  --inv: #241F29;
+  --invFg: #FFFFFF;
+  --invT3: #C7C1CE;
+  --acFgSoft: rgba(255, 255, 255, .75);
+  --s1Blur: rgba(255, 255, 255, .92);
+  --now: #D64545;
+  --okBg: #EDF6F1;
+  --okBd: #CFE6DA;
+  --okFg: #2E7A5E;
+  --dnBg: #F7F9F8;
+  --dnBd: #E2ECE7;
+  --wrBg: #FBF2E3;
+  --wrBd: #F2E2C6;
+  --wrFg: #8A5A16;
+  --wrIc: #B4791C;
+  --dgBg: #FDF2F2;
+  --dgBd: #F0DADA;
+  --dgFg: #B03D3D;
+  --sb: #E2DEE6;
+  --sbH: #CDC7D2;
+  --acFg: #FFFFFF;
+}
+
+:root[data-oscuro='true'] {
+  --bg: #16131A;
+  --s1: #211D26;
+  --s2: #1C1922;
+  --s3: #2A2531;
+  --s4: #332D3A;
+  --bd: #312B38;
+  --bd2: #443D4D;
+  --grid: #272231;
+  --t1: #F3F0F6;
+  --t2: #D6D0DD;
+  --t3: #A79FB1;
+  --inv: #EDE9F1;
+  --invFg: #1B181D;
+  --invT3: #5E5866;
+  --acFgSoft: rgba(34, 26, 38, .62);
+  --s1Blur: rgba(33, 29, 38, .92);
+  --now: #FF7070;
+  --okBg: #16291F;
+  --okBd: #27453A;
+  --okFg: #7FCFA6;
+  --dnBg: #1B2420;
+  --dnBd: #2B3A33;
+  --wrBg: #2B2313;
+  --wrBd: #473A20;
+  --wrFg: #E5BC77;
+  --wrIc: #D9A85B;
+  --dgBg: #2C1A1B;
+  --dgBd: #4B2C2E;
+  --dgFg: #F09B9B;
+  --sb: #3B3444;
+  --sbH: #4C4457;
+  --acFg: #221A26;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--t1);
+  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: 15px;
+}
+
+#root {
+  height: 100dvh;
+}
+
+a {
+  color: var(--acT, #7A3E85);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--ac, #5C2C66);
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ac, #7A3E85);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--sb);
+  border-radius: 99px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--sbH);
+  background-clip: content-box;
+}
