@@ -4,7 +4,8 @@ import 'leaflet/dist/leaflet.css'
 import iconoUrl from 'leaflet/dist/images/marker-icon.png'
 import iconoRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png'
 import sombraUrl from 'leaflet/dist/images/marker-shadow.png'
-import type { VisitaDia } from '../types'
+import type { VisitaDia } from '../../types'
+import styles from './MapaDia.module.css'
 
 L.Icon.Default.mergeOptions({ iconUrl: iconoUrl, iconRetinaUrl: iconoRetinaUrl, shadowUrl: sombraUrl })
 
@@ -68,5 +69,5 @@ export function MapaDia({ visitas, visitaSeleccionada, onSeleccionarMarcador }: 
     }
   }, [visitaSeleccionada])
 
-  return <div ref={refContenedor} style={{ flex: 1, height: '100%' }} />
+  return <div ref={refContenedor} className={styles.contenedor} />
 }

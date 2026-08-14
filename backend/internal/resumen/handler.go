@@ -54,6 +54,16 @@ func (h *Handler) ExportarExcel(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handler) ObtenerCapacidadMensual(w http.ResponseWriter, r *http.Request) {
+	capacidad, err := h.service.ObtenerCapacidadMensual(r.Context())
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, "error_interno", err.Error())
+		return
+	}
+
+	httpx.JSON(w, http.StatusOK, capacidad)
+}
+
 func periodoDesdeQuery(r *http.Request) (anio, mes int, err error) {
 	anio, err = strconv.Atoi(r.URL.Query().Get("anio"))
 	if err != nil {

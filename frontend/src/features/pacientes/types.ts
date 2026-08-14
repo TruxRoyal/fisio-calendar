@@ -1,5 +1,7 @@
 import type { TipoTerapia } from '../../shared/types/comun'
 
+export type OrigenPaciente = 'trabajo' | 'extra'
+
 export interface Paciente {
   id: number
   nombre: string
@@ -11,6 +13,11 @@ export interface Paciente {
   tipoTerapia: TipoTerapia | null
   lat: number | null
   lng: number | null
+  fechaNacimiento: string | null
+  observaciones: string | null
+  color: string | null
+  origen: OrigenPaciente
+  tarifaSesion: number | null
   creadoEn: string
   actualizadoEn: string
 }
@@ -38,6 +45,11 @@ export interface SolicitudPaciente {
   tipoTerapia: TipoTerapia
   lat?: number | null
   lng?: number | null
+  fechaNacimiento?: string | null
+  observaciones?: string | null
+  color?: string | null
+  origen: OrigenPaciente
+  tarifaSesion?: number | null
 }
 
 export interface Autorizacion {
@@ -69,4 +81,21 @@ export interface SolicitudActualizarAutorizacion {
   sesionesTotales: number
   fechaVencimiento?: string | null
   activa: boolean
+}
+
+export type TipoEventoCronologia = 'sesion_atendida' | 'sesion_cancelada' | 'copago' | 'autorizacion'
+
+export interface EventoCronologia {
+  tipo: TipoEventoCronologia
+  fecha: string
+  titulo: string
+  detalle: string | null
+  monto: number | null
+}
+
+export interface ResumenFinancieroPaciente {
+  anio: number
+  mes: number
+  facturado: number
+  copagosRecibidos: number
 }

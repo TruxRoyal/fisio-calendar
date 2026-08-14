@@ -3,6 +3,7 @@ package resumen
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/xuri/excelize/v2"
 )
@@ -18,7 +19,7 @@ func NuevoService(repo *Repository) *Service {
 func (s *Service) ObtenerMensual(ctx context.Context, anio, mes int) (*ResumenMensual, error) {
 	anioMes := formatearAnioMes(anio, mes)
 
-	sesiones, pagoNeto, copagos, err := s.repo.ObtenerAgregadoMensual(ctx, anioMes)
+	sesiones, sesionesTrabajo, pagoNeto, copagos, err := s.repo.ObtenerAgregadoMensual(ctx, anioMes)
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +28,7 @@ func (s *Service) ObtenerMensual(ctx context.Context, anio, mes int) (*ResumenMe
 		Anio:              anio,
 		Mes:               mes,
 		SesionesAtendidas: sesiones,
-		UmbralAlcanzado:   sesiones > UmbralEscalon,
+		UmbralAlcanzado:   sesionesTrabajo > UmbralEscalon,
 		PagoNeto:          pagoNeto,
 		CopagosRecaudados: copagos,
 		Total:             pagoNeto + copagos,
@@ -78,6 +79,27 @@ func (s *Service) ExportarExcel(ctx context.Context, anio, mes int) (*excelize.F
 	return archivo, nil
 }
 
+func (s *Service) ObtenerCapacidadMensual(ctx context.Context) (*CapacidadMensual, error) {
+	anioMes := formatearAnioMes(anioMesActual())
+
+	minutosEstimados, minutosReales, err := s.repo.ObtenerCapacidadMensual(ctx, anioMes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &CapacidadMensual{MinutosEstimados: minutosEstimados, MinutosReales: minutosReales}, nil
+}
+
 func formatearAnioMes(anio, mes int) string {
 	return fmt.Sprintf("%04d-%02d", anio, mes)
+}
+
+func anioMesActual() (int, int) {
+	ubicacion, err := time.LoadLocation("America/Bogota")
+	if err != nil {
+		ahora := time.Now().UTC()
+		return ahora.Year(), int(ahora.Month())
+	}
+	ahora := time.Now().In(ubicacion)
+	return ahora.Year(), int(ahora.Month())
 }

@@ -111,7 +111,7 @@ func (s *Service) CambiarEstado(ctx context.Context, id int64, solicitud Solicit
 
 	var valorSesion *int
 	if solicitud.Estado == "atendida" && existente.ValorSesion == nil {
-		valor, err := s.calcularValorSesion(ctx, existente.Inicio)
+		valor, err := s.calcularValorSesion(ctx, existente.PacienteID, existente.Inicio)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -137,7 +137,19 @@ func (s *Service) Eliminar(ctx context.Context, id int64) error {
 	return s.repo.Eliminar(ctx, id)
 }
 
-func (s *Service) calcularValorSesion(ctx context.Context, inicio string) (int, error) {
+func (s *Service) calcularValorSesion(ctx context.Context, pacienteID int64, inicio string) (int, error) {
+	origen, tarifaSesion, err := s.repo.ObtenerOrigenPaciente(ctx, pacienteID)
+	if err != nil {
+		return 0, err
+	}
+
+	if origen == "extra" {
+		if tarifaSesion == nil {
+			return 0, errors.New("el paciente extra no tiene una tarifa por sesion configurada")
+		}
+		return *tarifaSesion, nil
+	}
+
 	previas, err := s.repo.ContarAtendidasAntesEnMes(ctx, inicio)
 	if err != nil {
 		return 0, err

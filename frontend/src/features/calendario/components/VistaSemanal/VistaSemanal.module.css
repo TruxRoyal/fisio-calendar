@@ -1,0 +1,277 @@
+.contenedor {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.columnaPrincipal {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.barraSuperior {
+  height: 64px;
+  flex: 0 0 64px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--bd);
+  background: var(--s1);
+}
+
+.selectorVista {
+  display: flex;
+  background: var(--s3);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.botonVista {
+  height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: var(--t3);
+}
+
+.botonVista.activo {
+  background: var(--s1);
+  color: var(--t1);
+  box-shadow: 0 1px 3px rgba(28, 20, 34, .12);
+}
+
+.espaciador {
+  flex: 1;
+}
+
+.filaCabeceraSemana {
+  height: 48px;
+  flex: 0 0 48px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--bd);
+  background: var(--s1);
+}
+
+.navegacion {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.botonHoy {
+  height: 30px;
+  padding: 0 12px;
+  margin-left: 6px;
+  border: 1px solid var(--bd);
+  background: var(--s1);
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--t2);
+}
+
+.rangoSemana {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  white-space: nowrap;
+}
+
+.filaDiasCabecera {
+  display: flex;
+  border-bottom: 1px solid var(--bd);
+  background: var(--s1);
+  padding-left: 56px;
+}
+
+.columnaDiaCabecera {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 8px 9px;
+  text-align: center;
+  border-left: 1px solid var(--bd);
+}
+
+.nombreDiaCabecera {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.nombreDiaCabecera.hoy {
+  color: var(--acT);
+}
+
+.filaNumeroCuenta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+
+.numeroDiaCabecera {
+  width: 27px;
+  height: 27px;
+  border-radius: 99px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: transparent;
+  color: var(--t1);
+}
+
+.numeroDiaCabecera.hoy {
+  background: var(--ac);
+  color: var(--acFg);
+}
+
+.cuentaDia {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--t3);
+  font-variant-numeric: tabular-nums;
+}
+
+.cuerpoSemana {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+}
+
+.columnaHoras {
+  width: 56px;
+  flex: 0 0 56px;
+}
+
+.espaciadorHoras {
+  height: 4px;
+}
+
+.filaHora {
+  height: 56px;
+  text-align: right;
+  padding-right: 10px;
+}
+
+.textoHora {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--t3);
+  font-family: var(--fuenteMono);
+  position: relative;
+  top: -6px;
+}
+
+.grillaDias {
+  flex: 1;
+  display: flex;
+}
+
+.columnaDia {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  border-left: 1px solid var(--grid);
+  background-color: transparent;
+  background-image: repeating-linear-gradient(to bottom, var(--grid) 0 1px, transparent 1px 56px);
+}
+
+.columnaDia.hoy {
+  background-color: var(--acS);
+}
+
+.lineaAhora {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1.5px solid var(--now);
+  z-index: 12;
+  pointer-events: none;
+}
+
+.puntoAhora {
+  position: absolute;
+  left: -4px;
+  top: -4.5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--now);
+}
+
+.fantasma {
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  border-radius: 9px;
+  background: var(--acS);
+  border: 1.5px dashed var(--ac);
+  padding: 5px 8px;
+  pointer-events: none;
+}
+
+.horaFantasma {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--acT);
+  font-family: var(--fuenteMono);
+}
+
+.botonIcono {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--t3);
+  transition: background .15s;
+}
+
+.botonIcono:hover {
+  background: var(--s3);
+}
+
+.ghostPaciente {
+  position: fixed;
+  z-index: 80;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--inv);
+  color: var(--invFg);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(28, 20, 34, .28);
+}
+
+.notaGhost {
+  color: var(--invT3);
+  font-weight: 500;
+}

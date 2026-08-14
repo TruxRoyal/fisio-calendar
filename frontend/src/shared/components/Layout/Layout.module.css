@@ -1,0 +1,165 @@
+.layout {
+  height: 100dvh;
+  display: flex;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.contenido {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+}
+
+.rail {
+  width: 64px;
+  flex: 0 0 64px;
+  background: var(--s1);
+  border-right: 1px solid var(--bd);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 0;
+  gap: 6px;
+  z-index: 30;
+}
+
+.marca {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: var(--ac);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(28, 20, 34, .24);
+  color: var(--acFg);
+}
+
+.espaciador {
+  flex: 1;
+}
+
+.botonUtilidad {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: transparent;
+  color: var(--t3);
+  transition: background .15s;
+}
+
+.botonUtilidad:hover {
+  background: var(--s3);
+}
+
+.contenedorPaleta {
+  position: relative;
+}
+
+.puntoAcento {
+  width: 19px;
+  height: 19px;
+  border-radius: 99px;
+  background: var(--acD);
+  border: 2px solid var(--ac);
+  display: block;
+}
+
+.botonRail {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+  background: transparent;
+  color: var(--t3);
+}
+
+.botonRail:hover {
+  background: var(--s3);
+}
+
+.botonRail.activo,
+.botonRail.activo:hover {
+  background: var(--acS);
+  color: var(--acT);
+}
+
+.fondoPaleta {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+}
+
+.panelPaleta {
+  position: fixed;
+  left: 70px;
+  bottom: 64px;
+  z-index: 60;
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: 0 12px 40px rgba(28, 20, 34, .14), 0 2px 6px rgba(28, 20, 34, .06);
+  width: 212px;
+}
+
+.tituloPaleta {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--t3);
+  padding: 6px 10px 8px;
+}
+
+.opcionTema {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.opcionTema:hover {
+  background: var(--s3);
+}
+
+.opcionTema.seleccionado,
+.opcionTema.seleccionado:hover {
+  background: var(--acS);
+}
+
+.puntoTema {
+  width: 18px;
+  height: 18px;
+  border-radius: 99px;
+  flex: 0 0 18px;
+}
+
+.nombreTema {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--t1);
+  flex: 1;
+}
+
+.iconoCheck {
+  color: var(--ac);
+}

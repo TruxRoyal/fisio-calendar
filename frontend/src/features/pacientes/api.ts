@@ -1,8 +1,10 @@
 import { clienteApi } from '../../shared/api/cliente'
 import type {
   Autorizacion,
+  EventoCronologia,
   Paciente,
   PacienteDetalle,
+  ResumenFinancieroPaciente,
   SolicitudActualizarAutorizacion,
   SolicitudCrearAutorizacion,
   SolicitudPaciente,
@@ -20,6 +22,9 @@ export const pacientesApi = {
   crear: (solicitud: SolicitudPaciente) => clienteApi.post<Paciente>('/pacientes', solicitud),
   actualizar: (id: number, solicitud: SolicitudPaciente) => clienteApi.put<Paciente>(`/pacientes/${id}`, solicitud),
   eliminar: (id: number) => clienteApi.delete<void>(`/pacientes/${id}`),
+  obtenerCronologia: (id: number) => clienteApi.get<EventoCronologia[]>(`/pacientes/${id}/cronologia`),
+  obtenerResumenFinanciero: (id: number, anio: number, mes: number) =>
+    clienteApi.get<ResumenFinancieroPaciente>(`/pacientes/${id}/resumen-financiero?anio=${anio}&mes=${mes}`),
 }
 
 export const autorizacionesApi = {

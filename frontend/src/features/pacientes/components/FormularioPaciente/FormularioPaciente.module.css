@@ -1,0 +1,96 @@
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filaCampos {
+  display: flex;
+  gap: 10px;
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.etiquetaGrupo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t2);
+}
+
+.filaChips {
+  display: flex;
+  gap: 8px;
+}
+
+.chip {
+  flex: 1;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--bd);
+  background: var(--s1);
+  color: var(--t2);
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.chip.capitalizar {
+  text-transform: capitalize;
+}
+
+.chip.activo {
+  border: 1.5px solid var(--ac);
+  background: var(--acS);
+  color: var(--acT);
+}
+
+.filaColores {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.colorAuto {
+  width: 26px;
+  height: 26px;
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background: var(--s3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--t3);
+}
+
+.colorAuto.activo {
+  border-color: var(--t1);
+}
+
+.colorSwatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 99px;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.colorSwatch.activo {
+  border-color: var(--t1);
+}
+
+.mensajeError {
+  font-size: 13px;
+  color: var(--dgFg);
+}
+
+.filaAcciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}

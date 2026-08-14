@@ -1,0 +1,93 @@
+.formulario {
+  background: var(--s2);
+  border: 1px solid var(--bd);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.filaCampos {
+  display: flex;
+  gap: 10px;
+}
+
+.filaAcciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.vacio {
+  background: var(--s2);
+  border: 1px dashed var(--bd2);
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+}
+
+.textoVacio {
+  margin: 0 0 10px;
+  font-size: 13.5px;
+  color: var(--t3);
+}
+
+.tarjeta {
+  background: var(--acS);
+  border: 1px solid var(--acL);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.filaCabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.tituloSesiones {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--acT);
+}
+
+.botonRenovar {
+  border: none;
+  background: transparent;
+  color: var(--acT);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pista {
+  height: 6px;
+  border-radius: 99px;
+  background: var(--s4);
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.relleno {
+  height: 100%;
+  width: var(--ancho);
+  background: var(--acD);
+  border-radius: 99px;
+}
+
+.notaVence {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: var(--acT);
+}
+
+.alertaSesiones {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--wrFg);
+}

@@ -18,7 +18,7 @@ const consultaBase = `
 	SELECT
 		c.id, c.paciente_id, c.autorizacion_id, c.inicio, c.fin, c.estado,
 		c.valor_sesion, c.copago_cobrado, c.notas, c.creado_en, c.actualizado_en,
-		p.id, p.nombre, p.tipo_terapia
+		p.id, p.nombre, p.tipo_terapia, p.color
 	FROM cita c
 	JOIN paciente p ON p.id = c.paciente_id
 `
@@ -86,10 +86,12 @@ func (r *Repository) ExisteChoque(ctx context.Context, inicio, fin string, exclu
 
 func (r *Repository) ContarAtendidasAntesEnMes(ctx context.Context, inicio string) (int, error) {
 	consulta := `
-		SELECT COUNT(*) FROM cita
-		WHERE estado = 'atendida'
-			AND strftime('%Y-%m', inicio) = strftime('%Y-%m', ?)
-			AND inicio < ?
+		SELECT COUNT(*) FROM cita c
+		JOIN paciente p ON p.id = c.paciente_id
+		WHERE c.estado = 'atendida'
+			AND p.origen = 'trabajo'
+			AND strftime('%Y-%m', c.inicio) = strftime('%Y-%m', ?)
+			AND c.inicio < ?
 	`
 
 	var total int
@@ -99,6 +101,15 @@ func (r *Repository) ContarAtendidasAntesEnMes(ctx context.Context, inicio strin
 	}
 
 	return total, nil
+}
+
+func (r *Repository) ObtenerOrigenPaciente(ctx context.Context, pacienteID int64) (origen string, tarifaSesion *int, err error) {
+	consulta := `SELECT origen, tarifa_sesion FROM paciente WHERE id = ?`
+	err = r.db.QueryRowContext(ctx, consulta, pacienteID).Scan(&origen, &tarifaSesion)
+	if err != nil {
+		return "", nil, fmt.Errorf("obtener origen del paciente: %w", err)
+	}
+	return origen, tarifaSesion, nil
 }
 
 func (r *Repository) Crear(ctx context.Context, solicitud SolicitudCrearCita) (*Cita, error) {
@@ -169,6 +180,6 @@ func escanearCita(fila escaneable, c *Cita) error {
 	return fila.Scan(
 		&c.ID, &c.PacienteID, &c.AutorizacionID, &c.Inicio, &c.Fin, &c.Estado,
 		&c.ValorSesion, &c.CopagoCobrado, &c.Notas, &c.CreadoEn, &c.ActualizadoEn,
-		&c.Paciente.ID, &c.Paciente.Nombre, &c.Paciente.TipoTerapia,
+		&c.Paciente.ID, &c.Paciente.Nombre, &c.Paciente.TipoTerapia, &c.Paciente.Color,
 	)
 }

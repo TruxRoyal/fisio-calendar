@@ -1,0 +1,164 @@
+.cabecera {
+  height: 48px;
+  flex: 0 0 48px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--bd);
+  background: var(--s1);
+}
+
+.navegacion {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.botonHoy {
+  height: 30px;
+  padding: 0 12px;
+  margin-left: 6px;
+  border: 1px solid var(--bd);
+  background: var(--s1);
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--t2);
+}
+
+.tituloDia {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  white-space: nowrap;
+}
+
+.cuerpo {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 0 40px;
+}
+
+.grilla {
+  display: flex;
+  position: relative;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.columnaHoras {
+  width: 60px;
+  flex: 0 0 60px;
+  position: relative;
+}
+
+.etiquetaHora {
+  position: absolute;
+  right: 12px;
+  transform: translateY(-50%);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--t3);
+  font-family: var(--fuenteMono);
+}
+
+.pista {
+  flex: 1;
+  position: relative;
+  border-left: 1px solid var(--bd);
+  background-image: repeating-linear-gradient(to bottom, var(--grid) 0 1px, transparent 1px 60px);
+}
+
+.lineaAhora {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1.5px solid var(--now);
+  z-index: 12;
+  pointer-events: none;
+}
+
+.puntoAhora {
+  position: absolute;
+  left: -4px;
+  top: -4.5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--now);
+}
+
+.bloqueCita {
+  position: absolute;
+  left: 10px;
+  right: 14px;
+  border-radius: 11px;
+  padding: 8px 12px;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 1px 2px rgba(28, 20, 34, .05);
+  background: var(--s1);
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--bd2);
+  border-left-width: 3px;
+  border-left-color: var(--color-borde);
+}
+
+.bloqueCita.atendida {
+  background: var(--dnBg);
+  border-top-color: var(--dnBd);
+  border-right-color: var(--dnBd);
+  border-bottom-color: var(--dnBd);
+}
+
+.bloqueCita.cancelada {
+  opacity: .6;
+}
+
+.horaBloque {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--t2);
+  font-family: var(--fuenteMono);
+  flex: 0 0 auto;
+}
+
+.infoBloque {
+  min-width: 0;
+  flex: 1;
+}
+
+.nombreBloque {
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notaBloque {
+  font-size: 12px;
+  color: var(--t3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.iconoCheckBloque {
+  color: var(--okFg);
+}
+
+.duracionBloque {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--t3);
+  flex: 0 0 auto;
+}

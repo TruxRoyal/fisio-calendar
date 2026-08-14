@@ -17,4 +17,10 @@ type DetalleSesion struct {
 	CopagoCobrado  int
 }
 
+type CapacidadMensual struct {
+	MinutosEstimados int `json:"minutosEstimados"`
+	MinutosReales    int `json:"minutosReales"`
+}
+
 const UmbralEscalon = 71
+const DuracionEstimadaMin = 30

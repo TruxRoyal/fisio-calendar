@@ -1,0 +1,115 @@
+import type { ReactNode } from 'react'
+import { useState } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
+import { useTheme } from '../../theme/useTheme'
+import type { IdTema } from '../../theme/paletas'
+import { cn } from '../../lib/clases'
+import { Icono } from '../Icono/Icono'
+import type { NombreIcono } from '../Icono/Icono'
+import styles from './Layout.module.css'
+
+const ITEMS_NAV: { ruta: string; etiqueta: string; icono: NombreIcono }[] = [
+  { ruta: '/calendario', etiqueta: 'Agenda', icono: 'calendario' },
+  { ruta: '/pacientes', etiqueta: 'Pacientes', icono: 'paciente' },
+  { ruta: '/resumen', etiqueta: 'Ingresos', icono: 'ingresos' },
+  { ruta: '/mapa', etiqueta: 'Ruta del día', icono: 'mapa' },
+]
+
+export function Layout({ children }: { children: ReactNode }) {
+  const ubicacion = useLocation()
+
+  return (
+    <div className={styles.layout}>
+      <RailIconos rutaActiva={ubicacion.pathname} />
+      <main className={styles.contenido}>{children}</main>
+    </div>
+  )
+}
+
+function RailIconos({ rutaActiva }: { rutaActiva: string }) {
+  const [paletaAbierta, setPaletaAbierta] = useState(false)
+  const { oscuro, alternarOscuro } = useTheme()
+
+  return (
+    <div className={styles.rail}>
+      <div className={styles.marca}>
+        <Icono nombre="pulso" tamano={19} grosor={2.1} />
+      </div>
+
+      {ITEMS_NAV.map((item) => {
+        const activo = rutaActiva.startsWith(item.ruta)
+        return (
+          <NavLink key={item.ruta} to={item.ruta} title={item.etiqueta}>
+            <BotonRail activo={activo} icono={item.icono} />
+          </NavLink>
+        )
+      })}
+
+      <div className={styles.espaciador} />
+
+      <button
+        type="button"
+        onClick={alternarOscuro}
+        title={oscuro ? 'Modo claro' : 'Modo oscuro'}
+        className={styles.botonUtilidad}
+      >
+        <Icono nombre={oscuro ? 'sol' : 'luna'} tamano={19} grosor={1.9} />
+      </button>
+
+      <div className={styles.contenedorPaleta}>
+        <button
+          type="button"
+          onClick={() => setPaletaAbierta((actual) => !actual)}
+          title="Color de acento"
+          className={styles.botonUtilidad}
+        >
+          <span className={styles.puntoAcento} />
+        </button>
+
+        {paletaAbierta && <PaletaTemas onCerrar={() => setPaletaAbierta(false)} />}
+      </div>
+    </div>
+  )
+}
+
+function BotonRail({ activo, icono }: { activo: boolean; icono: NombreIcono }) {
+  return (
+    <div className={cn(styles.botonRail, activo && styles.activo)}>
+      <Icono nombre={icono} tamano={20} grosor={1.8} />
+    </div>
+  )
+}
+
+function PaletaTemas({ onCerrar }: { onCerrar: () => void }) {
+  const { idTema, cambiarTema, temasDisponibles } = useTheme()
+
+  return (
+    <>
+      <div className={styles.fondoPaleta} onClick={onCerrar} />
+      <div className={styles.panelPaleta}>
+        <div className={styles.tituloPaleta}>Color de acento</div>
+        {(Object.keys(temasDisponibles) as IdTema[]).map((id) => {
+          const seleccionado = id === idTema
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => {
+                cambiarTema(id)
+                onCerrar()
+              }}
+              className={cn(styles.opcionTema, seleccionado && styles.seleccionado)}
+            >
+              <span
+                className={styles.puntoTema}
+                style={{ background: temasDisponibles[id].ac, border: `1.5px solid ${temasDisponibles[id].acL}` }}
+              />
+              <span className={styles.nombreTema}>{temasDisponibles[id].nombre}</span>
+              {seleccionado && <Icono nombre="check" tamano={15} grosor={2.6} className={styles.iconoCheck} />}
+            </button>
+          )
+        })}
+      </div>
+    </>
+  )
+}

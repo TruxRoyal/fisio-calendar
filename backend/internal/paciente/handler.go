@@ -98,6 +98,58 @@ func (h *Handler) Actualizar(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, actualizado)
 }
 
+func (h *Handler) ObtenerCronologia(w http.ResponseWriter, r *http.Request) {
+	id, err := idDesdeRuta(r)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "id_invalido", "El id debe ser numerico")
+		return
+	}
+
+	eventos, err := h.service.ObtenerCronologia(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, ErrNoEncontrado) {
+			httpx.Error(w, http.StatusNotFound, "no_encontrado", "Paciente no encontrado")
+			return
+		}
+		httpx.Error(w, http.StatusInternalServerError, "error_interno", err.Error())
+		return
+	}
+
+	httpx.JSON(w, http.StatusOK, eventos)
+}
+
+func (h *Handler) ObtenerResumenFinanciero(w http.ResponseWriter, r *http.Request) {
+	id, err := idDesdeRuta(r)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "id_invalido", "El id debe ser numerico")
+		return
+	}
+
+	anio, err := strconv.Atoi(r.URL.Query().Get("anio"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "periodo_invalido", "El parametro anio es requerido y debe ser numerico")
+		return
+	}
+
+	mes, err := strconv.Atoi(r.URL.Query().Get("mes"))
+	if err != nil || mes < 1 || mes > 12 {
+		httpx.Error(w, http.StatusBadRequest, "periodo_invalido", "El parametro mes es requerido y debe estar entre 1 y 12")
+		return
+	}
+
+	resumen, err := h.service.ObtenerResumenFinanciero(r.Context(), id, anio, mes)
+	if err != nil {
+		if errors.Is(err, ErrNoEncontrado) {
+			httpx.Error(w, http.StatusNotFound, "no_encontrado", "Paciente no encontrado")
+			return
+		}
+		httpx.Error(w, http.StatusInternalServerError, "error_interno", err.Error())
+		return
+	}
+
+	httpx.JSON(w, http.StatusOK, resumen)
+}
+
 func (h *Handler) Eliminar(w http.ResponseWriter, r *http.Request) {
 	id, err := idDesdeRuta(r)
 	if err != nil {

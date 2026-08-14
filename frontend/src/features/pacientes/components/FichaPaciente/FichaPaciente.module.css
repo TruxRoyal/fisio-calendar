@@ -1,0 +1,338 @@
+.ficha {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 980px;
+}
+
+.cabecera {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.avatar {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  border-radius: 17px;
+  background: var(--avatar-bg, var(--acS2));
+  color: var(--avatar-fg, var(--acT));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.infoCabecera {
+  flex: 1;
+  min-width: 0;
+}
+
+.filaNombre {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.nombre {
+  margin: 0;
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+}
+
+.badgeExtra {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--acT);
+  background: var(--acS);
+  border: 1px solid var(--acL);
+  border-radius: 99px;
+  padding: 2px 9px;
+}
+
+.filaInfoLineas {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 7px;
+  flex-wrap: wrap;
+  color: var(--t3);
+  font-size: 13px;
+}
+
+.lineaInfo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.alertaVencimiento {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: var(--wrBg);
+  border: 1px solid var(--wrBd);
+  border-radius: 13px;
+  padding: 12px 15px;
+}
+
+.iconoAlerta {
+  color: var(--wrIc);
+  flex-shrink: 0;
+}
+
+.contenidoAlerta {
+  flex: 1;
+  min-width: 0;
+}
+
+.tituloAlerta {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--wrFg);
+}
+
+.subAlerta {
+  font-size: 13px;
+  color: var(--wrFg);
+  margin-top: 1px;
+}
+
+.gridStats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.tarjetaStat {
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  border-radius: 15px;
+  padding: 14px 15px;
+  box-shadow: 0 1px 2px rgba(28, 20, 34, .04);
+}
+
+.tarjetaStat.alerta {
+  border-color: var(--wrBd);
+}
+
+.filaEtiquetaStat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.filaEtiquetaStat.alerta {
+  color: var(--wrFg);
+}
+
+.valorGrandeStat {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -.03em;
+  margin-top: 6px;
+  line-height: 1;
+  color: var(--t1);
+  font-variant-numeric: tabular-nums;
+}
+
+.valorGrandeStat.alerta {
+  color: var(--wrFg);
+}
+
+.valorGrandeStat.capitalizar {
+  text-transform: capitalize;
+}
+
+.valorChicoStat {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--t3);
+}
+
+.valorChicoStat.alerta {
+  color: var(--wrFg);
+}
+
+.pistaStat {
+  height: 5px;
+  border-radius: 99px;
+  background: var(--s4);
+  margin-top: 9px;
+  overflow: hidden;
+}
+
+.rellenoStat {
+  height: 100%;
+  width: var(--ancho);
+  background: var(--acD);
+  border-radius: 99px;
+}
+
+.notaStat {
+  font-size: 11.5px;
+  color: var(--t3);
+  margin-top: 8px;
+}
+
+.notaStat.alerta {
+  color: var(--wrFg);
+}
+
+.gridDetalle {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.panel {
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  border-radius: 15px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 2px rgba(28, 20, 34, .04);
+}
+
+.tituloPanel {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.015em;
+  margin-bottom: 14px;
+}
+
+.tituloPanel.compacto {
+  margin-bottom: 10px;
+}
+
+.tituloPanel.apretado {
+  margin-bottom: 4px;
+}
+
+.textoVacioEventos {
+  font-size: 13px;
+  color: var(--t3);
+}
+
+.filaEvento {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 14px;
+}
+
+.columnaIconoEvento {
+  flex: 0 0 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.iconoEventoCirculo {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lineaConectora {
+  flex: 1;
+  width: 1.5px;
+  background: var(--bd);
+  margin-top: 4px;
+}
+
+.contenidoEvento {
+  flex: 1;
+  min-width: 0;
+}
+
+.filaTituloEvento {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tituloEvento {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.fechaEvento {
+  font-size: 11.5px;
+  color: var(--t3);
+}
+
+.detalleEvento {
+  font-size: 12.5px;
+  color: var(--t3);
+  margin-top: 2px;
+}
+
+.montoEvento {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--t2);
+  font-variant-numeric: tabular-nums;
+}
+
+.columnaLateral {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.textoObservaciones {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--t2);
+}
+
+.subtituloFinanciero {
+  font-size: 12px;
+  color: var(--t3);
+  margin-bottom: 8px;
+  text-transform: capitalize;
+}
+
+.filaFinanciero {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--s3);
+}
+
+.filaFinanciero.ultima {
+  border-bottom: none;
+}
+
+.etiquetaFinanciero {
+  font-size: 13.5px;
+  color: var(--t3);
+}
+
+.valorFinanciero {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.valorFinanciero.destacado {
+  font-size: 15px;
+  font-weight: 700;
+}

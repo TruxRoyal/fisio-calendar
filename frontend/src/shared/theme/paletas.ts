@@ -101,3 +101,14 @@ export const TIPO_TERAPIA_COLOR = {
   respiratoria: { fg: '#2A5280', bg: '#EBF1F8', bd: '#CFDDEE' },
   fisica: { fg: '#1C5C48', bg: '#E8F4EF', bd: '#C6E2D5' },
 } as const
+
+export const COLORES_PACIENTE: string[] = [
+  '#7A3E85',
+  '#2F5B8C',
+  '#1F6650',
+  '#4E3E96',
+  '#7A5C2E',
+  '#B0447A',
+  '#B0563D',
+  '#3D7A9E',
+]

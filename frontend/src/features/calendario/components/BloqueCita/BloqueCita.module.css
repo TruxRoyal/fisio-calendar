@@ -1,0 +1,92 @@
+.bloque {
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  border-radius: 9px;
+  border-width: 1px;
+  border-style: solid;
+  border-left-width: 3px;
+  border-left-color: var(--color-borde);
+  padding: 5px 8px;
+  overflow: hidden;
+  cursor: grab;
+  box-shadow: 0 1px 2px rgba(28, 20, 34, .05);
+  user-select: none;
+  transition: box-shadow .16s;
+}
+
+.bloque:hover {
+  box-shadow: 0 6px 18px rgba(28, 20, 34, .12);
+}
+
+.compacto {
+  padding: 3px 7px;
+}
+
+.agendada {
+  background: var(--s1);
+  border-top-color: var(--bd2);
+  border-right-color: var(--bd2);
+  border-bottom-color: var(--bd2);
+  color: var(--t1);
+}
+
+.atendida {
+  background: var(--dnBg);
+  border-top-color: var(--dnBd);
+  border-right-color: var(--dnBd);
+  border-bottom-color: var(--dnBd);
+  color: var(--t2);
+}
+
+.cancelada {
+  background: var(--s2);
+  border-top-color: var(--bd);
+  border-right-color: var(--bd);
+  border-bottom-color: var(--bd);
+  color: var(--t3);
+  opacity: .65;
+  cursor: pointer;
+}
+
+.filaSuperior {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hora {
+  font-size: 11px;
+  font-weight: 600;
+  color: inherit;
+  font-family: var(--fuenteMono);
+  font-variant-numeric: tabular-nums;
+}
+
+.espaciador {
+  flex: 1;
+}
+
+.iconoCheck {
+  color: var(--okFg);
+}
+
+.nombre {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.asaRedimension {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+}

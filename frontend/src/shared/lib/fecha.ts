@@ -91,3 +91,53 @@ export function sumarDias(fecha: Date, dias: number): Date {
 export function esMismoDia(isoA: string, isoB: string): boolean {
   return isoA.slice(0, 10) === isoB.slice(0, 10)
 }
+
+export function formatearFechaLarga(iso: string): string {
+  const fecha = analizarFechaHora(iso)
+  const dia = NOMBRES_DIA[fecha.getDay()]
+  const mes = NOMBRES_MES[fecha.getMonth()]
+  return `${dia} ${fecha.getDate()} de ${mes}`
+}
+
+export function minutosRestantes(iso: string): number {
+  const objetivo = analizarFechaHora(iso)
+  return Math.round((objetivo.getTime() - Date.now()) / 60000)
+}
+
+export function formatearMinutosRestantes(minutos: number): string {
+  if (minutos < 60) return `en ${minutos} min`
+  const horas = Math.floor(minutos / 60)
+  const resto = minutos % 60
+  return resto === 0 ? `en ${horas} h` : `en ${horas} h ${resto} min`
+}
+
+export function formatearDuracionHoras(minutos: number): string {
+  const horas = minutos / 60
+  const horasRedondeadas = Math.round(horas * 10) / 10
+  return `${horasRedondeadas.toLocaleString('es-CO', { maximumFractionDigits: 1 })} h`
+}
+
+export function calcularEdad(fechaNacimientoISO: string): number {
+  const nacimiento = analizarFechaHora(fechaNacimientoISO)
+  const ahora = hoy()
+  let edad = ahora.getFullYear() - nacimiento.getFullYear()
+  const aunNoCumpleEsteAnio =
+    ahora.getMonth() < nacimiento.getMonth() ||
+    (ahora.getMonth() === nacimiento.getMonth() && ahora.getDate() < nacimiento.getDate())
+  if (aunNoCumpleEsteAnio) edad -= 1
+  return edad
+}
+
+export function diasHasta(iso: string): number {
+  const objetivo = analizarFechaHora(iso.length > 10 ? iso : `${iso}T00:00:00`)
+  const diferenciaMs = objetivo.getTime() - hoy().getTime()
+  return Math.round(diferenciaMs / (1000 * 60 * 60 * 24))
+}
+
+export function inicioMes(fecha: Date): Date {
+  return new Date(fecha.getFullYear(), fecha.getMonth(), 1)
+}
+
+export function finMes(fecha: Date): Date {
+  return new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0)
+}

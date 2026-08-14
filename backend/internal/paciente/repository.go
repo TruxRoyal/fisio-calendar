@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sort"
+	"strings"
 )
 
 type Repository struct {
@@ -14,9 +16,9 @@ func NuevoRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
-const columnasPaciente = `id, nombre, direccion, documento, telefono, diagnostico, eps, tipo_terapia, lat, lng, creado_en, actualizado_en`
+const columnasPaciente = `id, nombre, direccion, documento, telefono, diagnostico, eps, tipo_terapia, lat, lng, fecha_nacimiento, observaciones, color, origen, tarifa_sesion, creado_en, actualizado_en`
 
-const columnasPacientePrefijadas = `p.id, p.nombre, p.direccion, p.documento, p.telefono, p.diagnostico, p.eps, p.tipo_terapia, p.lat, p.lng, p.creado_en, p.actualizado_en`
+const columnasPacientePrefijadas = `p.id, p.nombre, p.direccion, p.documento, p.telefono, p.diagnostico, p.eps, p.tipo_terapia, p.lat, p.lng, p.fecha_nacimiento, p.observaciones, p.color, p.origen, p.tarifa_sesion, p.creado_en, p.actualizado_en`
 
 func (r *Repository) Listar(ctx context.Context, busqueda, mes string) ([]Paciente, error) {
 	consulta := fmt.Sprintf(`SELECT DISTINCT %s FROM paciente p`, columnasPacientePrefijadas)
@@ -109,13 +111,15 @@ func (r *Repository) ObtenerAutorizacionActiva(ctx context.Context, pacienteID i
 
 func (r *Repository) Crear(ctx context.Context, solicitud SolicitudCrearPaciente) (*Paciente, error) {
 	consulta := `
-		INSERT INTO paciente (nombre, direccion, documento, telefono, diagnostico, eps, tipo_terapia, lat, lng)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO paciente (nombre, direccion, documento, telefono, diagnostico, eps, tipo_terapia, lat, lng, fecha_nacimiento, observaciones, color, origen, tarifa_sesion)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	resultado, err := r.db.ExecContext(ctx, consulta,
 		solicitud.Nombre, solicitud.Direccion, solicitud.Documento, solicitud.Telefono,
 		solicitud.Diagnostico, solicitud.EPS, solicitud.TipoTerapia, solicitud.Lat, solicitud.Lng,
+		solicitud.FechaNacimiento, solicitud.Observaciones, solicitud.Color,
+		solicitud.Origen, solicitud.TarifaSesion,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("crear paciente: %w", err)
@@ -133,13 +137,17 @@ func (r *Repository) Actualizar(ctx context.Context, id int64, solicitud Solicit
 	consulta := `
 		UPDATE paciente
 		SET nombre = ?, direccion = ?, documento = ?, telefono = ?, diagnostico = ?,
-			eps = ?, tipo_terapia = ?, lat = ?, lng = ?, actualizado_en = datetime('now')
+			eps = ?, tipo_terapia = ?, lat = ?, lng = ?,
+			fecha_nacimiento = ?, observaciones = ?, color = ?,
+			origen = ?, tarifa_sesion = ?, actualizado_en = datetime('now')
 		WHERE id = ?
 	`
 
 	_, err := r.db.ExecContext(ctx, consulta,
 		solicitud.Nombre, solicitud.Direccion, solicitud.Documento, solicitud.Telefono,
-		solicitud.Diagnostico, solicitud.EPS, solicitud.TipoTerapia, solicitud.Lat, solicitud.Lng, id,
+		solicitud.Diagnostico, solicitud.EPS, solicitud.TipoTerapia, solicitud.Lat, solicitud.Lng,
+		solicitud.FechaNacimiento, solicitud.Observaciones, solicitud.Color,
+		solicitud.Origen, solicitud.TarifaSesion, id,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("actualizar paciente: %w", err)
@@ -156,6 +164,110 @@ func (r *Repository) Eliminar(ctx context.Context, id int64) error {
 	return nil
 }
 
+func (r *Repository) ObtenerCronologia(ctx context.Context, pacienteID int64) ([]EventoCronologia, error) {
+	eventosCitas, err := r.eventosDeCitas(ctx, pacienteID)
+	if err != nil {
+		return nil, err
+	}
+
+	eventosAutorizaciones, err := r.eventosDeAutorizaciones(ctx, pacienteID)
+	if err != nil {
+		return nil, err
+	}
+
+	eventos := append(eventosCitas, eventosAutorizaciones...)
+	sort.Slice(eventos, func(i, j int) bool { return eventos[i].Fecha > eventos[j].Fecha })
+
+	return eventos, nil
+}
+
+func (r *Repository) eventosDeCitas(ctx context.Context, pacienteID int64) ([]EventoCronologia, error) {
+	filas, err := r.db.QueryContext(ctx, `
+		SELECT inicio, estado, valor_sesion, copago_cobrado, notas
+		FROM cita
+		WHERE paciente_id = ? AND estado != 'agendada'
+		ORDER BY inicio DESC
+	`, pacienteID)
+	if err != nil {
+		return nil, fmt.Errorf("listar citas para cronologia: %w", err)
+	}
+	defer filas.Close()
+
+	eventos := []EventoCronologia{}
+	for filas.Next() {
+		var inicio, estado string
+		var valorSesion, copagoCobrado *int
+		var notas *string
+		if err := filas.Scan(&inicio, &estado, &valorSesion, &copagoCobrado, &notas); err != nil {
+			return nil, fmt.Errorf("escanear cita para cronologia: %w", err)
+		}
+
+		switch estado {
+		case "atendida":
+			eventos = append(eventos, EventoCronologia{Tipo: "sesion_atendida", Fecha: inicio, Titulo: "Sesión atendida", Detalle: notas, Monto: valorSesion})
+			if copagoCobrado != nil && *copagoCobrado > 0 {
+				eventos = append(eventos, EventoCronologia{Tipo: "copago", Fecha: inicio, Titulo: "Copago recibido", Monto: copagoCobrado})
+			}
+		case "cancelada":
+			eventos = append(eventos, EventoCronologia{Tipo: "sesion_cancelada", Fecha: inicio, Titulo: "Sesión cancelada", Detalle: notas})
+		}
+	}
+
+	return eventos, filas.Err()
+}
+
+func (r *Repository) eventosDeAutorizaciones(ctx context.Context, pacienteID int64) ([]EventoCronologia, error) {
+	filas, err := r.db.QueryContext(ctx, `
+		SELECT creado_en, sesiones_totales, fecha_vencimiento
+		FROM autorizacion
+		WHERE paciente_id = ?
+		ORDER BY creado_en DESC
+	`, pacienteID)
+	if err != nil {
+		return nil, fmt.Errorf("listar autorizaciones para cronologia: %w", err)
+	}
+	defer filas.Close()
+
+	eventos := []EventoCronologia{}
+	for filas.Next() {
+		var creadoEn string
+		var sesionesTotales int
+		var fechaVencimiento *string
+		if err := filas.Scan(&creadoEn, &sesionesTotales, &fechaVencimiento); err != nil {
+			return nil, fmt.Errorf("escanear autorizacion para cronologia: %w", err)
+		}
+		creadoEn = strings.Replace(creadoEn, " ", "T", 1)
+
+		detalle := "Sin fecha de vencimiento"
+		if fechaVencimiento != nil {
+			detalle = fmt.Sprintf("Vence %s", *fechaVencimiento)
+		}
+		eventos = append(eventos, EventoCronologia{
+			Tipo:    "autorizacion",
+			Fecha:   creadoEn,
+			Titulo:  fmt.Sprintf("Autorización de %d sesiones", sesionesTotales),
+			Detalle: &detalle,
+		})
+	}
+
+	return eventos, filas.Err()
+}
+
+func (r *Repository) ObtenerResumenFinanciero(ctx context.Context, pacienteID int64, anioMes string) (facturado, copagosRecibidos int, err error) {
+	consulta := `
+		SELECT COALESCE(SUM(valor_sesion), 0), COALESCE(SUM(copago_cobrado), 0)
+		FROM cita
+		WHERE paciente_id = ? AND estado = 'atendida' AND strftime('%Y-%m', inicio) = ?
+	`
+
+	err = r.db.QueryRowContext(ctx, consulta, pacienteID, anioMes).Scan(&facturado, &copagosRecibidos)
+	if err != nil {
+		return 0, 0, fmt.Errorf("obtener resumen financiero del paciente: %w", err)
+	}
+
+	return facturado, copagosRecibidos, nil
+}
+
 type escaneable interface {
 	Scan(dest ...any) error
 }
@@ -164,7 +276,8 @@ func escanearPaciente(fila escaneable, p *Paciente) error {
 	return fila.Scan(
 		&p.ID, &p.Nombre, &p.Direccion, &p.Documento, &p.Telefono,
 		&p.Diagnostico, &p.EPS, &p.TipoTerapia, &p.Lat, &p.Lng,
+		&p.FechaNacimiento, &p.Observaciones, &p.Color,
+		&p.Origen, &p.TarifaSesion,
 		&p.CreadoEn, &p.ActualizadoEn,
 	)
 }
-

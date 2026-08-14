@@ -1,7 +1,10 @@
 import { clienteApi } from '../../shared/api/cliente'
 import type {
+  AutorizacionResumen,
+  CapacidadMensual,
   Cita,
   PacienteBusqueda,
+  PacienteParaDrawer,
   RespuestaVerificarChoque,
   SolicitudActualizarCita,
   SolicitudCambiarEstado,
@@ -28,6 +31,21 @@ export const pacientesBusquedaApi = {
     if (busqueda) parametros.set('q', busqueda)
     if (mes) parametros.set('mes', mes)
     const query = parametros.toString()
-    return clienteApi.get<PacienteBusqueda[]>(`/pacientes${query ? `?${query}` : ''}`)
+    const ruta = query ? `/pacientes?${query}` : '/pacientes'
+    return clienteApi.get<PacienteBusqueda[]>(ruta)
   },
+  obtenerParaDrawer: (id: number) => clienteApi.get<PacienteParaDrawer>(`/pacientes/${id}`),
+}
+
+export const autorizacionesResumenApi = {
+  obtenerActiva: async (pacienteId: number): Promise<AutorizacionResumen | null> => {
+    const autorizaciones = await clienteApi.get<(AutorizacionResumen & { activa: boolean })[]>(
+      `/autorizaciones?pacienteId=${pacienteId}`,
+    )
+    return autorizaciones.find((a) => a.activa) ?? null
+  },
+}
+
+export const capacidadApi = {
+  obtener: () => clienteApi.get<CapacidadMensual>('/resumen/capacidad-mensual'),
 }

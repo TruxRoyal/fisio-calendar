@@ -4,6 +4,7 @@ type PacienteResumen struct {
 	ID          int64   `json:"id"`
 	Nombre      string  `json:"nombre"`
 	TipoTerapia *string `json:"tipoTerapia"`
+	Color       *string `json:"color"`
 }
 
 type Cita struct {

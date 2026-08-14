@@ -14,6 +14,8 @@ func RegistrarRutas(h *Handler) httpx.RegistradorRutas {
 			rp.Get("/{id}", h.ObtenerDetalle)
 			rp.Put("/{id}", h.Actualizar)
 			rp.Delete("/{id}", h.Eliminar)
+			rp.Get("/{id}/cronologia", h.ObtenerCronologia)
+			rp.Get("/{id}/resumen-financiero", h.ObtenerResumenFinanciero)
 		})
 	}
 }

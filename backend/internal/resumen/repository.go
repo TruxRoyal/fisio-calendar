@@ -14,22 +14,52 @@ func NuevoRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) ObtenerAgregadoMensual(ctx context.Context, anioMes string) (sesionesAtendidas, pagoNeto, copagosRecaudados int, err error) {
+func (r *Repository) ObtenerAgregadoMensual(ctx context.Context, anioMes string) (sesionesAtendidas, sesionesTrabajo, pagoNeto, copagosRecaudados int, err error) {
 	consulta := `
 		SELECT
 			COUNT(*),
-			COALESCE(SUM(valor_sesion), 0),
-			COALESCE(SUM(copago_cobrado), 0)
+			COALESCE(SUM(CASE WHEN p.origen = 'trabajo' THEN 1 ELSE 0 END), 0),
+			COALESCE(SUM(c.valor_sesion), 0),
+			COALESCE(SUM(c.copago_cobrado), 0)
+		FROM cita c
+		JOIN paciente p ON p.id = c.paciente_id
+		WHERE c.estado = 'atendida' AND strftime('%Y-%m', c.inicio) = ?
+	`
+
+	err = r.db.QueryRowContext(ctx, consulta, anioMes).Scan(&sesionesAtendidas, &sesionesTrabajo, &pagoNeto, &copagosRecaudados)
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("obtener agregado mensual: %w", err)
+	}
+
+	return sesionesAtendidas, sesionesTrabajo, pagoNeto, copagosRecaudados, nil
+}
+
+func (r *Repository) ObtenerCapacidadMensual(ctx context.Context, anioMes string) (minutosEstimados, minutosReales int, err error) {
+	consultaEstimado := `
+		SELECT COALESCE(SUM(
+			MAX(0, a.sesiones_totales - (SELECT COUNT(*) FROM cita c WHERE c.autorizacion_id = a.id AND c.estado = 'atendida'))
+		), 0)
+		FROM autorizacion a
+		WHERE a.activa = 1
+	`
+	var sesionesRestantesTotales int
+	if err = r.db.QueryRowContext(ctx, consultaEstimado).Scan(&sesionesRestantesTotales); err != nil {
+		return 0, 0, fmt.Errorf("obtener sesiones restantes totales: %w", err)
+	}
+	minutosEstimados = sesionesRestantesTotales * DuracionEstimadaMin
+
+	consultaReal := `
+		SELECT COALESCE(SUM((julianday(fin) - julianday(inicio)) * 24 * 60), 0)
 		FROM cita
 		WHERE estado = 'atendida' AND strftime('%Y-%m', inicio) = ?
 	`
-
-	err = r.db.QueryRowContext(ctx, consulta, anioMes).Scan(&sesionesAtendidas, &pagoNeto, &copagosRecaudados)
-	if err != nil {
-		return 0, 0, 0, fmt.Errorf("obtener agregado mensual: %w", err)
+	var minutosRealesFloat float64
+	if err = r.db.QueryRowContext(ctx, consultaReal, anioMes).Scan(&minutosRealesFloat); err != nil {
+		return 0, 0, fmt.Errorf("obtener minutos reales del mes: %w", err)
 	}
+	minutosReales = int(minutosRealesFloat + 0.5)
 
-	return sesionesAtendidas, pagoNeto, copagosRecaudados, nil
+	return minutosEstimados, minutosReales, nil
 }
 
 func (r *Repository) ListarDetalleMensual(ctx context.Context, anioMes string) ([]DetalleSesion, error) {

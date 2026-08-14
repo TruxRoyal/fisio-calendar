@@ -1,9 +1,12 @@
 import type { EstadoCita, TipoTerapia } from '../../shared/types/comun'
 
+export type { EstadoCita }
+
 export interface PacienteResumen {
   id: number
   nombre: string
   tipoTerapia: TipoTerapia | null
+  color: string | null
 }
 
 export interface Cita {
@@ -56,5 +59,43 @@ export interface PacienteBusqueda {
   id: number
   nombre: string
   eps: string | null
+  direccion: string | null
   tipoTerapia: TipoTerapia | null
+  color: string | null
+  origen: 'trabajo' | 'extra'
+}
+
+export interface PacienteParaDrawer {
+  id: number
+  nombre: string
+  direccion: string | null
+  tipoTerapia: TipoTerapia | null
+  color: string | null
+}
+
+export interface AutorizacionResumen {
+  copago: number
+  sesionesRestantes: number
+  fechaVencimiento: string | null
+  alertaVencimiento: boolean
+}
+
+export interface CitaBorrador {
+  id: number
+  pacienteId: number
+  autorizacionId: number | null
+  inicio: string
+  fin: string
+  estado: EstadoCita
+  valorSesion: number | null
+  copagoCobrado: number
+  notas: string | null
+  paciente: { id: number; nombre: string; tipoTerapia: TipoTerapia | null; direccion?: string | null; color?: string | null }
+}
+
+export type VistaCalendario = 'semana' | 'dia' | 'mes'
+
+export interface CapacidadMensual {
+  minutosEstimados: number
+  minutosReales: number
 }

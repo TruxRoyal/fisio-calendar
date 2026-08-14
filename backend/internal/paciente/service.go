@@ -3,6 +3,7 @@ package paciente
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"fisio-backend/internal/shared/validate"
@@ -41,7 +42,10 @@ func (s *Service) ObtenerDetalle(ctx context.Context, id int64) (*PacienteDetall
 }
 
 func (s *Service) Crear(ctx context.Context, solicitud SolicitudCrearPaciente) (*Paciente, validate.Errores, error) {
-	errores := validarSolicitud(solicitud.Nombre, solicitud.TipoTerapia)
+	if solicitud.Origen == "" {
+		solicitud.Origen = "trabajo"
+	}
+	errores := validarSolicitud(solicitud.Nombre, solicitud.TipoTerapia, solicitud.Origen, solicitud.TarifaSesion)
 	if errores.TieneErrores() {
 		return nil, errores, nil
 	}
@@ -58,7 +62,10 @@ func (s *Service) Crear(ctx context.Context, solicitud SolicitudCrearPaciente) (
 }
 
 func (s *Service) Actualizar(ctx context.Context, id int64, solicitud SolicitudActualizarPaciente) (*Paciente, validate.Errores, error) {
-	errores := validarSolicitud(solicitud.Nombre, solicitud.TipoTerapia)
+	if solicitud.Origen == "" {
+		solicitud.Origen = "trabajo"
+	}
+	errores := validarSolicitud(solicitud.Nombre, solicitud.TipoTerapia, solicitud.Origen, solicitud.TarifaSesion)
 	if errores.TieneErrores() {
 		return nil, errores, nil
 	}
@@ -82,6 +89,36 @@ func (s *Service) Actualizar(ctx context.Context, id int64, solicitud SolicitudA
 	return actualizado, nil, nil
 }
 
+func (s *Service) ObtenerCronologia(ctx context.Context, id int64) ([]EventoCronologia, error) {
+	existente, err := s.repo.ObtenerPorID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if existente == nil {
+		return nil, ErrNoEncontrado
+	}
+
+	return s.repo.ObtenerCronologia(ctx, id)
+}
+
+func (s *Service) ObtenerResumenFinanciero(ctx context.Context, id int64, anio, mes int) (*ResumenFinancieroPaciente, error) {
+	existente, err := s.repo.ObtenerPorID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if existente == nil {
+		return nil, ErrNoEncontrado
+	}
+
+	anioMes := fmt.Sprintf("%04d-%02d", anio, mes)
+	facturado, copagosRecibidos, err := s.repo.ObtenerResumenFinanciero(ctx, id, anioMes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ResumenFinancieroPaciente{Anio: anio, Mes: mes, Facturado: facturado, CopagosRecibidos: copagosRecibidos}, nil
+}
+
 func (s *Service) Eliminar(ctx context.Context, id int64) error {
 	existente, err := s.repo.ObtenerPorID(ctx, id)
 	if err != nil {
@@ -94,10 +131,14 @@ func (s *Service) Eliminar(ctx context.Context, id int64) error {
 	return s.repo.Eliminar(ctx, id)
 }
 
-func validarSolicitud(nombre, tipoTerapia string) validate.Errores {
+func validarSolicitud(nombre, tipoTerapia, origen string, tarifaSesion *int) validate.Errores {
 	errores := validate.Nuevo()
 	validate.TextoNoVacio(nombre, "nombre", errores)
 	validate.Enum(tipoTerapia, TiposTerapiaValidos, "tipoTerapia", errores)
+	validate.Enum(origen, OrigenesValidos, "origen", errores)
+	if origen == "extra" && (tarifaSesion == nil || *tarifaSesion <= 0) {
+		errores.Agregar("tarifaSesion", "tarifaSesion es obligatoria y debe ser mayor a cero para pacientes de origen extra")
+	}
 	return errores
 }
 
