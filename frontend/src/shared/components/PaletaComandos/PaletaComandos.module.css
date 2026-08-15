@@ -1,0 +1,20 @@
+.avatar {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  border-radius: 8px;
+  background: var(--s3);
+  color: var(--t2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.eps {
+  margin-left: auto;
+  color: var(--t3);
+  font-size: 12.5px;
+  font-weight: 400;
+}

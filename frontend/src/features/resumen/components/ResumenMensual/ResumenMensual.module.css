@@ -10,11 +10,19 @@
   padding: 28px 32px 64px;
 }
 
+.hero {
+  border-radius: 22px;
+  border: 1px solid var(--acL);
+  box-shadow: 0 1px 2px rgba(28, 20, 34, .04);
+  margin-bottom: 24px;
+}
+
 .filaCabecera {
   display: flex;
   align-items: flex-end;
   gap: 16px;
   flex-wrap: wrap;
+  padding: 26px 28px;
 }
 
 .infoTitulo {
@@ -71,9 +79,193 @@
   margin-top: 24px;
 }
 
+.filaHero {
+  padding: 0 28px 26px;
+}
+
+.etiquetaHero {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.filaValorHero {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.valorHero {
+  font-size: 46px;
+  font-weight: 700;
+  letter-spacing: -.03em;
+  line-height: 1;
+  color: var(--t1);
+}
+
+.deltaHeroPositivo,
+.deltaHeroNegativo {
+  font-size: 13.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.deltaHeroPositivo {
+  color: var(--okFg);
+}
+
+.deltaHeroNegativo {
+  color: var(--dgFg);
+}
+
 .gridCifras {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   margin-top: 20px;
+}
+
+.panelEscalon {
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  border-radius: 15px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 2px rgba(28, 20, 34, .04);
+  margin-top: 14px;
+}
+
+.filaEscalon {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.tituloEscalon {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.subtituloEscalon {
+  font-size: 12.5px;
+  color: var(--t3);
+  margin-top: 2px;
+}
+
+.badgeEscalon {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--okFg);
+  background: var(--okBg);
+  border: 1px solid var(--okBd);
+  border-radius: 99px;
+  padding: 3px 9px;
+  flex-shrink: 0;
+}
+
+.pistaEscalon {
+  height: 6px;
+}
+
+.panelGrafico,
+.panelDesglose {
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  border-radius: 15px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 2px rgba(28, 20, 34, .04);
+  margin-top: 14px;
+}
+
+.tituloPanelGrafico {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.015em;
+  margin-bottom: 4px;
+}
+
+.subtituloPanelGrafico {
+  font-size: 12.5px;
+  color: var(--t3);
+  margin-bottom: 12px;
+}
+
+.listaDesglose {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.filaDesglose {
+  display: flex;
+  gap: 12px;
+}
+
+.avatarDesglose {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 10px;
+  background: var(--s3);
+  color: var(--t2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.infoDesglose {
+  flex: 1;
+  min-width: 0;
+}
+
+.filaNombreDesglose {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.nombreDesglose {
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.valorDesglose {
+  font-size: 13.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.pistaDesglose {
+  height: 5px;
+  border-radius: 99px;
+  background: var(--s3);
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.rellenoDesglose {
+  height: 100%;
+  background: var(--ac);
+  border-radius: 99px;
+}
+
+.notaDesglose {
+  font-size: 11.5px;
+  color: var(--t3);
+  margin-top: 5px;
 }

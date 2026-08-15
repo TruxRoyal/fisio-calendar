@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { CSSProperties, FormEvent } from 'react'
 import { Input } from '../../../../shared/components/Input/Input'
+import { SelectorFecha } from '../../../../shared/components/SelectorFecha/SelectorFecha'
 import { Boton } from '../../../../shared/components/Boton/Boton'
 import { Icono } from '../../../../shared/components/Icono/Icono'
 import { formatearFechaCorta } from '../../../../shared/lib/fecha'
@@ -65,11 +66,10 @@ export function SeccionAutorizacion({ pacienteId, autorizacionActiva, onActualiz
             onChange={(e) => actualizarCampo('copago', Number(e.target.value))}
           />
         </div>
-        <Input
+        <SelectorFecha
           etiqueta="Fecha de vencimiento"
-          type="date"
           value={solicitud.fechaVencimiento ?? ''}
-          onChange={(e) => actualizarCampo('fechaVencimiento', e.target.value)}
+          onChange={(valor) => actualizarCampo('fechaVencimiento', valor)}
         />
         <div className={styles.filaAcciones}>
           <Boton type="button" tamano="sm" variante="secundario" onClick={() => setEditando(false)}>

@@ -1,0 +1,132 @@
+.atmosfera {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+/* Intensidad: controla cuánto se notan la mancha de gradiente y el grano. */
+.suave {
+  --atm-op-mancha: .35;
+  --atm-op-grano: .12;
+  --atm-blur: 52px;
+}
+
+.media {
+  --atm-op-mancha: .55;
+  --atm-op-grano: .18;
+  --atm-blur: 42px;
+}
+
+.intensa {
+  --atm-op-mancha: .78;
+  --atm-op-grano: .24;
+  --atm-blur: 32px;
+}
+
+/* Origen: desde qué esquina "nace" la mancha principal. */
+.superior-derecha {
+  --atm-x: 82%;
+  --atm-y: 6%;
+}
+
+.superior-izquierda {
+  --atm-x: 18%;
+  --atm-y: 6%;
+}
+
+.inferior-derecha {
+  --atm-x: 82%;
+  --atm-y: 94%;
+}
+
+.capaBase {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(135deg, var(--acS) 0%, var(--acS2) 55%, var(--acL) 100%);
+}
+
+/* base="tinta": chip pequeño y saturado (ícono de marca, badges), con el
+   texto/ícono encima en --acFg en vez de los tonos de texto normales. */
+.tinta .capaBase {
+  background: linear-gradient(150deg, var(--ac) 0%, var(--acT) 100%);
+}
+
+.tinta .contenido {
+  color: var(--acFg);
+}
+
+.capaManchas {
+  position: absolute;
+  inset: -25%;
+  z-index: 1;
+  background-image:
+    radial-gradient(ellipse at var(--atm-x) var(--atm-y), color-mix(in srgb, var(--acD) 65%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse at calc(100% - var(--atm-x)) calc(100% - var(--atm-y)), color-mix(in srgb, var(--ac) 38%, transparent) 0%, transparent 50%);
+  filter: blur(var(--atm-blur));
+  opacity: var(--atm-op-mancha);
+}
+
+.capaGrano {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: var(--atm-op-grano);
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.capaParticulas {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.particula {
+  position: absolute;
+  bottom: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--acD) 70%, transparent);
+  filter: blur(.5px);
+  animation-name: atmosferaFlotar;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.particulaAlterna {
+  background: color-mix(in srgb, var(--ac) 55%, transparent);
+}
+
+@keyframes atmosferaFlotar {
+  0% {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+
+  15% {
+    opacity: .55;
+  }
+
+  85% {
+    opacity: .35;
+  }
+
+  100% {
+    transform: translateY(-160px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .particula {
+    animation: none;
+    bottom: 35%;
+    opacity: .25;
+  }
+}
+
+.contenido {
+  position: relative;
+  z-index: 4;
+}

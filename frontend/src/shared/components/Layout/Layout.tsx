@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useTheme } from '../../theme/useTheme'
 import type { IdTema } from '../../theme/paletas'
 import { cn } from '../../lib/clases'
 import { Icono } from '../Icono/Icono'
 import type { NombreIcono } from '../Icono/Icono'
+import { AtmosferaFondo } from '../AtmosferaFondo/AtmosferaFondo'
+import { PaletaComandos } from '../PaletaComandos/PaletaComandos'
 import styles from './Layout.module.css'
 
 const ITEMS_NAV: { ruta: string; etiqueta: string; icono: NombreIcono }[] = [
@@ -28,13 +30,26 @@ export function Layout({ children }: { children: ReactNode }) {
 
 function RailIconos({ rutaActiva }: { rutaActiva: string }) {
   const [paletaAbierta, setPaletaAbierta] = useState(false)
+  const [buscadorAbierto, setBuscadorAbierto] = useState(false)
   const { oscuro, alternarOscuro } = useTheme()
+
+  useEffect(() => {
+    function alPresionarTecla(evento: KeyboardEvent) {
+      if ((evento.metaKey || evento.ctrlKey) && evento.key.toLowerCase() === 'k') {
+        evento.preventDefault()
+        setBuscadorAbierto((actual) => !actual)
+      }
+    }
+
+    document.addEventListener('keydown', alPresionarTecla)
+    return () => document.removeEventListener('keydown', alPresionarTecla)
+  }, [])
 
   return (
     <div className={styles.rail}>
-      <div className={styles.marca}>
+      <AtmosferaFondo intensidad="intensa" base="tinta" origen="superior-derecha" className={styles.marca}>
         <Icono nombre="pulso" tamano={19} grosor={2.1} />
-      </div>
+      </AtmosferaFondo>
 
       {ITEMS_NAV.map((item) => {
         const activo = rutaActiva.startsWith(item.ruta)
@@ -49,12 +64,23 @@ function RailIconos({ rutaActiva }: { rutaActiva: string }) {
 
       <button
         type="button"
+        onClick={() => setBuscadorAbierto(true)}
+        title="Buscar (Ctrl/Cmd + K)"
+        className={styles.botonUtilidad}
+      >
+        <Icono nombre="buscar" tamano={19} grosor={1.9} />
+      </button>
+
+      <button
+        type="button"
         onClick={alternarOscuro}
         title={oscuro ? 'Modo claro' : 'Modo oscuro'}
         className={styles.botonUtilidad}
       >
         <Icono nombre={oscuro ? 'sol' : 'luna'} tamano={19} grosor={1.9} />
       </button>
+
+      <PaletaComandos abierta={buscadorAbierto} onCerrar={() => setBuscadorAbierto(false)} />
 
       <div className={styles.contenedorPaleta}>
         <button

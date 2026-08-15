@@ -8,8 +8,14 @@
   overflow: hidden;
 }
 
+.heroEncabezado {
+  margin: 16px 20px 18px;
+  border-radius: 18px;
+  border: 1px solid var(--acL);
+}
+
 .encabezado {
-  padding: 20px 20px 16px;
+  padding: 18px 18px 16px;
 }
 
 .etiquetaHoy {
@@ -32,11 +38,11 @@
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
-  padding: 0 20px 16px;
+  margin-top: 12px;
 }
 
 .tarjetaEstadistica {
-  background: var(--s2);
+  background: var(--s1Blur, var(--s1));
   border: 1px solid var(--bd);
   border-radius: 12px;
   padding: 10px 11px;
@@ -160,16 +166,6 @@
   color: var(--t3);
 }
 
-.badgeMinutos {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--acT);
-  background: var(--acS);
-  padding: 2px 8px;
-  border-radius: 99px;
-  font-variant-numeric: tabular-nums;
-}
-
 .filaProximaPaciente {
   display: flex;
   align-items: center;
@@ -218,29 +214,6 @@
   gap: 6px;
   margin-top: 10px;
   flex-wrap: wrap;
-}
-
-.badgeAlerta {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--wrFg);
-  background: var(--wrBg);
-  border: 1px solid var(--wrBd);
-  padding: 3px 8px;
-  border-radius: 7px;
-}
-
-.badgeSesiones {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--t3);
-  background: var(--s3);
-  border: 1px solid var(--bd);
-  padding: 3px 8px;
-  border-radius: 7px;
 }
 
 .vacioProxima {
@@ -373,17 +346,6 @@
   color: var(--t3);
 }
 
-.badgeExtra {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .03em;
-  text-transform: uppercase;
-  color: var(--acT);
-  background: var(--acS);
-  border-radius: 99px;
-  padding: 1px 6px;
-  flex-shrink: 0;
-}
 
 .subtituloPaciente {
   font-size: 12.5px;
@@ -392,6 +354,49 @@
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 1px;
+}
+
+.filaSesiones {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--t3);
+  font-variant-numeric: tabular-nums;
+  margin-top: 3px;
+}
+
+.puntoRitmo {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--t3);
+  flex-shrink: 0;
+}
+
+.ritmoBien {
+  color: var(--okFg);
+}
+
+.ritmoBien .puntoRitmo {
+  background: var(--okFg);
+}
+
+.ritmoAtencion {
+  color: var(--wrFg);
+}
+
+.ritmoAtencion .puntoRitmo {
+  background: var(--wrIc);
+}
+
+.ritmoAtrasada {
+  color: var(--dgFg);
+}
+
+.ritmoAtrasada .puntoRitmo {
+  background: var(--dgFg);
 }
 
 .vacioLista {

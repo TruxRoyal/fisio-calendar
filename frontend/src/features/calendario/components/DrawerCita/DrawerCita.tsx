@@ -1,11 +1,22 @@
 import type { CSSProperties } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { es } from 'date-fns/locale'
 import { autorizacionesResumenApi, pacientesBusquedaApi } from '../../api'
-import { combinarFechaHora, diferenciaMinutos, formatearFechaCorta, sumarMinutos } from '../../../../shared/lib/fecha'
+import {
+  analizarFechaHora,
+  combinarFechaHora,
+  diferenciaMinutos,
+  formatearFechaCorta,
+  formatearFechaISO,
+  sumarMinutos,
+} from '../../../../shared/lib/fecha'
 import { formatearCOP, formatearMiles } from '../../../../shared/lib/moneda'
 import { Boton } from '../../../../shared/components/Boton/Boton'
 import { Icono } from '../../../../shared/components/Icono/Icono'
+import { Calendar } from '../../../../shared/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '../../../../shared/components/ui/popover'
+import { SelectorHora } from '../../../../shared/components/SelectorHora/SelectorHora'
 import { cn } from '../../../../shared/lib/clases'
 import { ETIQUETA_TIPO_TERAPIA } from '../../../../shared/types/comun'
 import type { AutorizacionResumen, CitaBorrador, EstadoCita, PacienteBusqueda, PacienteParaDrawer } from '../../types'
@@ -43,6 +54,7 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
   const [resultadosPaciente, setResultadosPaciente] = useState<PacienteBusqueda[]>([])
   const [creando, setCreando] = useState(false)
   const [guardadoVisible, setGuardadoVisible] = useState(false)
+  const [selectorFechaAbierto, setSelectorFechaAbierto] = useState(false)
 
   const listo = useRef(false)
   const listoCopago = useRef(false)
@@ -75,7 +87,9 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
     if (esNueva) return
     if (!listo.current) {
       listo.current = true
-      return
+      return () => {
+        listo.current = false
+      }
     }
     const inicioActual = combinarFechaHora(fecha, horaInicio)
     const temporizador = setTimeout(async () => {
@@ -90,7 +104,9 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
     if (esNueva) return
     if (!listoCopago.current) {
       listoCopago.current = true
-      return
+      return () => {
+        listoCopago.current = false
+      }
     }
     const temporizador = setTimeout(async () => {
       await onActualizarCopago(cita.id, copago)
@@ -182,10 +198,29 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
           <TituloSeccion texto="Cuándo" />
           <div className={styles.filaCuando}>
             <Icono nombre="calendario" tamano={16} grosor={1.9} className={styles.iconoMuted} />
-            <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className={styles.inputFecha} />
+            <Popover open={selectorFechaAbierto} onOpenChange={setSelectorFechaAbierto}>
+              <PopoverTrigger asChild>
+                <button type="button" className={styles.inputFecha}>
+                  {formatearFechaCorta(`${fecha}T00:00:00`)}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  locale={es}
+                  selected={analizarFechaHora(fecha)}
+                  defaultMonth={analizarFechaHora(fecha)}
+                  onSelect={(dia) => {
+                    if (!dia) return
+                    setFecha(formatearFechaISO(dia))
+                    setSelectorFechaAbierto(false)
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
             <div className={styles.espaciador} />
             <Icono nombre="reloj" tamano={16} grosor={1.9} className={styles.iconoMuted} />
-            <input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} className={styles.inputHora} />
+            <SelectorHora value={horaInicio} onChange={setHoraInicio} className={styles.inputHora} />
           </div>
           <div className={styles.filaDuraciones}>
             {DURACIONES.map((min) => {

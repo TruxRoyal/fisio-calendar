@@ -2,6 +2,17 @@ import type { CSSProperties } from 'react'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Icono } from '../../../../shared/components/Icono/Icono'
+import { Boton } from '../../../../shared/components/Boton/Boton'
+import { AtmosferaFondo } from '../../../../shared/components/AtmosferaFondo/AtmosferaFondo'
+import { Badge } from '../../../../shared/components/ui/badge'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '../../../../shared/components/ui/breadcrumb'
 import { TIPO_TERAPIA_COLOR } from '../../../../shared/theme/paletas'
 import { cn } from '../../../../shared/lib/clases'
 import { usePacientes } from '../../hooks/usePacientes'
@@ -14,6 +25,7 @@ export function PaginaPacientes() {
   const { pacientes, busqueda, buscar } = usePacientes()
   const seleccionado = usePacientesStore((estado) => estado.seleccionado)
   const seleccionarPaciente = usePacientesStore((estado) => estado.seleccionarPaciente)
+  const limpiarSeleccion = usePacientesStore((estado) => estado.limpiarSeleccion)
   const crearPaciente = usePacientesStore((estado) => estado.crearPaciente)
   const [formularioAbierto, setFormularioAbierto] = useState(false)
   const [parametros] = useSearchParams()
@@ -21,6 +33,7 @@ export function PaginaPacientes() {
   useEffect(() => {
     const idParametro = parametros.get('paciente')
     if (idParametro) seleccionarPaciente(Number(idParametro))
+    if (parametros.get('nuevo')) setFormularioAbierto(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parametros])
 
@@ -72,7 +85,7 @@ export function PaginaPacientes() {
                         className={styles.iconoTipoPaciente}
                       />
                     )}
-                    {paciente.origen === 'extra' && <span className={styles.badgeExtra}>Extra</span>}
+                    {paciente.origen === 'extra' && <Badge variant="accent">Extra</Badge>}
                   </div>
                   <div className={styles.subtituloPaciente}>{paciente.eps ?? 'Particular'}</div>
                 </div>
@@ -84,9 +97,37 @@ export function PaginaPacientes() {
 
       <div className={styles.panelDetalle}>
         {seleccionado ? (
-          <FichaPaciente paciente={seleccionado} />
+          <>
+            <Breadcrumb className={styles.migas}>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <button type="button" onClick={limpiarSeleccion}>
+                      Pacientes
+                    </button>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{seleccionado.nombre}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+            <FichaPaciente paciente={seleccionado} />
+          </>
         ) : (
-          <p className={styles.mensajeVacio}>Selecciona un paciente de la lista o crea uno nuevo.</p>
+          <AtmosferaFondo intensidad="suave" origen="inferior-derecha" className={styles.vacioFondo}>
+            <div className={styles.vacioContenido}>
+              <div className={styles.vacioIcono}>
+                <Icono nombre="paciente" tamano={22} grosor={1.6} />
+              </div>
+              <p className={styles.mensajeVacio}>Selecciona un paciente de la lista o crea uno nuevo.</p>
+              <Boton variante="primario" onClick={() => setFormularioAbierto(true)}>
+                <Icono nombre="mas" tamano={16} grosor={2} />
+                Nuevo paciente
+              </Boton>
+            </div>
+          </AtmosferaFondo>
         )}
       </div>
 

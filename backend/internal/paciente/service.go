@@ -20,7 +20,7 @@ func NuevoService(repo *Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Listar(ctx context.Context, busqueda, mes string) ([]Paciente, error) {
+func (s *Service) Listar(ctx context.Context, busqueda, mes string) ([]PacienteDetalle, error) {
 	return s.repo.Listar(ctx, busqueda, mes)
 }
 

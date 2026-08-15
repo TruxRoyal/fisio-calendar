@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Modal } from '../../../../shared/components/Modal/Modal'
 import { Input, TextArea } from '../../../../shared/components/Input/Input'
+import { SelectorFecha } from '../../../../shared/components/SelectorFecha/SelectorFecha'
 import { Boton } from '../../../../shared/components/Boton/Boton'
 import { Icono } from '../../../../shared/components/Icono/Icono'
 import { COLORES_PACIENTE } from '../../../../shared/theme/paletas'
@@ -85,11 +86,10 @@ export function FormularioPaciente({ abierto, pacienteInicial, onCerrar, onGuard
       <form onSubmit={alEnviar} className={styles.formulario}>
         <Input etiqueta="Nombre completo" value={solicitud.nombre} onChange={(e) => actualizarCampo('nombre', e.target.value)} required />
         <div className={styles.filaCampos}>
-          <Input
+          <SelectorFecha
             etiqueta="Fecha de nacimiento"
-            type="date"
             value={solicitud.fechaNacimiento ?? ''}
-            onChange={(e) => actualizarCampo('fechaNacimiento', e.target.value)}
+            onChange={(valor) => actualizarCampo('fechaNacimiento', valor)}
           />
           <Input etiqueta="Teléfono" value={solicitud.telefono ?? ''} onChange={(e) => actualizarCampo('telefono', e.target.value)} />
         </div>

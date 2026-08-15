@@ -26,6 +26,7 @@ type AutorizacionResumen struct {
 	SesionesUsadas    int     `json:"sesionesUsadas"`
 	SesionesRestantes int     `json:"sesionesRestantes"`
 	FechaVencimiento  *string `json:"fechaVencimiento"`
+	CreadoEn          string  `json:"creadoEn"`
 	Activa            bool    `json:"activa"`
 }
 
