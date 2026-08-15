@@ -10,6 +10,7 @@ import { SeccionAutorizacion } from '../SeccionAutorizacion/SeccionAutorizacion'
 import { formatearCOP } from '../../../../shared/lib/moneda'
 import { calcularEdad, diasHasta, formatearFechaCorta, formatearMesAnio } from '../../../../shared/lib/fecha'
 import { cn } from '../../../../shared/lib/clases'
+import { ETIQUETA_TIPO_TERAPIA } from '../../../../shared/types/comun'
 import type { Autorizacion, EventoCronologia, PacienteDetalle, ResumenFinancieroPaciente } from '../../types'
 import styles from './FichaPaciente.module.css'
 
@@ -136,7 +137,13 @@ export function FichaPaciente({ paciente }: PropiedadesFichaPaciente) {
             nota="Por sesión, en efectivo"
           />
         )}
-        <TarjetaStat icono="pulso" etiqueta="Terapia" valorGrande={paciente.tipoTerapia ?? '—'} capitalizar nota={paciente.eps ?? 'Particular'} />
+        <TarjetaStat
+          icono="pulso"
+          etiqueta="Terapia"
+          valorGrande={paciente.tipoTerapia ? ETIQUETA_TIPO_TERAPIA[paciente.tipoTerapia] : '—'}
+          textoLargo
+          nota={paciente.eps ?? 'Particular'}
+        />
       </div>
 
       <SeccionAutorizacion
@@ -242,7 +249,7 @@ function TarjetaStat({
   barraPct,
   nota,
   alerta,
-  capitalizar,
+  textoLargo,
 }: {
   icono: NombreIcono
   etiqueta: string
@@ -251,7 +258,7 @@ function TarjetaStat({
   barraPct?: number
   nota: string
   alerta?: boolean
-  capitalizar?: boolean
+  textoLargo?: boolean
 }) {
   return (
     <div className={cn(styles.tarjetaStat, alerta && styles.alerta)}>
@@ -259,7 +266,7 @@ function TarjetaStat({
         <Icono nombre={icono} tamano={12} grosor={2} />
         {etiqueta}
       </div>
-      <div className={cn(styles.valorGrandeStat, alerta && styles.alerta, capitalizar && styles.capitalizar)}>
+      <div className={cn(styles.valorGrandeStat, alerta && styles.alerta, textoLargo && styles.textoLargo)}>
         {valorGrande}
         {valorChico && <span className={cn(styles.valorChicoStat, alerta && styles.alerta)}>{valorChico}</span>}
       </div>

@@ -151,8 +151,8 @@
   color: var(--wrFg);
 }
 
-.valorGrandeStat.capitalizar {
-  text-transform: capitalize;
+.valorGrandeStat.textoLargo {
+  font-size: 18px;
 }
 
 .valorChicoStat {

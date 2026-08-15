@@ -19,7 +19,7 @@ function solicitudVacia(pacienteId: number): SolicitudCrearAutorizacion {
 }
 
 export function SeccionAutorizacion({ pacienteId, autorizacionActiva, onActualizado }: PropiedadesSeccionAutorizacion) {
-  const [editando, setEditando] = useState(false)
+  const [editando, setEditando] = useState(!autorizacionActiva)
   const [solicitud, setSolicitud] = useState<SolicitudCrearAutorizacion>(solicitudVacia(pacienteId))
   const [guardando, setGuardando] = useState(false)
 

@@ -1,4 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(:root[data-oscuro='true'] *));
 
 :root {
   --fuente: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
@@ -35,6 +39,7 @@
   --sb: #E2DEE6;
   --sbH: #CDC7D2;
   --acFg: #FFFFFF;
+  --radius: 0.75rem;
 }
 
 :root[data-oscuro='true'] {
@@ -70,6 +75,59 @@
   --sb: #3B3444;
   --sbH: #4C4457;
   --acFg: #221A26;
+}
+
+/*
+ * Puente entre los tokens semánticos de shadcn/ui y las variables de tema
+ * ya existentes en este archivo (definidas arriba, incl. el acento dinámico
+ * que ThemeProvider.tsx escribe en tiempo de ejecución). No se define una
+ * paleta nueva: todo apunta a las variables `--*` de siempre.
+ */
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--bg);
+  --color-foreground: var(--t1);
+
+  --color-card: var(--s1);
+  --color-card-foreground: var(--t1);
+  --color-popover: var(--s1);
+  --color-popover-foreground: var(--t1);
+
+  --color-primary: var(--ac);
+  --color-primary-foreground: var(--acFg);
+  --color-secondary: var(--s3);
+  --color-secondary-foreground: var(--t2);
+
+  --color-muted: var(--s2);
+  --color-muted-foreground: var(--t3);
+  --color-accent: var(--s3);
+  --color-accent-foreground: var(--t1);
+
+  --color-destructive: var(--dgFg);
+  --color-destructive-foreground: #FFFFFF;
+
+  --color-border: var(--bd);
+  --color-input: var(--bd2);
+  --color-ring: var(--ac);
+
+  --color-chart-1: var(--ac);
+  --color-chart-2: var(--okFg);
+  --color-chart-3: var(--wrFg);
+  --color-chart-4: var(--dgFg);
+  --color-chart-5: var(--t3);
+
+  --color-sidebar: var(--s2);
+  --color-sidebar-foreground: var(--t2);
+  --color-sidebar-primary: var(--ac);
+  --color-sidebar-primary-foreground: var(--acFg);
+  --color-sidebar-accent: var(--s3);
+  --color-sidebar-accent-foreground: var(--t1);
+  --color-sidebar-border: var(--bd);
+  --color-sidebar-ring: var(--ac);
 }
 
 * {

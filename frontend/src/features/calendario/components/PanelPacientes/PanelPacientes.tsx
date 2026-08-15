@@ -15,6 +15,7 @@ import { TIPO_TERAPIA_COLOR } from '../../../../shared/theme/paletas'
 import { cn } from '../../../../shared/lib/clases'
 import type { AutorizacionResumen, CapacidadMensual, Cita, PacienteBusqueda } from '../../types'
 import type { TipoTerapia } from '../../../../shared/types/comun'
+import { ETIQUETA_TIPO_TERAPIA } from '../../../../shared/types/comun'
 import styles from './PanelPacientes.module.css'
 
 interface PropiedadesPanelPacientes {
@@ -142,8 +143,8 @@ export function PanelPacientes({ onSeleccionarPaciente, onIniciarArrastrePacient
         {(
           [
             { id: 'todos', label: 'Todos' },
-            { id: 'respiratoria', label: 'Respiratoria' },
-            { id: 'fisica', label: 'Física' },
+            { id: 'respiratoria', label: ETIQUETA_TIPO_TERAPIA.respiratoria },
+            { id: 'fisica', label: ETIQUETA_TIPO_TERAPIA.fisica },
           ] as { id: Filtro; label: string }[]
         ).map((f) => {
           const activo = filtro === f.id

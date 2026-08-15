@@ -8,6 +8,7 @@ import { COLORES_PACIENTE } from '../../../../shared/theme/paletas'
 import { cn } from '../../../../shared/lib/clases'
 import type { OrigenPaciente, Paciente, SolicitudPaciente } from '../../types'
 import type { TipoTerapia } from '../../../../shared/types/comun'
+import { ETIQUETA_TIPO_TERAPIA } from '../../../../shared/types/comun'
 import styles from './FormularioPaciente.module.css'
 
 interface PropiedadesFormularioPaciente {
@@ -105,9 +106,9 @@ export function FormularioPaciente({ abierto, pacienteInicial, onCerrar, onGuard
                 type="button"
                 key={tipo}
                 onClick={() => actualizarCampo('tipoTerapia', tipo)}
-                className={cn(styles.chip, styles.capitalizar, solicitud.tipoTerapia === tipo && styles.activo)}
+                className={cn(styles.chip, solicitud.tipoTerapia === tipo && styles.activo)}
               >
-                {tipo}
+                {ETIQUETA_TIPO_TERAPIA[tipo]}
               </button>
             ))}
           </div>

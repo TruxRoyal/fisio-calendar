@@ -75,6 +75,7 @@ export interface PacienteParaDrawer {
 
 export interface AutorizacionResumen {
   copago: number
+  sesionesTotales: number
   sesionesRestantes: number
   fechaVencimiento: string | null
   alertaVencimiento: boolean

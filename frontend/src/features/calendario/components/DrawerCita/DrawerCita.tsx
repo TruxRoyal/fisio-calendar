@@ -2,22 +2,16 @@ import type { CSSProperties } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { autorizacionesResumenApi, pacientesBusquedaApi } from '../../api'
-import {
-  combinarFechaHora,
-  diferenciaMinutos,
-  formatearDiaSemana,
-  formatearFechaCorta,
-  formatearHora,
-  sumarMinutos,
-} from '../../../../shared/lib/fecha'
-import { formatearCOP } from '../../../../shared/lib/moneda'
+import { combinarFechaHora, diferenciaMinutos, formatearFechaCorta, sumarMinutos } from '../../../../shared/lib/fecha'
+import { formatearCOP, formatearMiles } from '../../../../shared/lib/moneda'
 import { Boton } from '../../../../shared/components/Boton/Boton'
 import { Icono } from '../../../../shared/components/Icono/Icono'
 import { cn } from '../../../../shared/lib/clases'
-import type { AutorizacionResumen, CitaBorrador, EstadoCita, PacienteParaDrawer } from '../../types'
+import { ETIQUETA_TIPO_TERAPIA } from '../../../../shared/types/comun'
+import type { AutorizacionResumen, CitaBorrador, EstadoCita, PacienteBusqueda, PacienteParaDrawer } from '../../types'
 import styles from './DrawerCita.module.css'
 
-const DURACIONES = [30, 60, 90]
+const DURACIONES = [30, 45, 60, 90]
 const ESTADOS: { valor: EstadoCita; etiqueta: string; icono: 'reloj' | 'check' | 'cerrar' }[] = [
   { valor: 'agendada', etiqueta: 'Pendiente', icono: 'reloj' },
   { valor: 'atendida', etiqueta: 'Hecha', icono: 'check' },
@@ -38,24 +32,39 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
   const navegar = useNavigate()
 
   const [duracion, setDuracion] = useState(diferenciaMinutos(cita.inicio, cita.fin))
+  const [fecha, setFecha] = useState(() => cita.inicio.slice(0, 10))
+  const [horaInicio, setHoraInicio] = useState(() => cita.inicio.slice(11, 16))
   const [notas, setNotas] = useState(cita.notas ?? '')
   const [copago, setCopago] = useState(cita.copagoCobrado)
   const [autorizacion, setAutorizacion] = useState<AutorizacionResumen | null>(null)
   const [pacienteCompleto, setPacienteCompleto] = useState<PacienteParaDrawer | null>(null)
+  const [pacienteElegido, setPacienteElegido] = useState<PacienteBusqueda | null>(null)
+  const [busquedaPaciente, setBusquedaPaciente] = useState('')
+  const [resultadosPaciente, setResultadosPaciente] = useState<PacienteBusqueda[]>([])
   const [creando, setCreando] = useState(false)
   const [guardadoVisible, setGuardadoVisible] = useState(false)
 
   const listo = useRef(false)
   const listoCopago = useRef(false)
 
+  const pacienteInfo = !cita.pacienteId && pacienteElegido
+    ? { id: pacienteElegido.id, nombre: pacienteElegido.nombre, tipoTerapia: pacienteElegido.tipoTerapia, direccion: pacienteElegido.direccion, color: pacienteElegido.color }
+    : cita.paciente
+  const pacienteIdActivo = cita.pacienteId || pacienteElegido?.id || 0
+
   useEffect(() => {
-    if (cita.pacienteId) autorizacionesResumenApi.obtenerActiva(cita.pacienteId).then(setAutorizacion)
-  }, [cita.pacienteId])
+    if (pacienteIdActivo) autorizacionesResumenApi.obtenerActiva(pacienteIdActivo).then(setAutorizacion)
+  }, [pacienteIdActivo])
 
   useEffect(() => {
     if (!esNueva && cita.pacienteId) pacientesBusquedaApi.obtenerParaDrawer(cita.pacienteId).then(setPacienteCompleto)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cita.id])
+
+  useEffect(() => {
+    if (!esNueva || pacienteIdActivo) return
+    pacientesBusquedaApi.listar(busquedaPaciente).then(setResultadosPaciente)
+  }, [esNueva, pacienteIdActivo, busquedaPaciente])
 
   function mostrarGuardado() {
     setGuardadoVisible(true)
@@ -68,13 +77,14 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
       listo.current = true
       return
     }
+    const inicioActual = combinarFechaHora(fecha, horaInicio)
     const temporizador = setTimeout(async () => {
-      await onGuardarCampos(cita.id, { inicio: cita.inicio, fin: sumarMinutos(cita.inicio, duracion), notas: notas || null })
+      await onGuardarCampos(cita.id, { inicio: inicioActual, fin: sumarMinutos(inicioActual, duracion), notas: notas || null })
       mostrarGuardado()
     }, 700)
     return () => clearTimeout(temporizador)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [duracion, notas])
+  }, [duracion, notas, fecha, horaInicio])
 
   useEffect(() => {
     if (esNueva) return
@@ -93,14 +103,18 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
   async function alCrear() {
     setCreando(true)
     try {
-      await onCrear({ pacienteId: cita.pacienteId, inicio: cita.inicio, fin: sumarMinutos(cita.inicio, duracion) })
+      const inicioActual = combinarFechaHora(fecha, horaInicio)
+      await onCrear({ pacienteId: pacienteIdActivo, inicio: inicioActual, fin: sumarMinutos(inicioActual, duracion) })
     } finally {
       setCreando(false)
     }
   }
 
-  const direccion = pacienteCompleto?.direccion ?? cita.paciente.direccion
+  const direccion = pacienteCompleto?.direccion ?? pacienteInfo.direccion
   const epsPaga = cita.valorSesion !== null ? cita.valorSesion - copago : null
+  const porcentajeSesiones = autorizacion
+    ? Math.min(100, Math.round(((autorizacion.sesionesTotales - autorizacion.sesionesRestantes) / Math.max(1, autorizacion.sesionesTotales)) * 100))
+    : 0
 
   return (
     <>
@@ -111,17 +125,17 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
             <div
               className={styles.avatar}
               style={
-                cita.paciente.color
-                  ? ({ '--avatar-bg': `${cita.paciente.color}22`, '--avatar-fg': cita.paciente.color } as CSSProperties)
+                pacienteInfo.color
+                  ? ({ '--avatar-bg': `${pacienteInfo.color}22`, '--avatar-fg': pacienteInfo.color } as CSSProperties)
                   : undefined
               }
             >
-              {cita.paciente.nombre ? cita.paciente.nombre.slice(0, 2).toUpperCase() : '—'}
+              {pacienteInfo.nombre ? pacienteInfo.nombre.slice(0, 2).toUpperCase() : '—'}
             </div>
             <div className={styles.infoCabecera}>
-              <div className={styles.nombreTitulo}>{cita.paciente.nombre || 'Selecciona un paciente'}</div>
+              <div className={styles.nombreTitulo}>{pacienteInfo.nombre || 'Selecciona un paciente'}</div>
               <div className={styles.subtitulo}>
-                <span className={styles.tipoTerapia}>{cita.paciente.tipoTerapia ?? '—'}</span> · {duracion} min
+                {pacienteInfo.tipoTerapia ? ETIQUETA_TIPO_TERAPIA[pacienteInfo.tipoTerapia] : '—'} · {duracion} min
               </div>
             </div>
             {guardadoVisible && (
@@ -134,16 +148,44 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
               <Icono nombre="cerrar" tamano={17} grosor={2.1} />
             </button>
           </div>
+
+          {esNueva && !pacienteIdActivo && (
+            <div className={styles.buscadorPaciente}>
+              <div className={styles.contenedorBusquedaPaciente}>
+                <Icono nombre="buscar" tamano={15} className={styles.iconoBusquedaPaciente} />
+                <input
+                  autoFocus
+                  value={busquedaPaciente}
+                  onChange={(e) => setBusquedaPaciente(e.target.value)}
+                  placeholder="Buscar paciente para agendar…"
+                  className={styles.inputBusquedaPaciente}
+                />
+              </div>
+              {resultadosPaciente.length > 0 && (
+                <div className={styles.listaResultados}>
+                  {resultadosPaciente.map((p) => (
+                    <button type="button" key={p.id} className={styles.itemResultado} onClick={() => setPacienteElegido(p)}>
+                      <span className={styles.nombreResultado}>{p.nombre}</span>
+                      <span className={styles.subResultado}>{p.eps ?? 'Particular'}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {busquedaPaciente && resultadosPaciente.length === 0 && (
+                <p className={styles.sinResultados}>No se encontraron pacientes</p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className={styles.cuerpo}>
           <TituloSeccion texto="Cuándo" />
           <div className={styles.filaCuando}>
             <Icono nombre="calendario" tamano={16} grosor={1.9} className={styles.iconoMuted} />
-            <span>{formatearDiaSemana(cita.inicio, false)}, {formatearFechaCorta(cita.inicio)}</span>
+            <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className={styles.inputFecha} />
             <div className={styles.espaciador} />
             <Icono nombre="reloj" tamano={16} grosor={1.9} className={styles.iconoMuted} />
-            <span className={styles.horaTexto}>{formatearHora(cita.inicio)}</span>
+            <input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} className={styles.inputHora} />
           </div>
           <div className={styles.filaDuraciones}>
             {DURACIONES.map((min) => {
@@ -189,7 +231,12 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
               <div className={styles.tarjeta}>
                 <div className={styles.filaTarjeta}>
                   <span className={styles.etiqueta}>Sesiones restantes</span>
-                  <span className={styles.valorSesionesRestantes}>{autorizacion.sesionesRestantes}</span>
+                  <span className={styles.valorSesionesRestantes}>
+                    {autorizacion.sesionesRestantes} de {autorizacion.sesionesTotales}
+                  </span>
+                </div>
+                <div className={styles.pistaSesiones}>
+                  <div className={styles.rellenoSesiones} style={{ '--ancho': `${porcentajeSesiones}%` } as CSSProperties} />
                 </div>
                 {autorizacion.fechaVencimiento && (
                   <div className={cn(styles.filaTarjeta, styles.filaDividida)}>
@@ -216,10 +263,13 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
                 <div className={cn(styles.filaTarjeta, styles.filaCopago)}>
                   <span className={styles.etiqueta}>Copago en efectivo</span>
                   <input
-                    type="number"
-                    min={0}
-                    value={copago}
-                    onChange={(e) => setCopago(Number(e.target.value))}
+                    type="text"
+                    inputMode="numeric"
+                    value={`$ ${formatearMiles(copago)}`}
+                    onChange={(e) => {
+                      const digitos = e.target.value.replace(/\D/g, '')
+                      setCopago(digitos ? Number(digitos) : 0)
+                    }}
                     className={styles.inputCopago}
                   />
                 </div>
@@ -253,8 +303,8 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
         </div>
 
         <div className={styles.piePagina}>
-          {!esNueva && (
-            <Boton variante="secundario" onClick={() => navegar(`/pacientes?paciente=${cita.pacienteId}`)}>
+          {!!pacienteIdActivo && (
+            <Boton variante="secundario" onClick={() => navegar(`/pacientes?paciente=${pacienteIdActivo}`)}>
               Ver ficha
             </Boton>
           )}
@@ -265,7 +315,7 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
             </button>
           )}
           {esNueva ? (
-            <Boton variante="primario" onClick={alCrear} disabled={creando || !cita.pacienteId}>
+            <Boton variante="primario" onClick={alCrear} disabled={creando || !pacienteIdActivo}>
               {creando ? 'Agendando…' : 'Agendar cita'}
             </Boton>
           ) : (
