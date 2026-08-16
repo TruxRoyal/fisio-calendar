@@ -23,7 +23,7 @@
 .infoTitulo {
   flex: 1;
   min-width: 0;
-  animation: entradaContenido .2s ease-out;
+  animation: entrada-contenido .2s ease-out;
 }
 
 .etiqueta {
@@ -302,10 +302,10 @@
   flex: 1;
   overflow-y: auto;
   padding: 14px 16px 96px;
-  animation: entradaContenido .22s ease-out;
+  animation: entrada-contenido .22s ease-out;
 }
 
-@keyframes entradaContenido {
+@keyframes entrada-contenido {
   from {
     opacity: 0;
     transform: translateY(6px);
@@ -477,6 +477,18 @@
   padding: 48px 16px;
   text-align: center;
   font-size: 13.5px;
+}
+
+.botonReintentar {
+  height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--bd);
+  background: var(--s1);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t2);
+  cursor: pointer;
 }
 
 .botonAgregar {

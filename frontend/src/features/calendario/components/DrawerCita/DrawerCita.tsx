@@ -35,7 +35,7 @@ interface PropiedadesDrawerCita {
   cita: CitaBorrador
   onCerrar: () => void
   onCrear: (solicitud: { pacienteId: number; inicio: string; fin: string; notas?: string | null }) => Promise<boolean>
-  onGuardarCampos: (id: number, cambios: { inicio: string; fin: string; notas: string | null }) => Promise<void>
+  onGuardarCampos: (id: number, cambios: { inicio: string; fin: string; notas: string | null }) => Promise<boolean>
   onCambiarEstado: (estado: EstadoCita) => Promise<void>
   onActualizarCopago: (id: number, copago: number) => Promise<void>
 }
@@ -107,8 +107,8 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
     }
     const inicioActual = combinarFechaHora(fecha, horaInicio)
     const temporizador = setTimeout(async () => {
-      await onGuardarCampos(cita.id, { inicio: inicioActual, fin: sumarMinutos(inicioActual, duracion), notas: notas || null })
-      mostrarGuardado()
+      const guardado = await onGuardarCampos(cita.id, { inicio: inicioActual, fin: sumarMinutos(inicioActual, duracion), notas: notas || null })
+      if (guardado) mostrarGuardado()
     }, 700)
     return () => clearTimeout(temporizador)
     // eslint-disable-next-line react-hooks/exhaustive-deps

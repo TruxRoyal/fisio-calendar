@@ -78,7 +78,10 @@ export function DialogoConfirmacion({
           {descripcion && <AlertDialogDescription>{descripcion}</AlertDialogDescription>}
         </AlertDialogHeader>
         {error && (
-          <div className="flex items-center gap-2 rounded-md border border-[var(--dgBd)] bg-[var(--dgBg)] px-3 py-2 text-sm font-medium text-[var(--dgFg)]">
+          <div
+            role="alert"
+            className="flex items-center gap-2 rounded-md border border-[var(--dgBd)] bg-[var(--dgBg)] px-3 py-2 text-sm font-medium text-[var(--dgFg)]"
+          >
             <Icono nombre="alerta" tamano={16} grosor={2} />
             <span>{error}</span>
           </div>

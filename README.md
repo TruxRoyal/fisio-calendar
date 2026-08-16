@@ -57,18 +57,21 @@ cd backend
 go run ./cmd/server -seed
 ```
 
-## Producción
+## Producción (VM ARM64 - Oracle Cloud free tier)
 
-```bash
-cd frontend
-pnpm build              # genera frontend/dist
+Desde Windows, un solo comando hace todo el flujo (build del frontend, copia a
+`backend/web/` para el embed, y cross-compile a `linux/arm64`):
 
-cp -r dist/* ../backend/web/   # (o el script equivalente) copia el build a backend/web
-
-cd ../backend
-go build -o server ./cmd/server
-APP_ENV=production PORT=8080 ./server
+```powershell
+.\build-prod.ps1
 ```
+
+Deja el binario listo en `dist-server\server`, compilado para `GOOS=linux
+GOARCH=arm64` con el frontend ya embebido (`embed.FS`). Subirlo a la VM (ej.
+`scp`), darle permisos de ejecución (`chmod +x server`) y correrlo con
+`APP_ENV=production` definido como variable de entorno (por ejemplo en el
+`Environment=` del servicio systemd) — el binario no trae el entorno
+hardcodeado, lo respeta desde el proceso.
 
 El binario sirve el frontend embebido (`embed.FS`) y expone la API en `/api/*`.
 

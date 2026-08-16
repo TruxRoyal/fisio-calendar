@@ -60,6 +60,7 @@ export function VistaAgendaMovil() {
   const [mesReferencia, setMesReferencia] = useState(() => hoy())
   const [citasMes, setCitasMes] = useState<Cita[]>([])
   const [cargandoMes, setCargandoMes] = useState(false)
+  const [errorMes, setErrorMes] = useState(false)
   const [buscadorAbierto, setBuscadorAbierto] = useState(false)
   const [autorizaciones, setAutorizaciones] = useState<Record<number, AutorizacionResumen | null>>({})
 
@@ -78,13 +79,21 @@ export function VistaAgendaMovil() {
     if (modoVista !== 'mes') return
     let vigente = true
     setCargandoMes(true)
+    setErrorMes(false)
     const desde = formatearFechaISO(diasGrillaMes[0])
     const hasta = formatearFechaISO(diasGrillaMes[41])
-    citasApi.listarPorRango(desde, hasta).then((datos) => {
-      if (!vigente) return
-      setCitasMes(datos)
-      setCargandoMes(false)
-    })
+    citasApi
+      .listarPorRango(desde, hasta)
+      .then((datos) => {
+        if (!vigente) return
+        setCitasMes(datos)
+        setCargandoMes(false)
+      })
+      .catch(() => {
+        if (!vigente) return
+        setErrorMes(true)
+        setCargandoMes(false)
+      })
     return () => {
       vigente = false
     }
@@ -176,7 +185,12 @@ export function VistaAgendaMovil() {
             <div className={styles.etiqueta}>{etiquetaCabecera}</div>
             <div className={styles.titulo}>{tituloCabecera}</div>
           </div>
-          <button type="button" onClick={() => setBuscadorAbierto(true)} className={styles.botonIconoCabecera}>
+          <button
+            type="button"
+            onClick={() => setBuscadorAbierto(true)}
+            aria-label="Abrir búsqueda"
+            className={styles.botonIconoCabecera}
+          >
             <Icono nombre="buscar" tamano={18} grosor={1.9} />
           </button>
           <button type="button" onClick={irHoyCompleto} className={styles.botonHoy}>
@@ -241,10 +255,10 @@ export function VistaAgendaMovil() {
 
         {modoVista === 'semana' && (
           <div className={styles.filaNavRango}>
-            <button type="button" onClick={() => irSemana(-1)} className={styles.botonNavRango}>
+            <button type="button" onClick={() => irSemana(-1)} aria-label="Semana anterior" className={styles.botonNavRango}>
               <Icono nombre="chevronIzquierda" tamano={16} grosor={2} />
             </button>
-            <button type="button" onClick={() => irSemana(1)} className={styles.botonNavRango}>
+            <button type="button" onClick={() => irSemana(1)} aria-label="Semana siguiente" className={styles.botonNavRango}>
               <Icono nombre="chevronDerecha" tamano={16} grosor={2} />
             </button>
           </div>
@@ -256,6 +270,7 @@ export function VistaAgendaMovil() {
               <button
                 type="button"
                 onClick={() => setMesReferencia((f) => new Date(f.getFullYear(), f.getMonth() - 1, 1))}
+                aria-label="Mes anterior"
                 className={styles.botonNavRango}
               >
                 <Icono nombre="chevronIzquierda" tamano={16} grosor={2} />
@@ -263,6 +278,7 @@ export function VistaAgendaMovil() {
               <button
                 type="button"
                 onClick={() => setMesReferencia((f) => new Date(f.getFullYear(), f.getMonth() + 1, 1))}
+                aria-label="Mes siguiente"
                 className={styles.botonNavRango}
               >
                 <Icono nombre="chevronDerecha" tamano={16} grosor={2} />
@@ -356,7 +372,17 @@ export function VistaAgendaMovil() {
           </div>
         )}
 
-        {modoVista === 'mes' && !cargandoMes && (
+        {modoVista === 'mes' && !cargandoMes && errorMes && (
+          <div className={styles.vacio}>
+            <Icono nombre="alerta" tamano={22} grosor={1.6} />
+            <p>No se pudo cargar el mes.</p>
+            <button type="button" onClick={() => setMesReferencia((f) => new Date(f))} className={styles.botonReintentar}>
+              Reintentar
+            </button>
+          </div>
+        )}
+
+        {modoVista === 'mes' && !cargandoMes && !errorMes && (
           <>
             <button type="button" onClick={() => irADia(diaSeleccionadoISO)} className={styles.cabeceraGrupo}>
               <span className={cn(esHoySeleccionado && styles.hoyGrupo)}>
@@ -380,6 +406,7 @@ export function VistaAgendaMovil() {
       <button
         type="button"
         onClick={() => abrirCitaNueva(combinarFechaHora(diaSeleccionadoISO, '08:00'))}
+        aria-label="Crear cita"
         className={styles.botonAgregar}
       >
         <Icono nombre="mas" tamano={24} grosor={2.3} />

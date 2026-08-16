@@ -41,7 +41,12 @@ export function PaginaPacientes() {
 
   useEffect(() => {
     const idParametro = parametros.get('paciente')
-    if (idParametro) seleccionarPaciente(Number(idParametro))
+    const id = idParametro ? Number(idParametro) : Number.NaN
+    if (Number.isFinite(id)) {
+      seleccionarPaciente(id)
+    } else {
+      limpiarSeleccion()
+    }
     if (parametros.get('nuevo')) setFormularioAbierto(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parametros])

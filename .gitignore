@@ -27,6 +27,9 @@ backend/web/*
 !backend/web/.gitkeep
 !backend/web/embed.go
 
+# Binario de producción generado por build-prod.ps1 (ARM64, se regenera en cada build)
+dist-server/
+
 # Frontend (Node / Vite)
 frontend/node_modules/
 frontend/dist/

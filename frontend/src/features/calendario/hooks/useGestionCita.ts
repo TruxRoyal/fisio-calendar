@@ -80,7 +80,7 @@ export function useGestionCita() {
     const conflicto = await verificar(cambios.inicio, cambios.fin, id)
     if (conflicto) {
       setMensajeError('Esta cita choca con otra existente.')
-      return
+      return false
     }
     const actualizada = await actualizarCita(id, {
       inicio: cambios.inicio,
@@ -89,6 +89,7 @@ export function useGestionCita() {
       notas: cambios.notas,
     })
     setCitaSeleccionada((actual) => (actual ? { ...actual, inicio: actualizada.inicio, fin: actualizada.fin, notas: actualizada.notas } : actual))
+    return true
   }
 
   async function onCambiarEstado(estado: EstadoCita) {

@@ -24,6 +24,7 @@ export function PaginaAjustes() {
             <button
               type="button"
               onClick={(e) => oscuro && alternarOscuro(centroDe(e.currentTarget))}
+              aria-pressed={!oscuro}
               className={cn(styles.opcionModo, !oscuro && styles.activo)}
             >
               <Icono nombre="sol" tamano={18} grosor={1.9} />
@@ -32,6 +33,7 @@ export function PaginaAjustes() {
             <button
               type="button"
               onClick={(e) => !oscuro && alternarOscuro(centroDe(e.currentTarget))}
+              aria-pressed={oscuro}
               className={cn(styles.opcionModo, oscuro && styles.activo)}
             >
               <Icono nombre="luna" tamano={18} grosor={1.9} />
@@ -50,6 +52,7 @@ export function PaginaAjustes() {
                   key={id}
                   type="button"
                   onClick={(e) => cambiarTema(id, centroDe(e.currentTarget))}
+                  aria-pressed={seleccionado}
                   className={cn(styles.opcionTema, seleccionado && styles.seleccionado)}
                 >
                   <span
