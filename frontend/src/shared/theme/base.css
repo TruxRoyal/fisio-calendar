@@ -7,8 +7,6 @@
 :root {
   --fuente: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --fuenteMono: 'Geist Mono', ui-monospace, monospace;
-  /* Respaldo antes de que ThemeProvider aplique el tema guardado en tiempo de
-     ejecución — evita que color-mix() de abajo quede sin color válido. */
   --ac: #82272A;
   --inv: #241F29;
   --invFg: #FFFFFF;
@@ -36,14 +34,6 @@
   --chart1: #1BAF7A;
   --chart2: #4A3AA7;
 
-  /*
-   * La superficie neutra entera se mezcla con el acento activo (--ac) en un
-   * porcentaje bajo, en vez de quedar fija sin importar el tema. Antes solo
-   * ~2 elementos (rail, un borde de tarjeta) cambiaban al elegir un tema; el
-   * resto del lienzo (fondo, tarjetas, bordes) se veía idéntico entre los 5.
-   * Con color-mix() en oklch todo el lienzo respira el matiz del tema, sutil
-   * pero perceptible, sin tocar cada componente uno por uno.
-   */
   --bg: color-mix(in oklch, var(--ac) 3%, #FBFAFC);
   --s1: color-mix(in oklch, var(--ac) 1.5%, #FFFFFF);
   --s2: color-mix(in oklch, var(--ac) 3%, #FAF9FB);
@@ -143,6 +133,52 @@
   --color-sidebar-ring: var(--ac);
 }
 
+:root.temaTransicion,
+:root.temaTransicion * {
+  transition: background-color .35s ease, border-color .35s ease, color .35s ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root.temaTransicion,
+  :root.temaTransicion * {
+    transition: none !important;
+  }
+}
+
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+  animation: tema-onda .5s cubic-bezier(.65, 0, .35, 1);
+}
+
+@keyframes tema-onda {
+  from {
+    clip-path: circle(0 at var(--tx, 50%) var(--ty, 50%));
+  }
+
+  to {
+    clip-path: circle(var(--tr, 150vmax) at var(--tx, 50%) var(--ty, 50%));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -177,10 +213,13 @@ a:hover {
   color: var(--ac, #5C2C66);
 }
 
-button {
-  font-family: inherit;
-  font-size: inherit;
-  color: inherit;
+
+@layer base {
+  button {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+  }
 }
 
 input,

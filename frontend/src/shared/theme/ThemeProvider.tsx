@@ -1,16 +1,22 @@
-import { createContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { type IdTema, TEMAS, resolverAccent } from './paletas'
+import { conTransicionVisual } from '../lib/transicionVista'
 import './base.css'
 
 const CLAVE_TEMA = 'fisio.tema'
 const CLAVE_OSCURO = 'fisio.oscuro'
 
+export interface OrigenTransicionTema {
+  x: number
+  y: number
+}
+
 export interface ContextoTema {
   idTema: IdTema
   oscuro: boolean
-  cambiarTema: (id: IdTema) => void
-  alternarOscuro: () => void
+  cambiarTema: (id: IdTema, origen?: OrigenTransicionTema) => void
+  alternarOscuro: (origen?: OrigenTransicionTema) => void
   temasDisponibles: typeof TEMAS
 }
 
@@ -30,10 +36,15 @@ function leerOscuroGuardado(): boolean {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [idTema, setIdTema] = useState<IdTema>(leerTemaGuardado)
   const [oscuro, setOscuro] = useState<boolean>(leerOscuroGuardado)
+  const conOnda = useRef(false)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const raiz = document.documentElement
     const accent = resolverAccent(idTema, oscuro)
+
+    const usoOnda = conOnda.current
+    conOnda.current = false
+    if (!usoOnda) raiz.classList.add('temaTransicion')
 
     raiz.dataset.oscuro = String(oscuro)
     raiz.style.setProperty('--ac', accent.ac)
@@ -45,14 +56,22 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     localStorage.setItem(CLAVE_TEMA, idTema)
     localStorage.setItem(CLAVE_OSCURO, String(oscuro))
+
+    if (usoOnda) return
+    const quitarTransicion = setTimeout(() => raiz.classList.remove('temaTransicion'), 350)
+    return () => clearTimeout(quitarTransicion)
   }, [idTema, oscuro])
+
+  function conTransicion(origen: OrigenTransicionTema | undefined, aplicar: () => void) {
+    conOnda.current = conTransicionVisual(origen, aplicar)
+  }
 
   const valor = useMemo<ContextoTema>(
     () => ({
       idTema,
       oscuro,
-      cambiarTema: setIdTema,
-      alternarOscuro: () => setOscuro((actual) => !actual),
+      cambiarTema: (id, origen) => conTransicion(origen, () => setIdTema(id)),
+      alternarOscuro: (origen) => conTransicion(origen, () => setOscuro((actual) => !actual)),
       temasDisponibles: TEMAS,
     }),
     [idTema, oscuro],

@@ -14,6 +14,7 @@ interface PropiedadesSelectorHora {
 }
 
 function generarOpciones(intervaloMinutos: number, horaMin: number, horaMax: number): string[] {
+  if (intervaloMinutos <= 0 || horaMax < horaMin) return []
   const opciones: string[] = []
   for (let minutos = horaMin * 60; minutos <= horaMax * 60; minutos += intervaloMinutos) {
     const h = Math.floor(minutos / 60)

@@ -22,6 +22,7 @@ export function ListaVisitas({
   geocodificandoId,
 }: PropiedadesListaVisitas) {
   const conCoordenadas = visitas.filter((v) => v.lat !== null).length
+  const proximaVisita = visitas.find((v) => v.estado !== 'atendida' && v.estado !== 'cancelada')
 
   return (
     <div className={styles.panel}>
@@ -41,6 +42,29 @@ export function ListaVisitas({
           </div>
         </div>
       </AtmosferaFondo>
+
+      {proximaVisita && (
+        <div className={styles.tarjetaProxima}>
+          <div className={styles.etiquetaProxima}>Siguiente parada</div>
+          <div className={styles.nombreProxima}>{proximaVisita.pacienteNombre}</div>
+          <div className={styles.detalleProxima}>
+            {formatearHora(proximaVisita.hora)} · {proximaVisita.direccion ?? 'Sin dirección registrada'}
+          </div>
+          {proximaVisita.direccion && (
+            <div className={styles.filaAccionesProxima}>
+              <a
+                href={`https://waze.com/ul?q=${encodeURIComponent(proximaVisita.direccion)}&navigate=yes`}
+                target="_blank"
+                rel="noreferrer"
+                className={styles.botonWaze}
+              >
+                <Icono nombre="ubicacion" tamano={16} grosor={2.1} />
+                Abrir en Waze
+              </a>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className={styles.lista}>
         {visitas.map((visita, indice) => {
