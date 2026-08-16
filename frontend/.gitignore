@@ -23,6 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-#skills 
-frontend/.agents/
-frontend/.claude/
+# Skills
+.agents/
+.claude/

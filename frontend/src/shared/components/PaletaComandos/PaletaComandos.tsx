@@ -59,8 +59,14 @@ export function PaletaComandos({ abierta, onCerrar }: PropiedadesPaletaComandos)
 
   useEffect(() => {
     if (!abierta) return
+    let vigente = true
     const query = busqueda ? `?q=${encodeURIComponent(busqueda)}` : ''
-    clienteApi.get<PacienteResultado[]>(`/pacientes${query}`).then(setPacientes)
+    clienteApi.get<PacienteResultado[]>(`/pacientes${query}`).then((resultados) => {
+      if (vigente) setPacientes(resultados)
+    })
+    return () => {
+      vigente = false
+    }
   }, [abierta, busqueda])
 
   function ejecutar(accion: () => void) {

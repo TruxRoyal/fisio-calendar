@@ -44,8 +44,7 @@ export function SelectorFecha({ etiqueta, value, onChange, id, placeholder = 'Se
             selected={fecha}
             defaultMonth={fecha}
             onSelect={(dia) => {
-              if (!dia) return
-              onChange(formatearFechaISO(dia))
+              onChange(dia ? formatearFechaISO(dia) : '')
               setAbierto(false)
             }}
           />

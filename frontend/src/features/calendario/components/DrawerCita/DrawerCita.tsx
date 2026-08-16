@@ -120,7 +120,12 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
     setCreando(true)
     try {
       const inicioActual = combinarFechaHora(fecha, horaInicio)
-      await onCrear({ pacienteId: pacienteIdActivo, inicio: inicioActual, fin: sumarMinutos(inicioActual, duracion) })
+      await onCrear({
+        pacienteId: pacienteIdActivo,
+        inicio: inicioActual,
+        fin: sumarMinutos(inicioActual, duracion),
+        notas: notas || null,
+      })
     } finally {
       setCreando(false)
     }

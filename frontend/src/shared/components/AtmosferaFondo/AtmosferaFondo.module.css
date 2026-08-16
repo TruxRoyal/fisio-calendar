@@ -89,7 +89,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--acD) 70%, transparent);
   filter: blur(.5px);
-  animation-name: atmosferaFlotar;
+  animation-name: atmosfera-flotar;
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
 }
@@ -98,7 +98,7 @@
   background: color-mix(in srgb, var(--ac) 55%, transparent);
 }
 
-@keyframes atmosferaFlotar {
+@keyframes atmosfera-flotar {
   0% {
     transform: translateY(12px);
     opacity: 0;

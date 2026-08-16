@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties, FormEvent } from 'react'
 import { Input } from '../../../../shared/components/Input/Input'
 import { SelectorFecha } from '../../../../shared/components/SelectorFecha/SelectorFecha'
@@ -23,6 +23,12 @@ export function SeccionAutorizacion({ pacienteId, autorizacionActiva, onActualiz
   const [editando, setEditando] = useState(!autorizacionActiva)
   const [solicitud, setSolicitud] = useState<SolicitudCrearAutorizacion>(solicitudVacia(pacienteId))
   const [guardando, setGuardando] = useState(false)
+
+  useEffect(() => {
+    setEditando(!autorizacionActiva)
+    setSolicitud(solicitudVacia(pacienteId))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pacienteId])
 
   function actualizarCampo<K extends keyof SolicitudCrearAutorizacion>(campo: K, valor: SolicitudCrearAutorizacion[K]) {
     setSolicitud((actual) => ({ ...actual, [campo]: valor }))
