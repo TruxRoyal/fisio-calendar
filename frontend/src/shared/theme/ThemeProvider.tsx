@@ -1,7 +1,7 @@
 import { createContext, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
 import type { ReactNode } from 'react'
 import { type IdTema, TEMAS, resolverAccent } from './paletas'
+import { conTransicionVisual } from '../lib/transicionVista'
 import './base.css'
 
 const CLAVE_TEMA = 'fisio.tema'
@@ -63,23 +63,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [idTema, oscuro])
 
   function conTransicion(origen: OrigenTransicionTema | undefined, aplicar: () => void) {
-    const raiz = document.documentElement
-    const soportaOnda = typeof document.startViewTransition === 'function'
-    const reducida = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
-    if (!soportaOnda || reducida) {
-      aplicar()
-      return
-    }
-
-    const { x, y } = origen ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 }
-    const radio = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y))
-    raiz.style.setProperty('--tx', `${x}px`)
-    raiz.style.setProperty('--ty', `${y}px`)
-    raiz.style.setProperty('--tr', `${radio}px`)
-
-    conOnda.current = true
-    document.startViewTransition(() => flushSync(aplicar))
+    conOnda.current = conTransicionVisual(origen, aplicar)
   }
 
   const valor = useMemo<ContextoTema>(

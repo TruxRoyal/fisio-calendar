@@ -8,6 +8,15 @@
   overflow: hidden;
 }
 
+@media (max-width: 768px) {
+  .panel {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    border-right: 0;
+  }
+}
+
 .heroCabecera {
   margin: 16px 16px 4px;
   border-radius: 18px;
@@ -209,4 +218,64 @@
   color: var(--t2);
   text-align: center;
   margin: 0;
+}
+
+.tarjetaProxima {
+  display: none;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0 16px 12px;
+  padding: 14px 15px;
+  border-radius: 16px;
+  background: var(--acS);
+  border: 1px solid var(--acL);
+}
+
+.etiquetaProxima {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--acT);
+}
+
+.nombreProxima {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  margin-top: 4px;
+}
+
+.detalleProxima {
+  font-size: 13px;
+  color: var(--t2);
+  margin-top: 2px;
+}
+
+.filaAccionesProxima {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.botonWaze {
+  flex: 1;
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--ac);
+  color: var(--acFg);
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  text-decoration: none;
+}
+
+@media (max-width: 768px) {
+  .tarjetaProxima {
+    display: flex;
+  }
 }

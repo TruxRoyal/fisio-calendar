@@ -1,0 +1,497 @@
+.contenedor {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.cabecera {
+  flex: 0 0 auto;
+  background: var(--s1);
+  border-bottom: 1px solid var(--bd);
+  padding: 16px 16px 0;
+}
+
+.filaTitulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.infoTitulo {
+  flex: 1;
+  min-width: 0;
+  animation: entradaContenido .2s ease-out;
+}
+
+.etiqueta {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.titulo {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -.03em;
+  line-height: 1.1;
+  margin-top: 2px;
+  text-transform: capitalize;
+}
+
+.botonIconoCabecera {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border: 1px solid var(--bd);
+  background: var(--s1);
+  border-radius: 10px;
+  color: var(--t2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.botonHoy {
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--bd);
+  background: var(--s1);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t2);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.selectorModo {
+  margin-top: 12px;
+  background: var(--s3);
+  border-radius: 10px;
+  padding: 3px;
+  display: flex;
+  gap: 2px;
+}
+
+.opcionModo {
+  flex: 1;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.filaNavRango {
+  display: flex;
+  gap: 6px;
+  padding: 12px 0 13px;
+}
+
+.botonNavRango {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--bd);
+  background: var(--s1);
+  border-radius: 9px;
+  color: var(--t2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.filaNombresGrilla {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding-bottom: 4px;
+}
+
+.nombreDiaGrilla {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  color: var(--t3);
+}
+
+.grillaMes {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  padding-bottom: 12px;
+}
+
+.celdaMes {
+  aspect-ratio: 1;
+  border: 0;
+  background: transparent;
+  border-radius: 11px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+}
+
+.numeroCelda {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--t1);
+  font-variant-numeric: tabular-nums;
+}
+
+.celdaMes.fueraDeMes .numeroCelda {
+  color: var(--t3);
+  opacity: .5;
+}
+
+.celdaMes.hoyCelda .numeroCelda {
+  color: var(--acT);
+}
+
+.celdaMes.seleccionadaCelda {
+  background: var(--ac);
+}
+
+.celdaMes.seleccionadaCelda .numeroCelda {
+  color: var(--acFg);
+}
+
+.puntoCelda {
+  width: 4px;
+  height: 4px;
+  border-radius: 99px;
+  background: transparent;
+}
+
+.puntoCelda.visible {
+  background: var(--acD);
+}
+
+.celdaMes.seleccionadaCelda .puntoCelda.visible {
+  background: var(--acFg);
+}
+
+.cabeceraGrupo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 14px 2px 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.hoyGrupo {
+  color: var(--acT);
+}
+
+.tiraDias {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 14px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.chipDia {
+  flex: 0 0 44px;
+  height: 58px;
+  border-radius: 13px;
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+}
+
+.chipDia.hoy {
+  border-color: var(--acL);
+}
+
+.chipDia.seleccionado {
+  background: var(--ac);
+  border-color: var(--ac);
+}
+
+.nombreChip {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.chipDia.seleccionado .nombreChip {
+  color: var(--acFg);
+  opacity: .8;
+}
+
+.numeroChip {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--t1);
+  font-variant-numeric: tabular-nums;
+}
+
+.chipDia.seleccionado .numeroChip {
+  color: var(--acFg);
+}
+
+.puntoChip {
+  width: 4px;
+  height: 4px;
+  border-radius: 99px;
+  background: transparent;
+}
+
+.puntoChip.visible {
+  background: var(--acD);
+}
+
+.chipDia.seleccionado .puntoChip.visible {
+  background: var(--acFg);
+}
+
+.filaStats {
+  display: flex;
+  gap: 18px;
+  padding: 13px 2px 12px;
+}
+
+.stat {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.valorStat {
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.valorStat.acento {
+  color: var(--acT);
+}
+
+.etiquetaStat {
+  font-size: 12px;
+  color: var(--t3);
+  font-weight: 500;
+}
+
+.lista {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px 96px;
+  animation: entradaContenido .22s ease-out;
+}
+
+@keyframes entradaContenido {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .infoTitulo,
+  .lista {
+    animation: none;
+  }
+}
+
+.divisorAhora {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 0 14px;
+}
+
+.puntoAhora {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--now, var(--ac));
+  flex: 0 0 8px;
+}
+
+.textoAhora {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--now, var(--ac));
+  letter-spacing: .06em;
+  font-family: var(--fuenteMono);
+}
+
+.lineaAhora {
+  flex: 1;
+  height: 1.5px;
+  background: var(--bd);
+}
+
+.filaCita {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 10px;
+  border: 0;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.columnaHora {
+  flex: 0 0 44px;
+  padding-top: 13px;
+  text-align: right;
+}
+
+.hora {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--fuenteMono);
+  color: var(--t1);
+  font-variant-numeric: tabular-nums;
+}
+
+.hora.atendida {
+  color: var(--t3);
+}
+
+.tarjeta {
+  flex: 1;
+  min-width: 0;
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  border-left-width: 3px;
+  border-left-color: var(--color-borde, var(--bd));
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tarjeta.atendida {
+  border-color: var(--dnBd);
+  background: var(--dnBg);
+}
+
+.tarjeta.cancelada {
+  border-color: var(--bd);
+  background: var(--s2);
+  opacity: .7;
+}
+
+.filaNombre {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.nombre {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--t1);
+}
+
+.iconoTipo {
+  color: var(--t3);
+  flex: 0 0 auto;
+}
+
+.iconoCheck {
+  color: var(--okFg);
+  flex: 0 0 auto;
+}
+
+.filaDireccion {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--t3);
+  font-size: 12.5px;
+}
+
+.filaDireccion span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filaBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.badgeCopago,
+.badgeSesiones {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--t3);
+  background: var(--s3);
+  border: 1px solid var(--bd);
+  padding: 3px 8px;
+  border-radius: 7px;
+}
+
+.badgeSesiones.urgente {
+  color: var(--wrFg);
+  background: var(--wrBg);
+  border-color: var(--wrBd);
+}
+
+.vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--t3);
+  padding: 48px 16px;
+  text-align: center;
+  font-size: 13.5px;
+}
+
+.botonAgregar {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  width: 54px;
+  height: 54px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--ac);
+  color: var(--acFg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(122, 62, 133, .3);
+}

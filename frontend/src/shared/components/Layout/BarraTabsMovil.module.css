@@ -1,0 +1,67 @@
+.barra {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  align-items: center;
+  background: var(--s1Blur);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid var(--bd);
+  padding: 8px 6px calc(6px + env(safe-area-inset-bottom));
+}
+
+@media (max-width: 768px) {
+  .barra {
+    display: flex;
+  }
+}
+
+.indicador {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  height: 50px;
+  width: var(--pila-w, 0px);
+  border-radius: 12px;
+  background: var(--acS);
+  transform: translateX(var(--pila-x, 0px));
+  transition: transform .28s cubic-bezier(.65, 0, .35, 1), width .28s cubic-bezier(.65, 0, .35, 1);
+  pointer-events: none;
+}
+
+.tab {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  height: 50px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--t3);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.tab.activo {
+  color: var(--acT);
+}
+
+.etiqueta {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .indicador {
+    transition: none;
+  }
+}

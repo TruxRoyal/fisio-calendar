@@ -8,6 +8,7 @@ import { Icono } from '../Icono/Icono'
 import type { NombreIcono } from '../Icono/Icono'
 import { AtmosferaFondo } from '../AtmosferaFondo/AtmosferaFondo'
 import { PaletaComandos } from '../PaletaComandos/PaletaComandos'
+import { BarraTabsMovil } from './BarraTabsMovil'
 import styles from './Layout.module.css'
 
 function centroDe(el: HTMLElement): { x: number; y: number } {
@@ -15,7 +16,7 @@ function centroDe(el: HTMLElement): { x: number; y: number } {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
 }
 
-const ITEMS_NAV: { ruta: string; etiqueta: string; icono: NombreIcono }[] = [
+export const ITEMS_NAV: { ruta: string; etiqueta: string; icono: NombreIcono }[] = [
   { ruta: '/calendario', etiqueta: 'Agenda', icono: 'calendario' },
   { ruta: '/pacientes', etiqueta: 'Pacientes', icono: 'paciente' },
   { ruta: '/resumen', etiqueta: 'Ingresos', icono: 'ingresos' },
@@ -28,6 +29,7 @@ export function Layout({ children }: { children: ReactNode }) {
   return (
     <div className={styles.layout}>
       <RailIconos rutaActiva={ubicacion.pathname} />
+      <BarraTabsMovil rutaActiva={ubicacion.pathname} />
       <main className={styles.contenido}>{children}</main>
     </div>
   )

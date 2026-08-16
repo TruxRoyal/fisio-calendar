@@ -8,8 +8,11 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogMedia,
   AlertDialogTitle,
 } from '../ui/alert-dialog'
+import { Icono } from '../Icono/Icono'
+import { cn } from '@/shared/lib/clases'
 
 interface PropiedadesDialogoConfirmacion {
   abierto: boolean
@@ -61,10 +64,25 @@ export function DialogoConfirmacion({
     >
       <AlertDialogContent>
         <AlertDialogHeader>
+          <AlertDialogMedia
+            className={cn(
+              'border',
+              peligro
+                ? 'border-[var(--dgBd)] bg-[var(--dgBg)] text-[var(--dgFg)]'
+                : 'border-[var(--acL)] bg-[var(--acS)] text-[var(--acT)]'
+            )}
+          >
+            <Icono nombre={peligro ? 'papelera' : 'check'} grosor={2} />
+          </AlertDialogMedia>
           <AlertDialogTitle>{titulo}</AlertDialogTitle>
           {descripcion && <AlertDialogDescription>{descripcion}</AlertDialogDescription>}
         </AlertDialogHeader>
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <div className="flex items-center gap-2 rounded-md border border-[var(--dgBd)] bg-[var(--dgBg)] px-3 py-2 text-sm font-medium text-[var(--dgFg)]">
+            <Icono nombre="alerta" tamano={16} grosor={2} />
+            <span>{error}</span>
+          </div>
+        )}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={confirmando}>{textoCancelar}</AlertDialogCancel>
           <AlertDialogAction variant={peligro ? 'destructive' : 'default'} disabled={confirmando} onClick={alConfirmar}>

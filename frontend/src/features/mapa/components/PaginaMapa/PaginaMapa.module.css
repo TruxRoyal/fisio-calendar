@@ -18,3 +18,20 @@
   overflow: hidden;
   border: 1px solid var(--bd);
 }
+
+@media (max-width: 768px) {
+  .pagina {
+    flex-direction: column;
+  }
+
+  .panelMapa {
+    flex: 0 0 200px;
+    padding: 0;
+  }
+
+  .contenedorMapa {
+    border-radius: 0;
+    border: 0;
+    border-bottom: 1px solid var(--bd);
+  }
+}

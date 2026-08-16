@@ -229,10 +229,16 @@ a:hover {
   color: var(--ac, #5C2C66);
 }
 
-button {
-  font-family: inherit;
-  font-size: inherit;
-  color: inherit;
+/* En @layer base para que las utilidades de color de Tailwind (que sí viven
+   en capas) puedan ganarle a este "color: inherit" — sin capa, una regla CSS
+   plana le gana a cualquier utilidad de Tailwind sin importar especificidad,
+   lo que rompía el texto blanco de botones shadcn como AlertDialogAction. */
+@layer base {
+  button {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+  }
 }
 
 input,

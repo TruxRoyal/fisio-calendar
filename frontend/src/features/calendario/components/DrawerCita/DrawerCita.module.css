@@ -52,6 +52,35 @@
   }
 }
 
+@keyframes panelEntradaMovil {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes panelSalidaMovil {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@media (max-width: 768px) {
+  .panel {
+    top: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    max-height: 88dvh;
+    border-radius: 20px 20px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    animation-name: panelEntradaMovil;
+  }
+
+  .panel.saliendo {
+    animation-name: panelSalidaMovil;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fondo,
   .panel,
