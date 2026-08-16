@@ -461,10 +461,10 @@ export function VistaSemanal() {
             const conflicto = await verificar(solicitud.inicio, solicitud.fin)
             if (conflicto) {
               window.alert('Esta cita choca con otra existente.')
-              return
+              return false
             }
             await crearCita(solicitud)
-            setCitaSeleccionada(null)
+            return true
           }}
           onGuardarCampos={async (id, cambios) => {
             const conflicto = await verificar(cambios.inicio, cambios.fin, id)

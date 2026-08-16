@@ -3,6 +3,7 @@
   inset: 0;
   background: rgba(26, 20, 32, .16);
   z-index: 70;
+  animation: fondoEntrada .18s ease both;
 }
 
 .panel {
@@ -16,6 +17,49 @@
   box-shadow: -14px 0 44px rgba(28, 20, 34, .14);
   display: flex;
   flex-direction: column;
+  animation: panelEntrada .24s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+.fondo.saliendo {
+  animation: fondoSalida .18s ease both;
+}
+
+.panel.saliendo {
+  animation: panelSalida .2s cubic-bezier(.4, 0, 1, 1) both;
+}
+
+@keyframes fondoEntrada {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes panelEntrada {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes fondoSalida {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes panelSalida {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fondo,
+  .panel,
+  .fondo.saliendo,
+  .panel.saliendo,
+  .badgeGuardado {
+    animation: none;
+  }
 }
 
 .cabecera {
@@ -68,6 +112,14 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--okFg);
+  animation: badgeEntrada .22s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+@keyframes badgeEntrada {
+  from {
+    opacity: 0;
+    transform: scale(.85);
+  }
 }
 
 .botonCerrarCabecera {

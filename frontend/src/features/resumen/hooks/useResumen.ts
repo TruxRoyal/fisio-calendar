@@ -8,6 +8,7 @@ export function useResumen(anio: number, mes: number) {
 
   useEffect(() => {
     let vigente = true
+    setResumen(null)
     setCargando(true)
     resumenApi.obtenerMensual(anio, mes).then((datos) => {
       if (!vigente) return
@@ -28,6 +29,7 @@ export function useResumenHistorico(anio: number, mes: number, meses = 6) {
 
   useEffect(() => {
     let vigente = true
+    setHistorico([])
     setCargando(true)
     resumenApi.obtenerHistorico(meses, anio, mes).then((datos) => {
       if (!vigente) return
@@ -48,6 +50,7 @@ export function useDesglosePorPaciente(anio: number, mes: number) {
 
   useEffect(() => {
     let vigente = true
+    setDesglose([])
     setCargando(true)
     resumenApi.obtenerDesglose(anio, mes).then((datos) => {
       if (!vigente) return

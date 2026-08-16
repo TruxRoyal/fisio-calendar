@@ -110,7 +110,9 @@ export function PanelPacientes({ onSeleccionarPaciente, onIniciarArrastrePacient
     if (filtro === 'todos') return true
     if (filtro === 'porVencer') {
       const vencimiento = p.autorizacionActiva?.fechaVencimiento
-      return vencimiento != null && diasHasta(vencimiento) <= DIAS_ALERTA_VENCIMIENTO
+      if (vencimiento == null) return false
+      const dias = diasHasta(vencimiento)
+      return dias >= 0 && dias <= DIAS_ALERTA_VENCIMIENTO
     }
     return p.tipoTerapia === filtro
   })

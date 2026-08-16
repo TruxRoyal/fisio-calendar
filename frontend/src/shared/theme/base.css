@@ -143,6 +143,58 @@
   --color-sidebar-ring: var(--ac);
 }
 
+/* Se activa un instante desde ThemeProvider al cambiar de paleta o de modo
+   claro/oscuro, para que el cambio de colores se sienta como una transición
+   en vez de un salto brusco. Se retira después, así no interfiere con las
+   transiciones propias de hover/focus del resto de los componentes. */
+:root.temaTransicion,
+:root.temaTransicion * {
+  transition: background-color .35s ease, border-color .35s ease, color .35s ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root.temaTransicion,
+  :root.temaTransicion * {
+    transition: none !important;
+  }
+}
+
+/* Wipe circular al cambiar de tema, disparado desde ThemeProvider vía
+   document.startViewTransition(). --tx/--ty/--tr los define ThemeProvider
+   con el punto y radio exactos antes de iniciar la transición. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+  animation: temaOnda .5s cubic-bezier(.65, 0, .35, 1);
+}
+
+@keyframes temaOnda {
+  from {
+    clip-path: circle(0 at var(--tx, 50%) var(--ty, 50%));
+  }
+
+  to {
+    clip-path: circle(var(--tr, 150vmax) at var(--tx, 50%) var(--ty, 50%));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
