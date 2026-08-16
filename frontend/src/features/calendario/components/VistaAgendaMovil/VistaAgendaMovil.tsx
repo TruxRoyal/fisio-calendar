@@ -130,8 +130,11 @@ export function VistaAgendaMovil() {
     if (!idsPacientesClave) return
     let vigente = true
     const ids = idsPacientesClave.split(',').map(Number)
-    Promise.all(ids.map((id) => autorizacionesResumenApi.obtenerActiva(id).then((a) => [id, a] as const))).then((entradas) => {
+    Promise.allSettled(ids.map((id) => autorizacionesResumenApi.obtenerActiva(id).then((a) => [id, a] as const))).then((resultados) => {
       if (!vigente) return
+      const entradas = resultados
+        .filter((r): r is PromiseFulfilledResult<readonly [number, AutorizacionResumen | null]> => r.status === 'fulfilled')
+        .map((r) => r.value)
       setAutorizaciones((actual) => ({ ...actual, ...Object.fromEntries(entradas) }))
     })
     return () => {

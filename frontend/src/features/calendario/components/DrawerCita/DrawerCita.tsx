@@ -87,14 +87,23 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
     }
   }, [esNueva, pacienteIdActivo, busquedaPaciente])
 
+  const temporizadorCierre = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (temporizadorCierre.current) clearTimeout(temporizadorCierre.current)
+    }
+  }, [])
+
   function mostrarGuardado() {
     setGuardadoVisible(true)
     setTimeout(() => setGuardadoVisible(false), 1800)
   }
 
   function cerrar() {
+    if (temporizadorCierre.current) return
     setSaliendo(true)
-    setTimeout(onCerrar, DURACION_SALIDA_MS)
+    temporizadorCierre.current = setTimeout(onCerrar, DURACION_SALIDA_MS)
   }
 
   useEffect(() => {

@@ -14,7 +14,7 @@
 
 @media (max-width: 768px) {
   .contenido {
-    padding-bottom: calc(50px + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--altura-barra-movil) + env(safe-area-inset-bottom));
   }
 }
 

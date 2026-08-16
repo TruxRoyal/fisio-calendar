@@ -1,3 +1,4 @@
+/* Altura renderizada (8+50+6+1 borde = 65px) debe coincidir con --altura-barra-movil en base.css */
 .barra {
   display: none;
   position: fixed;
