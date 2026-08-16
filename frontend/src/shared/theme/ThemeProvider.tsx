@@ -18,7 +18,7 @@ export const ContextoTemaReact = createContext<ContextoTema | null>(null)
 
 function leerTemaGuardado(): IdTema {
   const guardado = localStorage.getItem(CLAVE_TEMA)
-  return guardado && guardado in TEMAS ? (guardado as IdTema) : 'rosa'
+  return guardado && guardado in TEMAS ? (guardado as IdTema) : 'rojo'
 }
 
 function leerOscuroGuardado(): boolean {

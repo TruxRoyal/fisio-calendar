@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties, FormEvent } from 'react'
 import { Input } from '../../../../shared/components/Input/Input'
+import { SelectorFecha } from '../../../../shared/components/SelectorFecha/SelectorFecha'
 import { Boton } from '../../../../shared/components/Boton/Boton'
 import { Icono } from '../../../../shared/components/Icono/Icono'
 import { formatearFechaCorta } from '../../../../shared/lib/fecha'
@@ -19,9 +20,15 @@ function solicitudVacia(pacienteId: number): SolicitudCrearAutorizacion {
 }
 
 export function SeccionAutorizacion({ pacienteId, autorizacionActiva, onActualizado }: PropiedadesSeccionAutorizacion) {
-  const [editando, setEditando] = useState(false)
+  const [editando, setEditando] = useState(!autorizacionActiva)
   const [solicitud, setSolicitud] = useState<SolicitudCrearAutorizacion>(solicitudVacia(pacienteId))
   const [guardando, setGuardando] = useState(false)
+
+  useEffect(() => {
+    setEditando(!autorizacionActiva)
+    setSolicitud(solicitudVacia(pacienteId))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pacienteId])
 
   function actualizarCampo<K extends keyof SolicitudCrearAutorizacion>(campo: K, valor: SolicitudCrearAutorizacion[K]) {
     setSolicitud((actual) => ({ ...actual, [campo]: valor }))
@@ -65,11 +72,10 @@ export function SeccionAutorizacion({ pacienteId, autorizacionActiva, onActualiz
             onChange={(e) => actualizarCampo('copago', Number(e.target.value))}
           />
         </div>
-        <Input
+        <SelectorFecha
           etiqueta="Fecha de vencimiento"
-          type="date"
           value={solicitud.fechaVencimiento ?? ''}
-          onChange={(e) => actualizarCampo('fechaVencimiento', e.target.value)}
+          onChange={(valor) => actualizarCampo('fechaVencimiento', valor)}
         />
         <div className={styles.filaAcciones}>
           <Boton type="button" tamano="sm" variante="secundario" onClick={() => setEditando(false)}>

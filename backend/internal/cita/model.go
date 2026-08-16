@@ -3,6 +3,7 @@ package cita
 type PacienteResumen struct {
 	ID          int64   `json:"id"`
 	Nombre      string  `json:"nombre"`
+	Direccion   *string `json:"direccion"`
 	TipoTerapia *string `json:"tipoTerapia"`
 	Color       *string `json:"color"`
 }

@@ -38,10 +38,6 @@
   cursor: pointer;
 }
 
-.chip.capitalizar {
-  text-transform: capitalize;
-}
-
 .chip.activo {
   border: 1.5px solid var(--ac);
   background: var(--acS);

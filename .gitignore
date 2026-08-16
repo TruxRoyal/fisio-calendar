@@ -31,6 +31,10 @@ backend/web/*
 frontend/node_modules/
 frontend/dist/
 
+# Skills (Claude Code)
+frontend/.agents/
+frontend/.claude/
+
 # Editores / SO
 .vscode/
 .idea/

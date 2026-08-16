@@ -28,11 +28,59 @@ func (s *Service) ObtenerMensual(ctx context.Context, anio, mes int) (*ResumenMe
 		Anio:              anio,
 		Mes:               mes,
 		SesionesAtendidas: sesiones,
-		UmbralAlcanzado:   sesionesTrabajo > UmbralEscalon,
+		SesionesTrabajo:   sesionesTrabajo,
+		UmbralEscalon:     UmbralEscalon,
+		UmbralAlcanzado:   sesionesTrabajo >= UmbralEscalon,
 		PagoNeto:          pagoNeto,
 		CopagosRecaudados: copagos,
 		Total:             pagoNeto + copagos,
 	}, nil
+}
+
+func (s *Service) ObtenerHistoricoMensual(ctx context.Context, meses, anioAncla, mesAncla int) ([]ResumenMensual, error) {
+	if anioAncla == 0 || mesAncla == 0 {
+		anioAncla, mesAncla = anioMesActual()
+	}
+	fechaAncla := time.Date(anioAncla, time.Month(mesAncla), 1, 0, 0, 0, 0, time.UTC)
+	fechaInicio := fechaAncla.AddDate(0, -(meses - 1), 0)
+
+	desde := formatearAnioMes(fechaInicio.Year(), int(fechaInicio.Month()))
+	hasta := formatearAnioMes(anioAncla, mesAncla)
+
+	filas, err := s.repo.ObtenerAgregadoMensualRango(ctx, desde, hasta)
+	if err != nil {
+		return nil, err
+	}
+
+	porMes := make(map[string]FilaAgregadoMensual, len(filas))
+	for _, f := range filas {
+		porMes[f.AnioMes] = f
+	}
+
+	resultado := make([]ResumenMensual, 0, meses)
+	for i := 0; i < meses; i++ {
+		fecha := fechaInicio.AddDate(0, i, 0)
+		anioMes := formatearAnioMes(fecha.Year(), int(fecha.Month()))
+		f := porMes[anioMes]
+
+		resultado = append(resultado, ResumenMensual{
+			Anio:              fecha.Year(),
+			Mes:               int(fecha.Month()),
+			SesionesAtendidas: f.SesionesAtendidas,
+			SesionesTrabajo:   f.SesionesTrabajo,
+			UmbralEscalon:     UmbralEscalon,
+			UmbralAlcanzado:   f.SesionesTrabajo >= UmbralEscalon,
+			PagoNeto:          f.PagoNeto,
+			CopagosRecaudados: f.CopagosRecaudados,
+			Total:             f.PagoNeto + f.CopagosRecaudados,
+		})
+	}
+
+	return resultado, nil
+}
+
+func (s *Service) ObtenerDesglosePorPaciente(ctx context.Context, anio, mes int) ([]DesglosePaciente, error) {
+	return s.repo.ListarDesglosePorPaciente(ctx, formatearAnioMes(anio, mes))
 }
 
 func (s *Service) ExportarExcel(ctx context.Context, anio, mes int) (*excelize.File, error) {

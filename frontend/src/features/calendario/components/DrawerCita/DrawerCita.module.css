@@ -61,10 +61,6 @@
   margin-top: 2px;
 }
 
-.tipoTerapia {
-  text-transform: capitalize;
-}
-
 .badgeGuardado {
   display: flex;
   align-items: center;
@@ -132,8 +128,101 @@
   font-size: 14px;
 }
 
-.horaTexto {
+.inputFecha,
+.inputHora {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.inputHora {
   font-variant-numeric: tabular-nums;
+}
+
+.buscadorPaciente {
+  margin-top: 12px;
+}
+
+.contenedorBusquedaPaciente {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.iconoBusquedaPaciente {
+  position: absolute;
+  left: 11px;
+  color: var(--t3);
+  pointer-events: none;
+}
+
+.inputBusquedaPaciente {
+  width: 100%;
+  height: 38px;
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  padding: 0 12px 0 34px;
+  font-size: 13.5px;
+  background: var(--bg);
+  color: var(--t1);
+  outline: none;
+  font-family: inherit;
+}
+
+.inputBusquedaPaciente:focus {
+  border-color: var(--ac);
+}
+
+.listaResultados {
+  margin-top: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.itemResultado {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--bd);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.itemResultado:last-child {
+  border-bottom: 0;
+}
+
+.itemResultado:hover {
+  background: var(--s3);
+}
+
+.nombreResultado {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--t1);
+}
+
+.subResultado {
+  font-size: 11.5px;
+  color: var(--t3);
+}
+
+.sinResultados {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--t3);
+  text-align: center;
 }
 
 .filaDuraciones {
@@ -235,6 +324,21 @@
   font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.pistaSesiones {
+  height: 6px;
+  border-radius: 99px;
+  background: var(--s4);
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.rellenoSesiones {
+  height: 100%;
+  width: var(--ancho);
+  background: var(--acD);
+  border-radius: 99px;
 }
 
 .valorVence {

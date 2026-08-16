@@ -5,10 +5,17 @@
   max-width: 980px;
 }
 
+.heroCabecera {
+  border-radius: 22px;
+  border: 1px solid var(--acL);
+  box-shadow: 0 1px 2px rgba(28, 20, 34, .04);
+}
+
 .cabecera {
   display: flex;
   align-items: flex-start;
   gap: 16px;
+  padding: 22px 24px;
 }
 
 .avatar {
@@ -16,13 +23,14 @@
   height: 58px;
   flex: 0 0 58px;
   border-radius: 17px;
-  background: var(--avatar-bg, var(--acS2));
+  background: var(--avatar-bg, var(--s1Blur, var(--s1)));
   color: var(--avatar-fg, var(--acT));
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 19px;
   font-weight: 700;
+  box-shadow: 0 1px 2px rgba(28, 20, 34, .06);
 }
 
 .infoCabecera {
@@ -42,18 +50,6 @@
   font-weight: 700;
   letter-spacing: -.02em;
   line-height: 1.2;
-}
-
-.badgeExtra {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .03em;
-  text-transform: uppercase;
-  color: var(--acT);
-  background: var(--acS);
-  border: 1px solid var(--acL);
-  border-radius: 99px;
-  padding: 2px 9px;
 }
 
 .filaInfoLineas {
@@ -151,8 +147,8 @@
   color: var(--wrFg);
 }
 
-.valorGrandeStat.capitalizar {
-  text-transform: capitalize;
+.valorGrandeStat.textoLargo {
+  font-size: 18px;
 }
 
 .valorChicoStat {

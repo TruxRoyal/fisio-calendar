@@ -46,8 +46,8 @@ go run ./cmd/server
 
 # Terminal 2 - frontend (puerto 5173, proxy /api -> :8080)
 cd frontend
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Para cargar datos de ejemplo la primera vez (solo en `APP_ENV=development`, que es el valor por defecto):
@@ -61,7 +61,7 @@ go run ./cmd/server -seed
 
 ```bash
 cd frontend
-npm run build          # genera frontend/dist
+pnpm build              # genera frontend/dist
 
 cp -r dist/* ../backend/web/   # (o el script equivalente) copia el build a backend/web
 

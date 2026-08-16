@@ -1,6 +1,7 @@
 import { formatearFechaLarga, formatearHora, hoyISO } from '../../../../shared/lib/fecha'
 import { Boton } from '../../../../shared/components/Boton/Boton'
 import { Icono } from '../../../../shared/components/Icono/Icono'
+import { AtmosferaFondo } from '../../../../shared/components/AtmosferaFondo/AtmosferaFondo'
 import { cn } from '../../../../shared/lib/clases'
 import type { VisitaDia } from '../../types'
 import styles from './ListaVisitas.module.css'
@@ -24,20 +25,22 @@ export function ListaVisitas({
 
   return (
     <div className={styles.panel}>
-      <div className={styles.cabecera}>
-        <div className={styles.etiqueta}>Ruta del día</div>
-        <div className={styles.fecha}>{formatearFechaLarga(hoyISO())}</div>
-        <div className={styles.filaStats}>
-          <div>
-            <div className={styles.valorStat}>{visitas.length}</div>
-            <div className={styles.etiquetaStat}>Paradas</div>
-          </div>
-          <div>
-            <div className={styles.valorStat}>{conCoordenadas}</div>
-            <div className={styles.etiquetaStat}>Ubicadas</div>
+      <AtmosferaFondo intensidad="suave" origen="superior-derecha" className={styles.heroCabecera}>
+        <div className={styles.cabecera}>
+          <div className={styles.etiqueta}>Ruta del día</div>
+          <div className={styles.fecha}>{formatearFechaLarga(hoyISO())}</div>
+          <div className={styles.filaStats}>
+            <div>
+              <div className={styles.valorStat}>{visitas.length}</div>
+              <div className={styles.etiquetaStat}>Paradas</div>
+            </div>
+            <div>
+              <div className={styles.valorStat}>{conCoordenadas}</div>
+              <div className={styles.etiquetaStat}>Ubicadas</div>
+            </div>
           </div>
         </div>
-      </div>
+      </AtmosferaFondo>
 
       <div className={styles.lista}>
         {visitas.map((visita, indice) => {
@@ -84,7 +87,14 @@ export function ListaVisitas({
             </div>
           )
         })}
-        {visitas.length === 0 && <p className={styles.vacio}>No hay visitas programadas para hoy</p>}
+        {visitas.length === 0 && (
+          <AtmosferaFondo intensidad="suave" origen="inferior-derecha" className={styles.heroVacio}>
+            <div className={styles.contenidoVacio}>
+              <Icono nombre="mapa" tamano={20} grosor={1.6} />
+              <p className={styles.vacio}>No hay visitas programadas para hoy</p>
+            </div>
+          </AtmosferaFondo>
+        )}
       </div>
     </div>
   )

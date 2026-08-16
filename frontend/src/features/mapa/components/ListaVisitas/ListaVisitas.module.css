@@ -8,9 +8,14 @@
   overflow: hidden;
 }
 
+.heroCabecera {
+  margin: 16px 16px 4px;
+  border-radius: 18px;
+  border: 1px solid var(--acL);
+}
+
 .cabecera {
-  padding: 20px 20px 14px;
-  border-bottom: 1px solid var(--bd);
+  padding: 18px 18px 16px;
 }
 
 .etiqueta {
@@ -184,9 +189,24 @@
   margin-top: 8px;
 }
 
+.heroVacio {
+  border-radius: 18px;
+  border: 1px solid var(--acL);
+  margin-top: 8px;
+}
+
+.contenidoVacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 16px;
+  color: var(--acT);
+}
+
 .vacio {
   font-size: 13px;
-  color: var(--t3);
+  color: var(--t2);
   text-align: center;
-  margin-top: 20px;
+  margin: 0;
 }

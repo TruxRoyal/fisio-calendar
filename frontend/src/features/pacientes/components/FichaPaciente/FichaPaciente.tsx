@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { Boton } from '../../../../shared/components/Boton/Boton'
+import { Badge } from '../../../../shared/components/ui/badge'
+import { DialogoConfirmacion } from '../../../../shared/components/DialogoConfirmacion/DialogoConfirmacion'
 import { Icono } from '../../../../shared/components/Icono/Icono'
+import { AtmosferaFondo } from '../../../../shared/components/AtmosferaFondo/AtmosferaFondo'
 import type { NombreIcono } from '../../../../shared/components/Icono/Icono'
 import { usePacientesStore } from '../../store'
 import { autorizacionesApi, pacientesApi } from '../../api'
@@ -10,6 +13,7 @@ import { SeccionAutorizacion } from '../SeccionAutorizacion/SeccionAutorizacion'
 import { formatearCOP } from '../../../../shared/lib/moneda'
 import { calcularEdad, diasHasta, formatearFechaCorta, formatearMesAnio } from '../../../../shared/lib/fecha'
 import { cn } from '../../../../shared/lib/clases'
+import { ETIQUETA_TIPO_TERAPIA } from '../../../../shared/types/comun'
 import type { Autorizacion, EventoCronologia, PacienteDetalle, ResumenFinancieroPaciente } from '../../types'
 import styles from './FichaPaciente.module.css'
 
@@ -35,6 +39,7 @@ const ICONO_EVENTO: Record<EventoCronologia['tipo'], NombreIcono> = {
 
 export function FichaPaciente({ paciente }: PropiedadesFichaPaciente) {
   const [formularioAbierto, setFormularioAbierto] = useState(false)
+  const [confirmandoEliminacion, setConfirmandoEliminacion] = useState(false)
   const actualizarPaciente = usePacientesStore((estado) => estado.actualizarPaciente)
   const eliminarPaciente = usePacientesStore((estado) => estado.eliminarPaciente)
   const seleccionarPaciente = usePacientesStore((estado) => estado.seleccionarPaciente)
@@ -53,7 +58,6 @@ export function FichaPaciente({ paciente }: PropiedadesFichaPaciente) {
   }, [paciente.id])
 
   async function confirmarEliminacion() {
-    if (!window.confirm(`¿Eliminar a ${paciente.nombre}? Esta acción no se puede deshacer.`)) return
     await eliminarPaciente(paciente.id)
   }
 
@@ -62,34 +66,36 @@ export function FichaPaciente({ paciente }: PropiedadesFichaPaciente) {
 
   return (
     <div className={styles.ficha}>
-      <div className={styles.cabecera}>
-        <div
-          className={styles.avatar}
-          style={
-            paciente.color
-              ? ({ '--avatar-bg': `${paciente.color}22`, '--avatar-fg': paciente.color } as CSSProperties)
-              : undefined
-          }
-        >
-          {iniciales(paciente.nombre)}
-        </div>
-        <div className={styles.infoCabecera}>
-          <div className={styles.filaNombre}>
-            <h1 className={styles.nombre}>{paciente.nombre}</h1>
-            {paciente.origen === 'extra' && <span className={styles.badgeExtra}>Extra</span>}
+      <AtmosferaFondo intensidad="suave" origen="superior-derecha" className={styles.heroCabecera}>
+        <div className={styles.cabecera}>
+          <div
+            className={styles.avatar}
+            style={
+              paciente.color
+                ? ({ '--avatar-bg': `${paciente.color}22`, '--avatar-fg': paciente.color } as CSSProperties)
+                : undefined
+            }
+          >
+            {iniciales(paciente.nombre)}
           </div>
-          <div className={styles.filaInfoLineas}>
-            {paciente.fechaNacimiento && (
-              <InfoLinea icono="paciente" texto={`${calcularEdad(paciente.fechaNacimiento)} años`} />
-            )}
-            {paciente.direccion && <InfoLinea icono="ubicacion" texto={paciente.direccion} />}
-            {paciente.telefono && <InfoLinea icono="telefono" texto={paciente.telefono} />}
+          <div className={styles.infoCabecera}>
+            <div className={styles.filaNombre}>
+              <h1 className={styles.nombre}>{paciente.nombre}</h1>
+              {paciente.origen === 'extra' && <Badge variant="accent">Extra</Badge>}
+            </div>
+            <div className={styles.filaInfoLineas}>
+              {paciente.fechaNacimiento && (
+                <InfoLinea icono="paciente" texto={`${calcularEdad(paciente.fechaNacimiento)} años`} />
+              )}
+              {paciente.direccion && <InfoLinea icono="ubicacion" texto={paciente.direccion} />}
+              {paciente.telefono && <InfoLinea icono="telefono" texto={paciente.telefono} />}
+            </div>
           </div>
+          <Boton variante="secundario" onClick={() => setFormularioAbierto(true)}>
+            Editar
+          </Boton>
         </div>
-        <Boton variante="secundario" onClick={() => setFormularioAbierto(true)}>
-          Editar
-        </Boton>
-      </div>
+      </AtmosferaFondo>
 
       {autorizacionCompleta && diasParaVencer !== null && diasParaVencer <= 7 && (
         <div className={styles.alertaVencimiento}>
@@ -136,7 +142,13 @@ export function FichaPaciente({ paciente }: PropiedadesFichaPaciente) {
             nota="Por sesión, en efectivo"
           />
         )}
-        <TarjetaStat icono="pulso" etiqueta="Terapia" valorGrande={paciente.tipoTerapia ?? '—'} capitalizar nota={paciente.eps ?? 'Particular'} />
+        <TarjetaStat
+          icono="pulso"
+          etiqueta="Terapia"
+          valorGrande={paciente.tipoTerapia ? ETIQUETA_TIPO_TERAPIA[paciente.tipoTerapia] : '—'}
+          textoLargo
+          nota={paciente.eps ?? 'Particular'}
+        />
       </div>
 
       <SeccionAutorizacion
@@ -189,7 +201,7 @@ export function FichaPaciente({ paciente }: PropiedadesFichaPaciente) {
         </div>
       </div>
 
-      <Boton variante="peligro" tamano="sm" onClick={confirmarEliminacion} style={{ alignSelf: 'flex-start' }}>
+      <Boton variante="peligro" tamano="sm" onClick={() => setConfirmandoEliminacion(true)} style={{ alignSelf: 'flex-start' }}>
         Eliminar paciente
       </Boton>
 
@@ -200,6 +212,16 @@ export function FichaPaciente({ paciente }: PropiedadesFichaPaciente) {
         onGuardar={async (solicitud) => {
           await actualizarPaciente(paciente.id, solicitud)
         }}
+      />
+
+      <DialogoConfirmacion
+        abierto={confirmandoEliminacion}
+        onCerrar={() => setConfirmandoEliminacion(false)}
+        onConfirmar={confirmarEliminacion}
+        titulo={`¿Eliminar a ${paciente.nombre}?`}
+        descripcion="Esta acción no se puede deshacer. Se eliminarán sus datos, autorizaciones y cronología asociada."
+        textoConfirmar="Eliminar paciente"
+        peligro
       />
     </div>
   )
@@ -242,7 +264,7 @@ function TarjetaStat({
   barraPct,
   nota,
   alerta,
-  capitalizar,
+  textoLargo,
 }: {
   icono: NombreIcono
   etiqueta: string
@@ -251,7 +273,7 @@ function TarjetaStat({
   barraPct?: number
   nota: string
   alerta?: boolean
-  capitalizar?: boolean
+  textoLargo?: boolean
 }) {
   return (
     <div className={cn(styles.tarjetaStat, alerta && styles.alerta)}>
@@ -259,7 +281,7 @@ function TarjetaStat({
         <Icono nombre={icono} tamano={12} grosor={2} />
         {etiqueta}
       </div>
-      <div className={cn(styles.valorGrandeStat, alerta && styles.alerta, capitalizar && styles.capitalizar)}>
+      <div className={cn(styles.valorGrandeStat, alerta && styles.alerta, textoLargo && styles.textoLargo)}>
         {valorGrande}
         {valorChico && <span className={cn(styles.valorChicoStat, alerta && styles.alerta)}>{valorChico}</span>}
       </div>

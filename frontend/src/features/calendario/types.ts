@@ -5,6 +5,7 @@ export type { EstadoCita }
 export interface PacienteResumen {
   id: number
   nombre: string
+  direccion: string | null
   tipoTerapia: TipoTerapia | null
   color: string | null
 }
@@ -55,6 +56,16 @@ export interface RespuestaVerificarChoque {
   conflicto: Conflicto | null
 }
 
+export interface AutorizacionActivaPaciente {
+  id: number
+  sesionesTotales: number
+  sesionesUsadas: number
+  sesionesRestantes: number
+  fechaVencimiento: string | null
+  creadoEn: string
+  activa: boolean
+}
+
 export interface PacienteBusqueda {
   id: number
   nombre: string
@@ -63,6 +74,7 @@ export interface PacienteBusqueda {
   tipoTerapia: TipoTerapia | null
   color: string | null
   origen: 'trabajo' | 'extra'
+  autorizacionActiva?: AutorizacionActivaPaciente | null
 }
 
 export interface PacienteParaDrawer {
@@ -75,6 +87,7 @@ export interface PacienteParaDrawer {
 
 export interface AutorizacionResumen {
   copago: number
+  sesionesTotales: number
   sesionesRestantes: number
   fechaVencimiento: string | null
   alertaVencimiento: boolean
