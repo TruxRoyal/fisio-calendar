@@ -1,10 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react'
 import { autorizacionesResumenApi, capacidadApi, citasApi, pacientesBusquedaApi } from '../../api'
+import { useCalendarioStore } from '../../store'
 import { Icono } from '../../../../shared/components/Icono/Icono'
+import { Badge } from '../../../../shared/components/ui/badge'
+import { AtmosferaFondo } from '../../../../shared/components/AtmosferaFondo/AtmosferaFondo'
 import { formatearMiles } from '../../../../shared/lib/moneda'
 import {
+  analizarFechaHora,
+  diasHasta,
   formatearDuracionHoras,
+  formatearFechaHoraISO,
   formatearFechaLarga,
   formatearHora,
   formatearMinutosRestantes,
@@ -13,8 +19,9 @@ import {
 } from '../../../../shared/lib/fecha'
 import { TIPO_TERAPIA_COLOR } from '../../../../shared/theme/paletas'
 import { cn } from '../../../../shared/lib/clases'
-import type { AutorizacionResumen, CapacidadMensual, Cita, PacienteBusqueda } from '../../types'
+import type { AutorizacionActivaPaciente, AutorizacionResumen, CapacidadMensual, Cita, PacienteBusqueda } from '../../types'
 import type { TipoTerapia } from '../../../../shared/types/comun'
+import { ETIQUETA_TIPO_TERAPIA } from '../../../../shared/types/comun'
 import styles from './PanelPacientes.module.css'
 
 interface PropiedadesPanelPacientes {
@@ -22,7 +29,31 @@ interface PropiedadesPanelPacientes {
   onIniciarArrastrePaciente: (paciente: PacienteBusqueda, evento: ReactMouseEvent) => void
 }
 
-type Filtro = 'todos' | TipoTerapia
+type Filtro = 'todos' | TipoTerapia | 'porVencer'
+
+const DIAS_ALERTA_VENCIMIENTO = 7
+
+type EstadoRitmo = 'bien' | 'atencion' | 'atrasada'
+
+function calcularRitmo(autorizacion: AutorizacionActivaPaciente): EstadoRitmo | null {
+  if (!autorizacion.fechaVencimiento || autorizacion.sesionesTotales <= 0) return null
+
+  const inicio = analizarFechaHora(autorizacion.creadoEn.replace(' ', 'T'))
+  const fin = analizarFechaHora(
+    autorizacion.fechaVencimiento.length > 10 ? autorizacion.fechaVencimiento : `${autorizacion.fechaVencimiento}T00:00:00`,
+  )
+  const tiempoTotal = fin.getTime() - inicio.getTime()
+  if (tiempoTotal <= 0) return null
+
+  const tiempoTranscurrido = Math.min(tiempoTotal, Math.max(0, Date.now() - inicio.getTime()))
+  const pctTiempo = tiempoTranscurrido / tiempoTotal
+  const pctSesiones = autorizacion.sesionesUsadas / autorizacion.sesionesTotales
+  const delta = pctSesiones - pctTiempo
+
+  if (delta >= -0.1) return 'bien'
+  if (delta >= -0.25) return 'atencion'
+  return 'atrasada'
+}
 
 function iniciales(nombre: string): string {
   return nombre
@@ -40,18 +71,19 @@ export function PanelPacientes({ onSeleccionarPaciente, onIniciarArrastrePacient
   const [citasHoy, setCitasHoy] = useState<Cita[]>([])
   const [autorizacionProxima, setAutorizacionProxima] = useState<AutorizacionResumen | null>(null)
   const [capacidad, setCapacidad] = useState<CapacidadMensual | null>(null)
+  const citasStore = useCalendarioStore((estado) => estado.citas)
 
   useEffect(() => {
     pacientesBusquedaApi.listar(busqueda).then(setPacientes)
-  }, [busqueda])
+  }, [busqueda, citasStore])
 
   useEffect(() => {
     citasApi.listarPorRango(hoyISO(), hoyISO()).then(setCitasHoy)
-  }, [])
+  }, [citasStore])
 
   useEffect(() => {
     capacidadApi.obtener().then(setCapacidad)
-  }, [])
+  }, [citasStore])
 
   const hechas = citasHoy.filter((c) => c.estado === 'atendida').length
   const pendientes = citasHoy.filter((c) => c.estado === 'agendada').length
@@ -60,7 +92,7 @@ export function PanelPacientes({ onSeleccionarPaciente, onIniciarArrastrePacient
     .reduce((total, c) => total + (c.valorSesion ?? 0) + c.copagoCobrado, 0)
 
   const proximaVisita = useMemo(() => {
-    const ahoraISO = new Date().toISOString().slice(0, 19)
+    const ahoraISO = formatearFechaHoraISO(new Date())
     return citasHoy
       .filter((c) => c.estado === 'agendada' && c.inicio >= ahoraISO)
       .sort((a, b) => a.inicio.localeCompare(b.inicio))[0]
@@ -74,20 +106,29 @@ export function PanelPacientes({ onSeleccionarPaciente, onIniciarArrastrePacient
     autorizacionesResumenApi.obtenerActiva(proximaVisita.pacienteId).then(setAutorizacionProxima)
   }, [proximaVisita])
 
-  const pacientesFiltrados = pacientes.filter((p) => filtro === 'todos' || p.tipoTerapia === filtro)
+  const pacientesFiltrados = pacientes.filter((p) => {
+    if (filtro === 'todos') return true
+    if (filtro === 'porVencer') {
+      const vencimiento = p.autorizacionActiva?.fechaVencimiento
+      return vencimiento != null && diasHasta(vencimiento) <= DIAS_ALERTA_VENCIMIENTO
+    }
+    return p.tipoTerapia === filtro
+  })
 
   return (
     <aside className={styles.panel}>
-      <div className={styles.encabezado}>
-        <div className={styles.etiquetaHoy}>Hoy</div>
-        <div className={styles.fechaHoy}>{formatearFechaLarga(hoyISO())}</div>
-      </div>
+      <AtmosferaFondo intensidad="suave" origen="superior-derecha" className={styles.heroEncabezado}>
+        <div className={styles.encabezado}>
+          <div className={styles.etiquetaHoy}>Hoy</div>
+          <div className={styles.fechaHoy}>{formatearFechaLarga(hoyISO())}</div>
 
-      <div className={styles.gridEstadisticas}>
-        <TarjetaEstadistica etiqueta="Hechas" valor={`${hechas}/${citasHoy.length}`} />
-        <TarjetaEstadistica etiqueta="Pendientes" valor={String(pendientes)} />
-        <TarjetaEstadistica etiqueta="Recaudo" valor={formatearMiles(recaudo)} acentuada />
-      </div>
+          <div className={styles.gridEstadisticas}>
+            <TarjetaEstadistica etiqueta="Hechas" valor={`${hechas}/${citasHoy.length}`} />
+            <TarjetaEstadistica etiqueta="Pendientes" valor={String(pendientes)} />
+            <TarjetaEstadistica etiqueta="Recaudo" valor={formatearMiles(recaudo)} acentuada />
+          </div>
+        </div>
+      </AtmosferaFondo>
 
       {capacidad && <WidgetCargaMensual capacidad={capacidad} />}
 
@@ -96,24 +137,33 @@ export function PanelPacientes({ onSeleccionarPaciente, onIniciarArrastrePacient
           <div className={styles.tarjeta}>
             <div className={styles.filaProximaCabecera}>
               <span className={styles.etiquetaProxima}>Próxima visita</span>
-              <span className={styles.badgeMinutos}>{formatearMinutosRestantes(minutosRestantes(proximaVisita.inicio))}</span>
+              <Badge variant="accent" className="font-semibold normal-case tracking-normal">
+                {formatearMinutosRestantes(minutosRestantes(proximaVisita.inicio))}
+              </Badge>
             </div>
             <div className={styles.filaProximaPaciente}>
               <div className={styles.avatarProxima}>{iniciales(proximaVisita.paciente.nombre)}</div>
               <div className={styles.infoProxima}>
                 <div className={styles.nombreProxima}>{proximaVisita.paciente.nombre}</div>
-                <div className={styles.horaProxima}>{formatearHora(proximaVisita.inicio)}</div>
+                <div className={styles.horaProxima}>
+                  {formatearHora(proximaVisita.inicio)}
+                  {proximaVisita.paciente.direccion && ` · ${proximaVisita.paciente.direccion}`}
+                </div>
               </div>
             </div>
             {autorizacionProxima && (
               <div className={styles.filaBadges}>
-                {autorizacionProxima.alertaVencimiento && (
-                  <span className={styles.badgeAlerta}>
-                    <Icono nombre="alerta" tamano={12} grosor={2.1} />
-                    Autorización por vencer
-                  </span>
+                {autorizacionProxima.alertaVencimiento && autorizacionProxima.fechaVencimiento && (
+                  <Badge variant="warning">
+                    <Icono nombre="alerta" tamano={12} grosor={2.1} data-icon="inline-start" />
+                    Vence en {Math.max(0, diasHasta(autorizacionProxima.fechaVencimiento))} día
+                    {diasHasta(autorizacionProxima.fechaVencimiento) === 1 ? '' : 's'}
+                  </Badge>
                 )}
-                <span className={styles.badgeSesiones}>{autorizacionProxima.sesionesRestantes} sesión(es) restante(s)</span>
+                <Badge variant="secondary">
+                  {autorizacionProxima.sesionesRestantes} sesión{autorizacionProxima.sesionesRestantes === 1 ? '' : 'es'} restante
+                  {autorizacionProxima.sesionesRestantes === 1 ? '' : 's'}
+                </Badge>
               </div>
             )}
           </div>
@@ -142,8 +192,9 @@ export function PanelPacientes({ onSeleccionarPaciente, onIniciarArrastrePacient
         {(
           [
             { id: 'todos', label: 'Todos' },
-            { id: 'respiratoria', label: 'Respiratoria' },
-            { id: 'fisica', label: 'Física' },
+            { id: 'respiratoria', label: ETIQUETA_TIPO_TERAPIA.respiratoria },
+            { id: 'fisica', label: ETIQUETA_TIPO_TERAPIA.fisica },
+            { id: 'porVencer', label: 'Por vencer' },
           ] as { id: Filtro; label: string }[]
         ).map((f) => {
           const activo = filtro === f.id
@@ -165,6 +216,8 @@ export function PanelPacientes({ onSeleccionarPaciente, onIniciarArrastrePacient
           const color = paciente.tipoTerapia ? TIPO_TERAPIA_COLOR[paciente.tipoTerapia] : null
           const avatarBg = paciente.color ? `${paciente.color}22` : (color?.bg ?? 'var(--s3)')
           const avatarFg = paciente.color ?? color?.fg ?? 'var(--t3)'
+          const autorizacion = paciente.autorizacionActiva
+          const ritmo = autorizacion ? calcularRitmo(autorizacion) : null
           return (
             <button
               type="button"
@@ -191,9 +244,15 @@ export function PanelPacientes({ onSeleccionarPaciente, onIniciarArrastrePacient
                       className={styles.iconoTipoPaciente}
                     />
                   )}
-                  {paciente.origen === 'extra' && <span className={styles.badgeExtra}>Extra</span>}
+                  {paciente.origen === 'extra' && <Badge variant="accent">Extra</Badge>}
                 </div>
                 <div className={styles.subtituloPaciente}>{paciente.eps ?? 'Particular'}</div>
+                {autorizacion && (
+                  <div className={cn(styles.filaSesiones, ritmo && styles[`ritmo${ritmo.charAt(0).toUpperCase()}${ritmo.slice(1)}`])}>
+                    <span className={styles.puntoRitmo} />
+                    {autorizacion.sesionesUsadas}/{autorizacion.sesionesTotales} sesiones
+                  </div>
+                )}
               </div>
             </button>
           )

@@ -1,0 +1,44 @@
+# This workflow builds and tests the Go backend.
+
+name: Go
+
+on:
+  push:
+    branches: [ "prod", "dev" ]
+  pull_request:
+    branches: [ "prod", "dev" ]
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22'
+        cache-dependency-path: backend/go.sum
+
+    - name: Build
+      run: go build -v ./...
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22'
+        cache-dependency-path: backend/go.sum
+
+    - name: Test
+      run: go test -v ./...

@@ -23,6 +23,7 @@ import {
 } from '../../../../shared/lib/fecha'
 import { Boton } from '../../../../shared/components/Boton/Boton'
 import { Icono } from '../../../../shared/components/Icono/Icono'
+import { ToggleGroup, ToggleGroupItem } from '../../../../shared/components/ui/toggle-group'
 import { ErrorPeticion } from '../../../../shared/api/cliente'
 import { cn } from '../../../../shared/lib/clases'
 import type { Cita, CitaBorrador, EstadoCita, PacienteBusqueda, VistaCalendario } from '../../types'
@@ -92,6 +93,8 @@ export function VistaSemanal() {
   const [vista, setVista] = useState<VistaCalendario>('semana')
   const [fechaDia, setFechaDia] = useState(() => new Date())
   const refGrilla = useRef<HTMLDivElement>(null)
+  const refCuerpoSemana = useRef<HTMLDivElement>(null)
+  const [anchoScrollbar, setAnchoScrollbar] = useState(0)
   const refCandidato = useRef<{ cita: Cita; diaIndice: number; modo: 'mover' | 'redimensionar'; pageX: number; pageY: number } | null>(null)
   const [arrastre, setArrastre] = useState<ArrastreActivo | null>(null)
   const refCandidatoPaciente = useRef<{ paciente: PacienteBusqueda; clientX: number; clientY: number } | null>(null)
@@ -203,6 +206,21 @@ export function VistaSemanal() {
       window.removeEventListener('mouseup', alSoltar)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // La cabecera de días vive fuera de .cuerpoSemana (para quedar fija mientras
+  // la grilla hace scroll vertical), así que no pierde ancho automáticamente
+  // cuando aparece la barra de scroll del navegador. Medimos ese ancho una
+  // vez y lo reservamos también en la cabecera para que las columnas sigan
+  // alineadas con las de la grilla.
+  useEffect(() => {
+    function medirScrollbar() {
+      const el = refCuerpoSemana.current
+      if (el) setAnchoScrollbar(el.offsetWidth - el.clientWidth)
+    }
+    medirScrollbar()
+    window.addEventListener('resize', medirScrollbar)
+    return () => window.removeEventListener('resize', medirScrollbar)
   }, [])
 
   async function finalizarArrastre(actual: ArrastreActivo) {
@@ -319,12 +337,13 @@ export function VistaSemanal() {
             <CabeceraSemana
               dias={dias}
               citas={citas}
+              anchoScrollbar={anchoScrollbar}
               onSemanaAnterior={() => irSemana(-1)}
               onSemanaSiguiente={() => irSemana(1)}
               onHoy={irHoy}
             />
 
-            <div className={styles.cuerpoSemana}>
+            <div ref={refCuerpoSemana} className={styles.cuerpoSemana}>
               <div className={styles.columnaHoras}>
                 <div className={styles.espaciadorHoras} />
                 {horas.map((hora) => (
@@ -483,27 +502,22 @@ function BarraSuperior({
 }) {
   return (
     <div className={styles.barraSuperior}>
-      <div className={styles.selectorVista}>
-        {(
-          [
-            { id: 'semana' as const, etiqueta: 'Semana' },
-            { id: 'dia' as const, etiqueta: 'Día' },
-            { id: 'mes' as const, etiqueta: 'Mes' },
-          ]
-        ).map((opcion) => {
-          const activo = vista === opcion.id
-          return (
-            <button
-              type="button"
-              key={opcion.id}
-              onClick={() => onCambiarVista(opcion.id)}
-              className={cn(styles.botonVista, activo && styles.activo)}
-            >
-              {opcion.etiqueta}
-            </button>
-          )
-        })}
-      </div>
+      <ToggleGroup
+        type="single"
+        value={vista}
+        onValueChange={(valor) => valor && onCambiarVista(valor as VistaCalendario)}
+        className={styles.selectorVista}
+      >
+        <ToggleGroupItem value="semana" className={styles.botonVista}>
+          Semana
+        </ToggleGroupItem>
+        <ToggleGroupItem value="dia" className={styles.botonVista}>
+          Día
+        </ToggleGroupItem>
+        <ToggleGroupItem value="mes" className={styles.botonVista}>
+          Mes
+        </ToggleGroupItem>
+      </ToggleGroup>
       <div className={styles.espaciador} />
       <Boton variante="primario" onClick={onNuevaCita}>
         <Icono nombre="mas" tamano={17} grosor={2.2} />
@@ -516,12 +530,14 @@ function BarraSuperior({
 function CabeceraSemana({
   dias,
   citas,
+  anchoScrollbar,
   onSemanaAnterior,
   onSemanaSiguiente,
   onHoy,
 }: {
   dias: Date[]
   citas: Cita[]
+  anchoScrollbar: number
   onSemanaAnterior: () => void
   onSemanaSiguiente: () => void
   onHoy: () => void
@@ -541,7 +557,7 @@ function CabeceraSemana({
         <div className={styles.rangoSemana}>{rangoLabel}</div>
       </div>
 
-      <div className={styles.filaDiasCabecera}>
+      <div className={styles.filaDiasCabecera} style={{ paddingRight: anchoScrollbar }}>
         {dias.map((dia) => {
           const esHoy = esMismoDia(formatearFechaISO(dia), hoyISO())
           const cuenta = contarVisitasPorDia(citas, dia)
@@ -550,7 +566,7 @@ function CabeceraSemana({
               <div className={cn(styles.nombreDiaCabecera, esHoy && styles.hoy)}>{formatearDiaSemana(formatearFechaISO(dia))}</div>
               <div className={styles.filaNumeroCuenta}>
                 <span className={cn(styles.numeroDiaCabecera, esHoy && styles.hoy)}>{dia.getDate()}</span>
-                {cuenta > 0 && <span className={styles.cuentaDia}>{cuenta}</span>}
+                {cuenta > 0 && <span className={styles.cuentaDia}>{cuenta} visitas</span>} 
               </div>
             </div>
           )

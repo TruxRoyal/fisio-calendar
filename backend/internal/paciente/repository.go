@@ -20,8 +20,18 @@ const columnasPaciente = `id, nombre, direccion, documento, telefono, diagnostic
 
 const columnasPacientePrefijadas = `p.id, p.nombre, p.direccion, p.documento, p.telefono, p.diagnostico, p.eps, p.tipo_terapia, p.lat, p.lng, p.fecha_nacimiento, p.observaciones, p.color, p.origen, p.tarifa_sesion, p.creado_en, p.actualizado_en`
 
-func (r *Repository) Listar(ctx context.Context, busqueda, mes string) ([]Paciente, error) {
-	consulta := fmt.Sprintf(`SELECT DISTINCT %s FROM paciente p`, columnasPacientePrefijadas)
+func (r *Repository) Listar(ctx context.Context, busqueda, mes string) ([]PacienteDetalle, error) {
+	consulta := fmt.Sprintf(`
+		SELECT DISTINCT %s,
+			a.id, a.sesiones_totales, a.fecha_vencimiento, a.creado_en,
+			(SELECT COUNT(*) FROM cita c3 WHERE c3.autorizacion_id = a.id AND c3.estado = 'atendida')
+		FROM paciente p
+		LEFT JOIN autorizacion a ON a.id = (
+			SELECT a2.id FROM autorizacion a2
+			WHERE a2.paciente_id = p.id AND a2.activa = 1
+			ORDER BY a2.creado_en DESC LIMIT 1
+		)
+	`, columnasPacientePrefijadas)
 	condiciones := []string{}
 	argumentos := []any{}
 
@@ -55,13 +65,39 @@ func (r *Repository) Listar(ctx context.Context, busqueda, mes string) ([]Pacien
 	}
 	defer filas.Close()
 
-	pacientes := []Paciente{}
+	pacientes := []PacienteDetalle{}
 	for filas.Next() {
-		var p Paciente
-		if err := escanearPaciente(filas, &p); err != nil {
+		var d PacienteDetalle
+		var autorizacionID *int64
+		var sesionesTotales *int
+		var fechaVencimiento *string
+		var autorizacionCreadoEn *string
+		var sesionesUsadas int
+
+		if err := filas.Scan(
+			&d.ID, &d.Nombre, &d.Direccion, &d.Documento, &d.Telefono,
+			&d.Diagnostico, &d.EPS, &d.TipoTerapia, &d.Lat, &d.Lng,
+			&d.FechaNacimiento, &d.Observaciones, &d.Color,
+			&d.Origen, &d.TarifaSesion,
+			&d.CreadoEn, &d.ActualizadoEn,
+			&autorizacionID, &sesionesTotales, &fechaVencimiento, &autorizacionCreadoEn, &sesionesUsadas,
+		); err != nil {
 			return nil, fmt.Errorf("escanear paciente: %w", err)
 		}
-		pacientes = append(pacientes, p)
+
+		if autorizacionID != nil {
+			d.AutorizacionActiva = &AutorizacionResumen{
+				ID:                *autorizacionID,
+				SesionesTotales:   *sesionesTotales,
+				SesionesUsadas:    sesionesUsadas,
+				SesionesRestantes: *sesionesTotales - sesionesUsadas,
+				FechaVencimiento:  fechaVencimiento,
+				CreadoEn:          *autorizacionCreadoEn,
+				Activa:            true,
+			}
+		}
+
+		pacientes = append(pacientes, d)
 	}
 
 	return pacientes, filas.Err()

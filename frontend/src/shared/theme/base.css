@@ -1,19 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(:root[data-oscuro='true'] *));
 
 :root {
   --fuente: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --fuenteMono: 'Geist Mono', ui-monospace, monospace;
-  --bg: #FBFAFC;
-  --s1: #FFFFFF;
-  --s2: #FAF9FB;
-  --s3: #F4F1F6;
-  --s4: #F1EEF3;
-  --bd: #EAE6EE;
-  --bd2: #DDD6E2;
-  --grid: #F0EDF2;
-  --t1: #1B181D;
-  --t2: #3E3846;
-  --t3: #6E6875;
+  /* Respaldo antes de que ThemeProvider aplique el tema guardado en tiempo de
+     ejecución — evita que color-mix() de abajo quede sin color válido. */
+  --ac: #82272A;
   --inv: #241F29;
   --invFg: #FFFFFF;
   --invT3: #C7C1CE;
@@ -35,20 +31,33 @@
   --sb: #E2DEE6;
   --sbH: #CDC7D2;
   --acFg: #FFFFFF;
+  --radius: 0.75rem;
+
+  --chart1: #1BAF7A;
+  --chart2: #4A3AA7;
+
+  /*
+   * La superficie neutra entera se mezcla con el acento activo (--ac) en un
+   * porcentaje bajo, en vez de quedar fija sin importar el tema. Antes solo
+   * ~2 elementos (rail, un borde de tarjeta) cambiaban al elegir un tema; el
+   * resto del lienzo (fondo, tarjetas, bordes) se veía idéntico entre los 5.
+   * Con color-mix() en oklch todo el lienzo respira el matiz del tema, sutil
+   * pero perceptible, sin tocar cada componente uno por uno.
+   */
+  --bg: color-mix(in oklch, var(--ac) 3%, #FBFAFC);
+  --s1: color-mix(in oklch, var(--ac) 1.5%, #FFFFFF);
+  --s2: color-mix(in oklch, var(--ac) 3%, #FAF9FB);
+  --s3: color-mix(in oklch, var(--ac) 6%, #F4F1F6);
+  --s4: color-mix(in oklch, var(--ac) 8%, #F1EEF3);
+  --bd: color-mix(in oklch, var(--ac) 11%, #EAE6EE);
+  --bd2: color-mix(in oklch, var(--ac) 14%, #DDD6E2);
+  --grid: color-mix(in oklch, var(--ac) 8%, #F0EDF2);
+  --t1: color-mix(in oklch, var(--ac) 4%, #1B181D);
+  --t2: color-mix(in oklch, var(--ac) 4%, #3E3846);
+  --t3: color-mix(in oklch, var(--ac) 4%, #6E6875);
 }
 
 :root[data-oscuro='true'] {
-  --bg: #16131A;
-  --s1: #211D26;
-  --s2: #1C1922;
-  --s3: #2A2531;
-  --s4: #332D3A;
-  --bd: #312B38;
-  --bd2: #443D4D;
-  --grid: #272231;
-  --t1: #F3F0F6;
-  --t2: #D6D0DD;
-  --t3: #A79FB1;
   --inv: #EDE9F1;
   --invFg: #1B181D;
   --invT3: #5E5866;
@@ -70,6 +79,68 @@
   --sb: #3B3444;
   --sbH: #4C4457;
   --acFg: #221A26;
+
+  --chart1: #199E70;
+  --chart2: #9085E9;
+
+  --bg: color-mix(in oklch, var(--ac) 10%, #16131A);
+  --s1: color-mix(in oklch, var(--ac) 11%, #211D26);
+  --s2: color-mix(in oklch, var(--ac) 10%, #1C1922);
+  --s3: color-mix(in oklch, var(--ac) 13%, #2A2531);
+  --s4: color-mix(in oklch, var(--ac) 15%, #332D3A);
+  --bd: color-mix(in oklch, var(--ac) 16%, #312B38);
+  --bd2: color-mix(in oklch, var(--ac) 18%, #443D4D);
+  --grid: color-mix(in oklch, var(--ac) 13%, #272231);
+  --t1: #F3F0F6;
+  --t2: #D6D0DD;
+  --t3: #A79FB1;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--bg);
+  --color-foreground: var(--t1);
+
+  --color-card: var(--s1);
+  --color-card-foreground: var(--t1);
+  --color-popover: var(--s1);
+  --color-popover-foreground: var(--t1);
+
+  --color-primary: var(--ac);
+  --color-primary-foreground: var(--acFg);
+  --color-secondary: var(--s3);
+  --color-secondary-foreground: var(--t2);
+
+  --color-muted: var(--s2);
+  --color-muted-foreground: var(--t3);
+  --color-accent: var(--s3);
+  --color-accent-foreground: var(--t1);
+
+  --color-destructive: var(--dgFg);
+  --color-destructive-foreground: #FFFFFF;
+
+  --color-border: var(--bd);
+  --color-input: var(--bd2);
+  --color-ring: var(--ac);
+
+  --color-chart-1: var(--chart1);
+  --color-chart-2: var(--chart2);
+  --color-chart-3: var(--wrFg);
+  --color-chart-4: var(--dgFg);
+  --color-chart-5: var(--t3);
+
+  --color-sidebar: var(--s2);
+  --color-sidebar-foreground: var(--t2);
+  --color-sidebar-primary: var(--ac);
+  --color-sidebar-primary-foreground: var(--acFg);
+  --color-sidebar-accent: var(--s3);
+  --color-sidebar-accent-foreground: var(--t1);
+  --color-sidebar-border: var(--bd);
+  --color-sidebar-ring: var(--ac);
 }
 
 * {
@@ -89,6 +160,12 @@ body {
 
 #root {
   height: 100dvh;
+}
+
+@layer utilities {
+  .z-50 {
+    z-index: 100;
+  }
 }
 
 a {

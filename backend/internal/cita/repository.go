@@ -18,7 +18,7 @@ const consultaBase = `
 	SELECT
 		c.id, c.paciente_id, c.autorizacion_id, c.inicio, c.fin, c.estado,
 		c.valor_sesion, c.copago_cobrado, c.notas, c.creado_en, c.actualizado_en,
-		p.id, p.nombre, p.tipo_terapia, p.color
+		p.id, p.nombre, p.direccion, p.tipo_terapia, p.color
 	FROM cita c
 	JOIN paciente p ON p.id = c.paciente_id
 `
@@ -180,6 +180,6 @@ func escanearCita(fila escaneable, c *Cita) error {
 	return fila.Scan(
 		&c.ID, &c.PacienteID, &c.AutorizacionID, &c.Inicio, &c.Fin, &c.Estado,
 		&c.ValorSesion, &c.CopagoCobrado, &c.Notas, &c.CreadoEn, &c.ActualizadoEn,
-		&c.Paciente.ID, &c.Paciente.Nombre, &c.Paciente.TipoTerapia, &c.Paciente.Color,
+		&c.Paciente.ID, &c.Paciente.Nombre, &c.Paciente.Direccion, &c.Paciente.TipoTerapia, &c.Paciente.Color,
 	)
 }

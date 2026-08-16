@@ -1,19 +1,38 @@
 import { useState } from 'react'
-import { useResumen } from '../../hooks/useResumen'
+import { useDesglosePorPaciente, useResumen, useResumenHistorico } from '../../hooks/useResumen'
 import { TarjetaCifra } from '../TarjetaCifra/TarjetaCifra'
+import type { DeltaCifra } from '../TarjetaCifra/TarjetaCifra'
+import { GraficoIngresos } from '../GraficoIngresos/GraficoIngresos'
 import { Boton } from '../../../../shared/components/Boton/Boton'
 import { Icono } from '../../../../shared/components/Icono/Icono'
+import { AtmosferaFondo } from '../../../../shared/components/AtmosferaFondo/AtmosferaFondo'
+import { Progress } from '../../../../shared/components/ui/progress'
 import { formatearCOP } from '../../../../shared/lib/moneda'
 import { formatearMesAnio } from '../../../../shared/lib/fecha'
 import { resumenApi } from '../../api'
+import type { DesglosePaciente } from '../../types'
 import styles from './ResumenMensual.module.css'
+
+function calcularDelta(actual: number, anterior: number): DeltaCifra | null {
+  if (anterior === 0) return actual > 0 ? { texto: 'Nuevo', positivo: true } : null
+  const porcentaje = ((actual - anterior) / anterior) * 100
+  if (Math.round(porcentaje) === 0) return null
+  return {
+    texto: `${porcentaje > 0 ? '+' : ''}${Math.round(porcentaje)}%`,
+    positivo: porcentaje > 0,
+  }
+}
 
 export function ResumenMensual() {
   const ahora = new Date()
   const [anio, setAnio] = useState(ahora.getFullYear())
   const [mes, setMes] = useState(ahora.getMonth() + 1)
   const { resumen, cargando } = useResumen(anio, mes)
+  const { historico } = useResumenHistorico(anio, mes, 6)
+  const { desglose } = useDesglosePorPaciente(anio, mes)
   const [exportando, setExportando] = useState(false)
+
+  const mesAnterior = historico.length >= 2 ? (historico.at(-2) ?? null) : null
 
   function cambiarMes(delta: number) {
     const fecha = new Date(anio, mes - 1 + delta, 1)
@@ -39,48 +58,137 @@ export function ResumenMensual() {
   return (
     <div className={styles.pagina}>
       <div className={styles.contenedor}>
-        <div className={styles.filaCabecera}>
-          <div className={styles.infoTitulo}>
-            <h1 className={styles.titulo}>{formatearMesAnio(anio, mes)}</h1>
-            <div className={styles.subtitulo}>Ingresos y sesiones del mes</div>
+        <AtmosferaFondo intensidad="suave" particulas origen="superior-derecha" className={styles.hero}>
+          <div className={styles.filaCabecera}>
+            <div className={styles.infoTitulo}>
+              <h1 className={styles.titulo}>{formatearMesAnio(anio, mes)}</h1>
+              <div className={styles.subtitulo}>Ingresos y sesiones del mes</div>
+            </div>
+            <div className={styles.selectorMes}>
+              <BotonMes onClick={() => cambiarMes(-1)} icono="chevronIzquierda" />
+              <BotonMes onClick={() => cambiarMes(1)} icono="chevronDerecha" />
+            </div>
+            <Boton variante="secundario" onClick={exportar} disabled={exportando || !resumen}>
+              <Icono nombre="excel" tamano={16} grosor={1.9} className={styles.iconoExcel} />
+              {exportando ? 'Exportando…' : 'Exportar Excel'}
+            </Boton>
           </div>
-          <div className={styles.selectorMes}>
-            <BotonMes onClick={() => cambiarMes(-1)} icono="chevronIzquierda" />
-            <BotonMes onClick={() => cambiarMes(1)} icono="chevronDerecha" />
-          </div>
-          <Boton variante="secundario" onClick={exportar} disabled={exportando || !resumen}>
-            <Icono nombre="excel" tamano={16} grosor={1.9} className={styles.iconoExcel} />
-            {exportando ? 'Exportando…' : 'Exportar Excel'}
-          </Boton>
-        </div>
+
+          {resumen && (
+            <div className={styles.filaHero}>
+              <div className={styles.etiquetaHero}>Total del mes</div>
+              <div className={styles.filaValorHero}>
+                <span className={styles.valorHero}>{formatearCOP(resumen.total)}</span>
+                {mesAnterior && (() => {
+                  const delta = calcularDelta(resumen.total, mesAnterior.total)
+                  return delta ? (
+                    <span className={delta.positivo ? styles.deltaHeroPositivo : styles.deltaHeroNegativo}>
+                      {delta.positivo ? '↑' : '↓'} {delta.texto} vs mes anterior
+                    </span>
+                  ) : null
+                })()}
+              </div>
+            </div>
+          )}
+        </AtmosferaFondo>
 
         {cargando || !resumen ? (
           <p className={styles.textoCargando}>Cargando…</p>
         ) : (
-          <div className={styles.gridCifras}>
-            <TarjetaCifra
-              etiqueta="Pago neto"
-              valor={formatearCOP(resumen.pagoNeto)}
-              color={{ fg: 'var(--okFg)', bg: 'var(--okBg)', bd: 'var(--okBd)' }}
-            />
-            <TarjetaCifra
-              etiqueta="Copagos recaudados"
-              valor={formatearCOP(resumen.copagosRecaudados)}
-              color={{ fg: 'var(--acT)', bg: 'var(--acS)', bd: 'var(--acL)' }}
-            />
-            <TarjetaCifra
-              etiqueta="Total"
-              valor={formatearCOP(resumen.total)}
-              color={{ fg: 'var(--t1)', bg: 'var(--s1)', bd: 'var(--bd)' }}
-            />
-            <TarjetaCifra
-              etiqueta="Sesiones atendidas"
-              valor={String(resumen.sesionesAtendidas)}
-              color={{ fg: 'var(--t1)', bg: 'var(--s1)', bd: 'var(--bd)' }}
-              nota={resumen.umbralAlcanzado ? '✓ Escalón de $25.000 alcanzado (sesión 72+)' : undefined}
-            />
-          </div>
+          <>
+            <div className={styles.gridCifras}>
+              <TarjetaCifra
+                etiqueta="Pago neto"
+                valor={formatearCOP(resumen.pagoNeto)}
+                color={{ fg: 'var(--okFg)', bg: 'var(--okBg)', bd: 'var(--okBd)' }}
+                delta={mesAnterior ? calcularDelta(resumen.pagoNeto, mesAnterior.pagoNeto) : null}
+              />
+              <TarjetaCifra
+                etiqueta="Copagos recaudados"
+                valor={formatearCOP(resumen.copagosRecaudados)}
+                color={{ fg: 'var(--acT)', bg: 'var(--acS)', bd: 'var(--acL)' }}
+                delta={mesAnterior ? calcularDelta(resumen.copagosRecaudados, mesAnterior.copagosRecaudados) : null}
+              />
+              <TarjetaCifra
+                etiqueta="Sesiones atendidas"
+                valor={String(resumen.sesionesAtendidas)}
+                color={{ fg: 'var(--t1)', bg: 'var(--s1)', bd: 'var(--bd)' }}
+                delta={mesAnterior ? calcularDelta(resumen.sesionesAtendidas, mesAnterior.sesionesAtendidas) : null}
+              />
+            </div>
+
+            <div className={styles.panelEscalon}>
+              <div className={styles.filaEscalon}>
+                <div>
+                  <div className={styles.tituloEscalon}>Escalón de tarifa</div>
+                  <div className={styles.subtituloEscalon}>
+                    {resumen.umbralAlcanzado
+                      ? `Alcanzado — desde la sesión ${resumen.umbralEscalon + 1} el valor sube a $25.000`
+                      : `${resumen.sesionesTrabajo} de ${resumen.umbralEscalon} sesiones del trabajo para subir a $25.000`}
+                  </div>
+                </div>
+                {resumen.umbralAlcanzado && (
+                  <div className={styles.badgeEscalon}>
+                    <Icono nombre="check" tamano={13} grosor={2.6} />
+                    Alcanzado
+                  </div>
+                )}
+              </div>
+              <Progress
+                value={Math.min(100, (resumen.sesionesTrabajo / resumen.umbralEscalon) * 100)}
+                className={styles.pistaEscalon}
+              />
+            </div>
+
+            {historico.length > 0 && (
+              <div className={styles.panelGrafico}>
+                <div className={styles.tituloPanelGrafico}>Ingresos por mes</div>
+                <div className={styles.subtituloPanelGrafico}>Últimos 6 meses · pago neto y copagos</div>
+                <GraficoIngresos historico={historico} />
+              </div>
+            )}
+
+            {desglose.length > 0 && <PanelDesglose desglose={desglose} />}
+          </>
         )}
+      </div>
+    </div>
+  )
+}
+
+function PanelDesglose({ desglose }: { desglose: DesglosePaciente[] }) {
+  const maximo = Math.max(...desglose.map((d) => d.total), 1)
+
+  return (
+    <div className={styles.panelDesglose}>
+      <div className={styles.tituloPanelGrafico}>Por paciente</div>
+      <div className={styles.subtituloPanelGrafico}>Quién generó más ingresos este mes</div>
+      <div className={styles.listaDesglose}>
+        {desglose.map((paciente) => (
+          <div key={paciente.pacienteId} className={styles.filaDesglose}>
+            <div className={styles.avatarDesglose}>
+              {paciente.nombre
+                .split(' ')
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((parte) => parte[0]?.toUpperCase())
+                .join('')}
+            </div>
+            <div className={styles.infoDesglose}>
+              <div className={styles.filaNombreDesglose}>
+                <span className={styles.nombreDesglose}>{paciente.nombre}</span>
+                <span className={styles.valorDesglose}>{formatearCOP(paciente.total)}</span>
+              </div>
+              <div className={styles.pistaDesglose}>
+                <div className={styles.rellenoDesglose} style={{ width: `${(paciente.total / maximo) * 100}%` }} />
+              </div>
+              <div className={styles.notaDesglose}>
+                {paciente.sesiones} sesión{paciente.sesiones === 1 ? '' : 'es'} · {formatearCOP(paciente.pagoNeto)} pago neto
+                {paciente.copagos > 0 && ` · ${formatearCOP(paciente.copagos)} copagos`}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )

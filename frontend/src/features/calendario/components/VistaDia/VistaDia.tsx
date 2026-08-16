@@ -5,6 +5,7 @@ import { BotonIcono } from '../VistaSemanal/VistaSemanal'
 import { Icono } from '../../../../shared/components/Icono/Icono'
 import { TIPO_TERAPIA_COLOR } from '../../../../shared/theme/paletas'
 import { cn } from '../../../../shared/lib/clases'
+import { ETIQUETA_TIPO_TERAPIA } from '../../../../shared/types/comun'
 import {
   analizarFechaHora,
   combinarFechaHora,
@@ -103,7 +104,9 @@ export function VistaDia({ fecha, onCambiarFecha, onAbrirCita, onCrearCita }: Pr
                   <span className={styles.horaBloque}>{formatearHora(cita.inicio)}</span>
                   <div className={styles.infoBloque}>
                     <div className={styles.nombreBloque}>{cita.paciente.nombre}</div>
-                    <div className={styles.notaBloque}>{cita.notas || (cita.paciente.tipoTerapia ?? '')}</div>
+                    <div className={styles.notaBloque}>
+                      {cita.notas || (cita.paciente.tipoTerapia ? ETIQUETA_TIPO_TERAPIA[cita.paciente.tipoTerapia] : '')}
+                    </div>
                   </div>
                   {cita.estado === 'atendida' && <Icono nombre="check" tamano={13} grosor={2.6} className={styles.iconoCheckBloque} />}
                   <span className={styles.duracionBloque}>{duracion} min</span>

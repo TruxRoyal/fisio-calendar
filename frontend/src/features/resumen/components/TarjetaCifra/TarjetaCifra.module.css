@@ -6,6 +6,13 @@
   box-shadow: 0 1px 2px rgba(28, 20, 34, .04);
 }
 
+.filaEtiqueta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .etiqueta {
   font-size: 11.5px;
   font-weight: 600;
@@ -13,6 +20,40 @@
   text-transform: uppercase;
   color: var(--fg-cifra);
   opacity: .85;
+}
+
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px 2px 5px;
+  border-radius: 99px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.deltaPositivo {
+  background: var(--okBg);
+  color: var(--okFg);
+}
+
+.deltaNegativo {
+  background: var(--dgBg);
+  color: var(--dgFg);
+}
+
+.iconoDelta {
+  flex-shrink: 0;
+}
+
+.deltaPositivo .iconoDelta {
+  transform: rotate(-90deg);
+}
+
+.deltaNegativo .iconoDelta {
+  transform: rotate(90deg);
 }
 
 .valor {

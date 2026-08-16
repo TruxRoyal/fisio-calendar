@@ -54,6 +54,52 @@ func (h *Handler) ExportarExcel(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handler) ObtenerHistorico(w http.ResponseWriter, r *http.Request) {
+	meses := 6
+	if valor := r.URL.Query().Get("meses"); valor != "" {
+		parsed, err := strconv.Atoi(valor)
+		if err != nil || parsed < 1 || parsed > 24 {
+			httpx.Error(w, http.StatusBadRequest, "meses_invalido", "el parametro meses debe ser numerico y estar entre 1 y 24")
+			return
+		}
+		meses = parsed
+	}
+
+	anioAncla, mesAncla := 0, 0
+	if r.URL.Query().Get("anio") != "" || r.URL.Query().Get("mes") != "" {
+		var err error
+		anioAncla, mesAncla, err = periodoDesdeQuery(r)
+		if err != nil {
+			httpx.Error(w, http.StatusBadRequest, "periodo_invalido", err.Error())
+			return
+		}
+	}
+
+	historico, err := h.service.ObtenerHistoricoMensual(r.Context(), meses, anioAncla, mesAncla)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, "error_interno", err.Error())
+		return
+	}
+
+	httpx.JSON(w, http.StatusOK, historico)
+}
+
+func (h *Handler) ObtenerDesglose(w http.ResponseWriter, r *http.Request) {
+	anio, mes, err := periodoDesdeQuery(r)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "periodo_invalido", err.Error())
+		return
+	}
+
+	desglose, err := h.service.ObtenerDesglosePorPaciente(r.Context(), anio, mes)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, "error_interno", err.Error())
+		return
+	}
+
+	httpx.JSON(w, http.StatusOK, desglose)
+}
+
 func (h *Handler) ObtenerCapacidadMensual(w http.ResponseWriter, r *http.Request) {
 	capacidad, err := h.service.ObtenerCapacidadMensual(r.Context())
 	if err != nil {
