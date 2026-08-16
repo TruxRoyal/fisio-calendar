@@ -7,8 +7,6 @@
 :root {
   --fuente: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --fuenteMono: 'Geist Mono', ui-monospace, monospace;
-  /* Respaldo antes de que ThemeProvider aplique el tema guardado en tiempo de
-     ejecución — evita que color-mix() de abajo quede sin color válido. */
   --ac: #82272A;
   --inv: #241F29;
   --invFg: #FFFFFF;
@@ -36,14 +34,6 @@
   --chart1: #1BAF7A;
   --chart2: #4A3AA7;
 
-  /*
-   * La superficie neutra entera se mezcla con el acento activo (--ac) en un
-   * porcentaje bajo, en vez de quedar fija sin importar el tema. Antes solo
-   * ~2 elementos (rail, un borde de tarjeta) cambiaban al elegir un tema; el
-   * resto del lienzo (fondo, tarjetas, bordes) se veía idéntico entre los 5.
-   * Con color-mix() en oklch todo el lienzo respira el matiz del tema, sutil
-   * pero perceptible, sin tocar cada componente uno por uno.
-   */
   --bg: color-mix(in oklch, var(--ac) 3%, #FBFAFC);
   --s1: color-mix(in oklch, var(--ac) 1.5%, #FFFFFF);
   --s2: color-mix(in oklch, var(--ac) 3%, #FAF9FB);
@@ -143,10 +133,6 @@
   --color-sidebar-ring: var(--ac);
 }
 
-/* Se activa un instante desde ThemeProvider al cambiar de paleta o de modo
-   claro/oscuro, para que el cambio de colores se sienta como una transición
-   en vez de un salto brusco. Se retira después, así no interfiere con las
-   transiciones propias de hover/focus del resto de los componentes. */
 :root.temaTransicion,
 :root.temaTransicion * {
   transition: background-color .35s ease, border-color .35s ease, color .35s ease !important;
@@ -159,9 +145,7 @@
   }
 }
 
-/* Wipe circular al cambiar de tema, disparado desde ThemeProvider vía
-   document.startViewTransition(). --tx/--ty/--tr los define ThemeProvider
-   con el punto y radio exactos antes de iniciar la transición. */
+
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
@@ -229,10 +213,7 @@ a:hover {
   color: var(--ac, #5C2C66);
 }
 
-/* En @layer base para que las utilidades de color de Tailwind (que sí viven
-   en capas) puedan ganarle a este "color: inherit" — sin capa, una regla CSS
-   plana le gana a cualquier utilidad de Tailwind sin importar especificidad,
-   lo que rompía el texto blanco de botones shadcn como AlertDialogAction. */
+
 @layer base {
   button {
     font-family: inherit;
