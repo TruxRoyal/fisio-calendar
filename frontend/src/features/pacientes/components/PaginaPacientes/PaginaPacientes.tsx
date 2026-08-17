@@ -21,6 +21,14 @@ import { FichaPaciente } from '../FichaPaciente/FichaPaciente'
 import { FormularioPaciente } from '../FormularioPaciente/FormularioPaciente'
 import styles from './PaginaPacientes.module.css'
 
+const FILTROS_TIPO = [
+  { valor: 'todos', etiqueta: 'Todos' },
+  { valor: 'respiratoria', etiqueta: 'Respiratoria' },
+  { valor: 'fisica', etiqueta: 'Física' },
+] as const
+
+type FiltroTipo = (typeof FILTROS_TIPO)[number]['valor']
+
 export function PaginaPacientes() {
   const { pacientes, busqueda, buscar } = usePacientes()
   const seleccionado = usePacientesStore((estado) => estado.seleccionado)
@@ -28,18 +36,35 @@ export function PaginaPacientes() {
   const limpiarSeleccion = usePacientesStore((estado) => estado.limpiarSeleccion)
   const crearPaciente = usePacientesStore((estado) => estado.crearPaciente)
   const [formularioAbierto, setFormularioAbierto] = useState(false)
-  const [parametros] = useSearchParams()
+  const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>('todos')
+  const [parametros, setParametros] = useSearchParams()
 
   useEffect(() => {
     const idParametro = parametros.get('paciente')
-    if (idParametro) seleccionarPaciente(Number(idParametro))
+    const id = idParametro ? Number(idParametro) : Number.NaN
+    if (Number.isFinite(id)) {
+      seleccionarPaciente(id)
+    } else {
+      limpiarSeleccion()
+    }
     if (parametros.get('nuevo')) setFormularioAbierto(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parametros])
 
+  function alSeleccionarPaciente(id: number) {
+    seleccionarPaciente(id)
+    setParametros((actuales) => {
+      const siguientes = new URLSearchParams(actuales)
+      siguientes.set('paciente', String(id))
+      return siguientes
+    })
+  }
+
+  const pacientesFiltrados = pacientes.filter((paciente) => filtroTipo === 'todos' || paciente.tipoTerapia === filtroTipo)
+
   return (
     <div className={styles.pagina}>
-      <div className={styles.panelLista}>
+      <div className={cn(styles.panelLista, seleccionado && styles.ocultoMovil)}>
         <div className={styles.cabecera}>
           <div className={styles.etiqueta}>Pacientes</div>
           <div className={styles.total}>{pacientes.length} en total</div>
@@ -57,9 +82,21 @@ export function PaginaPacientes() {
               <Icono nombre="mas" tamano={18} grosor={2} />
             </button>
           </div>
+          <div className={styles.filaFiltros}>
+            {FILTROS_TIPO.map((filtro) => (
+              <button
+                key={filtro.valor}
+                type="button"
+                onClick={() => setFiltroTipo(filtro.valor)}
+                className={cn(styles.chipFiltro, filtroTipo === filtro.valor && styles.activo)}
+              >
+                {filtro.etiqueta}
+              </button>
+            ))}
+          </div>
         </div>
         <div className={styles.listaPacientes}>
-          {pacientes.map((paciente) => {
+          {pacientesFiltrados.map((paciente) => {
             const color = paciente.tipoTerapia ? TIPO_TERAPIA_COLOR[paciente.tipoTerapia] : null
             const activo = seleccionado?.id === paciente.id
             const avatarBg = activo ? 'var(--acS2)' : (color?.bg ?? 'var(--s3)')
@@ -68,7 +105,7 @@ export function PaginaPacientes() {
               <button
                 key={paciente.id}
                 type="button"
-                onClick={() => seleccionarPaciente(paciente.id)}
+                onClick={() => alSeleccionarPaciente(paciente.id)}
                 className={cn(styles.itemPaciente, activo && styles.activo)}
               >
                 <div className={styles.avatarPaciente} style={{ '--avatar-bg': avatarBg, '--avatar-fg': avatarFg } as CSSProperties}>
@@ -95,14 +132,24 @@ export function PaginaPacientes() {
         </div>
       </div>
 
-      <div className={styles.panelDetalle}>
+      <div className={cn(styles.panelDetalle, !seleccionado && styles.ocultoMovil)}>
         {seleccionado ? (
           <>
             <Breadcrumb className={styles.migas}>
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <button type="button" onClick={limpiarSeleccion}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        limpiarSeleccion()
+                        setParametros((actuales) => {
+                          const siguientes = new URLSearchParams(actuales)
+                          siguientes.delete('paciente')
+                          return siguientes
+                        })
+                      }}
+                    >
                       Pacientes
                     </button>
                   </BreadcrumbLink>

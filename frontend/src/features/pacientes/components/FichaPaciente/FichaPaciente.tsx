@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Boton } from '../../../../shared/components/Boton/Boton'
 import { Badge } from '../../../../shared/components/ui/badge'
 import { DialogoConfirmacion } from '../../../../shared/components/DialogoConfirmacion/DialogoConfirmacion'
@@ -38,6 +39,7 @@ const ICONO_EVENTO: Record<EventoCronologia['tipo'], NombreIcono> = {
 }
 
 export function FichaPaciente({ paciente }: PropiedadesFichaPaciente) {
+  const navegar = useNavigate()
   const [formularioAbierto, setFormularioAbierto] = useState(false)
   const [confirmandoEliminacion, setConfirmandoEliminacion] = useState(false)
   const actualizarPaciente = usePacientesStore((estado) => estado.actualizarPaciente)
@@ -96,6 +98,34 @@ export function FichaPaciente({ paciente }: PropiedadesFichaPaciente) {
           </Boton>
         </div>
       </AtmosferaFondo>
+
+      <div className={styles.filaAccionesRapidas}>
+        <a
+          href={paciente.telefono ? `tel:${paciente.telefono}` : undefined}
+          aria-disabled={!paciente.telefono}
+          className={cn(styles.botonAccionRapida, !paciente.telefono && styles.deshabilitado)}
+        >
+          <Icono nombre="telefono" tamano={16} grosor={1.9} />
+          Llamar
+        </a>
+        <a
+          href={
+            paciente.direccion
+              ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(paciente.direccion)}`
+              : undefined
+          }
+          target="_blank"
+          rel="noreferrer"
+          aria-disabled={!paciente.direccion}
+          className={cn(styles.botonAccionRapida, !paciente.direccion && styles.deshabilitado)}
+        >
+          <Icono nombre="ubicacion" tamano={16} grosor={1.9} />
+          Ir
+        </a>
+        <button type="button" onClick={() => navegar('/calendario')} className={cn(styles.botonAccionRapida, styles.destacado)}>
+          Agendar
+        </button>
+      </div>
 
       {autorizacionCompleta && diasParaVencer !== null && diasParaVencer <= 7 && (
         <div className={styles.alertaVencimiento}>

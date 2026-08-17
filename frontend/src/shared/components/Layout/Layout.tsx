@@ -8,9 +8,15 @@ import { Icono } from '../Icono/Icono'
 import type { NombreIcono } from '../Icono/Icono'
 import { AtmosferaFondo } from '../AtmosferaFondo/AtmosferaFondo'
 import { PaletaComandos } from '../PaletaComandos/PaletaComandos'
+import { BarraTabsMovil } from './BarraTabsMovil'
 import styles from './Layout.module.css'
 
-const ITEMS_NAV: { ruta: string; etiqueta: string; icono: NombreIcono }[] = [
+function centroDe(el: HTMLElement): { x: number; y: number } {
+  const rect = el.getBoundingClientRect()
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+}
+
+export const ITEMS_NAV: { ruta: string; etiqueta: string; icono: NombreIcono }[] = [
   { ruta: '/calendario', etiqueta: 'Agenda', icono: 'calendario' },
   { ruta: '/pacientes', etiqueta: 'Pacientes', icono: 'paciente' },
   { ruta: '/resumen', etiqueta: 'Ingresos', icono: 'ingresos' },
@@ -23,6 +29,7 @@ export function Layout({ children }: { children: ReactNode }) {
   return (
     <div className={styles.layout}>
       <RailIconos rutaActiva={ubicacion.pathname} />
+      <BarraTabsMovil rutaActiva={ubicacion.pathname} />
       <main className={styles.contenido}>{children}</main>
     </div>
   )
@@ -73,7 +80,7 @@ function RailIconos({ rutaActiva }: { rutaActiva: string }) {
 
       <button
         type="button"
-        onClick={alternarOscuro}
+        onClick={(e) => alternarOscuro(centroDe(e.currentTarget))}
         title={oscuro ? 'Modo claro' : 'Modo oscuro'}
         className={styles.botonUtilidad}
       >
@@ -120,8 +127,8 @@ function PaletaTemas({ onCerrar }: { onCerrar: () => void }) {
             <button
               key={id}
               type="button"
-              onClick={() => {
-                cambiarTema(id)
+              onClick={(e) => {
+                cambiarTema(id, centroDe(e.currentTarget))
                 onCerrar()
               }}
               className={cn(styles.opcionTema, seleccionado && styles.seleccionado)}

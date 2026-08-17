@@ -12,6 +12,12 @@
   display: flex;
 }
 
+@media (max-width: 768px) {
+  .contenido {
+    padding-bottom: calc(50px + env(safe-area-inset-bottom));
+  }
+}
+
 .rail {
   width: 64px;
   flex: 0 0 64px;
@@ -23,6 +29,12 @@
   padding: 14px 0;
   gap: 6px;
   z-index: 30;
+}
+
+@media (max-width: 768px) {
+  .rail {
+    display: none;
+  }
 }
 
 .marca {

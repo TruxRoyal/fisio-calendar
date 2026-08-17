@@ -4,6 +4,7 @@ import { VistaSemanal } from './features/calendario/components/VistaSemanal/Vist
 import { PaginaPacientes } from './features/pacientes/components/PaginaPacientes/PaginaPacientes'
 import { ResumenMensual } from './features/resumen/components/ResumenMensual/ResumenMensual'
 import { PaginaMapa } from './features/mapa/components/PaginaMapa/PaginaMapa'
+import { PaginaAjustes } from './shared/components/PaginaAjustes/PaginaAjustes'
 
 export function App() {
   return (
@@ -15,6 +16,7 @@ export function App() {
           <Route path="/pacientes" element={<PaginaPacientes />} />
           <Route path="/resumen" element={<ResumenMensual />} />
           <Route path="/mapa" element={<PaginaMapa />} />
+          <Route path="/ajustes" element={<PaginaAjustes />} />
         </Routes>
       </Layout>
     </Router>

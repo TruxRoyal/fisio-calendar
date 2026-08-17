@@ -22,6 +22,8 @@ import { ETIQUETA_TIPO_TERAPIA } from '../../../../shared/types/comun'
 import type { AutorizacionResumen, CitaBorrador, EstadoCita, PacienteBusqueda, PacienteParaDrawer } from '../../types'
 import styles from './DrawerCita.module.css'
 
+const DURACION_SALIDA_MS = 200
+
 const DURACIONES = [30, 45, 60, 90]
 const ESTADOS: { valor: EstadoCita; etiqueta: string; icono: 'reloj' | 'check' | 'cerrar' }[] = [
   { valor: 'agendada', etiqueta: 'Pendiente', icono: 'reloj' },
@@ -32,8 +34,8 @@ const ESTADOS: { valor: EstadoCita; etiqueta: string; icono: 'reloj' | 'check' |
 interface PropiedadesDrawerCita {
   cita: CitaBorrador
   onCerrar: () => void
-  onCrear: (solicitud: { pacienteId: number; inicio: string; fin: string; notas?: string | null }) => Promise<void>
-  onGuardarCampos: (id: number, cambios: { inicio: string; fin: string; notas: string | null }) => Promise<void>
+  onCrear: (solicitud: { pacienteId: number; inicio: string; fin: string; notas?: string | null }) => Promise<boolean>
+  onGuardarCampos: (id: number, cambios: { inicio: string; fin: string; notas: string | null }) => Promise<boolean>
   onCambiarEstado: (estado: EstadoCita) => Promise<void>
   onActualizarCopago: (id: number, copago: number) => Promise<void>
 }
@@ -55,6 +57,7 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
   const [creando, setCreando] = useState(false)
   const [guardadoVisible, setGuardadoVisible] = useState(false)
   const [selectorFechaAbierto, setSelectorFechaAbierto] = useState(false)
+  const [saliendo, setSaliendo] = useState(false)
 
   const listo = useRef(false)
   const listoCopago = useRef(false)
@@ -75,12 +78,23 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
 
   useEffect(() => {
     if (!esNueva || pacienteIdActivo) return
-    pacientesBusquedaApi.listar(busquedaPaciente).then(setResultadosPaciente)
+    let vigente = true
+    pacientesBusquedaApi.listar(busquedaPaciente).then((resultados) => {
+      if (vigente) setResultadosPaciente(resultados)
+    })
+    return () => {
+      vigente = false
+    }
   }, [esNueva, pacienteIdActivo, busquedaPaciente])
 
   function mostrarGuardado() {
     setGuardadoVisible(true)
     setTimeout(() => setGuardadoVisible(false), 1800)
+  }
+
+  function cerrar() {
+    setSaliendo(true)
+    setTimeout(onCerrar, DURACION_SALIDA_MS)
   }
 
   useEffect(() => {
@@ -93,8 +107,8 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
     }
     const inicioActual = combinarFechaHora(fecha, horaInicio)
     const temporizador = setTimeout(async () => {
-      await onGuardarCampos(cita.id, { inicio: inicioActual, fin: sumarMinutos(inicioActual, duracion), notas: notas || null })
-      mostrarGuardado()
+      const guardado = await onGuardarCampos(cita.id, { inicio: inicioActual, fin: sumarMinutos(inicioActual, duracion), notas: notas || null })
+      if (guardado) mostrarGuardado()
     }, 700)
     return () => clearTimeout(temporizador)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -120,12 +134,13 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
     setCreando(true)
     try {
       const inicioActual = combinarFechaHora(fecha, horaInicio)
-      await onCrear({
+      const creado = await onCrear({
         pacienteId: pacienteIdActivo,
         inicio: inicioActual,
         fin: sumarMinutos(inicioActual, duracion),
         notas: notas || null,
       })
+      if (creado) cerrar()
     } finally {
       setCreando(false)
     }
@@ -139,8 +154,8 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
 
   return (
     <>
-      <div onClick={onCerrar} className={styles.fondo} />
-      <div className={styles.panel}>
+      <div onClick={cerrar} className={cn(styles.fondo, saliendo && styles.saliendo)} />
+      <div className={cn(styles.panel, saliendo && styles.saliendo)}>
         <div className={styles.cabecera}>
           <div className={styles.filaCabecera}>
             <div
@@ -165,7 +180,7 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
                 Guardado
               </span>
             )}
-            <button type="button" onClick={onCerrar} className={styles.botonCerrarCabecera}>
+            <button type="button" onClick={cerrar} className={styles.botonCerrarCabecera}>
               <Icono nombre="cerrar" tamano={17} grosor={2.1} />
             </button>
           </div>
@@ -359,7 +374,7 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
               {creando ? 'Agendando…' : 'Agendar cita'}
             </Boton>
           ) : (
-            <Boton variante="primario" onClick={onCerrar}>
+            <Boton variante="primario" onClick={cerrar}>
               Cerrar
             </Boton>
           )}

@@ -1,13 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react'
 import { useCitas } from '../../hooks/useCitas'
-import { useDeteccionChoque } from '../../hooks/useDeteccionChoque'
-import { useCalendarioStore } from '../../store'
+import { useGestionCita } from '../../hooks/useGestionCita'
+import { contarVisitasPorDia } from '../../lib'
 import { BloqueCita } from '../BloqueCita/BloqueCita'
 import { PanelPacientes } from '../PanelPacientes/PanelPacientes'
 import { DrawerCita } from '../DrawerCita/DrawerCita'
 import { VistaDia } from '../VistaDia/VistaDia'
 import { VistaMes } from '../VistaMes/VistaMes'
+import { VistaAgendaMovil } from '../VistaAgendaMovil/VistaAgendaMovil'
+import { AlertaMensaje } from '../../../../shared/components/AlertaMensaje/AlertaMensaje'
 import {
   analizarFechaHora,
   combinarFechaHora,
@@ -24,9 +26,10 @@ import {
 import { Boton } from '../../../../shared/components/Boton/Boton'
 import { Icono } from '../../../../shared/components/Icono/Icono'
 import { ToggleGroup, ToggleGroupItem } from '../../../../shared/components/ui/toggle-group'
+import { useEsMovil } from '../../../../shared/hooks/useEsMovil'
 import { ErrorPeticion } from '../../../../shared/api/cliente'
 import { cn } from '../../../../shared/lib/clases'
-import type { Cita, CitaBorrador, EstadoCita, PacienteBusqueda, VistaCalendario } from '../../types'
+import type { Cita, PacienteBusqueda, VistaCalendario } from '../../types'
 import styles from './VistaSemanal.module.css'
 
 const HORA_INICIO = 6
@@ -34,6 +37,11 @@ const HORA_FIN = 20
 const ALTURA_HORA = 56
 const MINUTOS_SNAP = 15
 const DURACION_DEFECTO = 30
+
+export function VistaSemanal() {
+  const esMovil = useEsMovil()
+  return esMovil ? <VistaAgendaMovil /> : <VistaSemanalEscritorio />
+}
 
 interface ArrastreActivo {
   citaId: number
@@ -54,21 +62,6 @@ interface ArrastrePacienteActivo {
   clientY: number
 }
 
-function citaBorradorVacia(inicio: string): CitaBorrador {
-  return {
-    id: 0,
-    pacienteId: 0,
-    autorizacionId: null,
-    inicio,
-    fin: sumarMinutos(inicio, DURACION_DEFECTO),
-    estado: 'agendada',
-    valorSesion: null,
-    copagoCobrado: 0,
-    notas: null,
-    paciente: { id: 0, nombre: '', tipoTerapia: null },
-  }
-}
-
 function minutosDesdeInicioDia(iso: string): number {
   const fecha = analizarFechaHora(iso)
   return (fecha.getHours() - HORA_INICIO) * 60 + fecha.getMinutes()
@@ -78,17 +71,23 @@ function snap(minutos: number): number {
   return Math.round(minutos / MINUTOS_SNAP) * MINUTOS_SNAP
 }
 
-function contarVisitasPorDia(citas: Cita[], dia: Date): number {
-  const iso = formatearFechaISO(dia)
-  return citas.filter((c) => c.inicio.startsWith(iso) && c.estado !== 'cancelada').length
-}
-
-export function VistaSemanal() {
+function VistaSemanalEscritorio() {
   const { citas, inicioSemanaActual, irSemana, irHoy } = useCitas()
-  const crearCita = useCalendarioStore((estado) => estado.crearCita)
-  const actualizarCita = useCalendarioStore((estado) => estado.actualizarCita)
-  const cambiarEstadoCita = useCalendarioStore((estado) => estado.cambiarEstadoCita)
-  const { verificar } = useDeteccionChoque()
+  const {
+    citaSeleccionada,
+    abrirCitaExistente,
+    abrirCitaNueva,
+    abrirCitaParaPaciente,
+    cerrarDrawer,
+    onCrear,
+    onGuardarCampos,
+    onCambiarEstado,
+    onActualizarCopago,
+    mensajeError,
+    setMensajeError,
+    verificar,
+    actualizarCita,
+  } = useGestionCita()
 
   const [vista, setVista] = useState<VistaCalendario>('semana')
   const [fechaDia, setFechaDia] = useState(() => new Date())
@@ -99,7 +98,6 @@ export function VistaSemanal() {
   const [arrastre, setArrastre] = useState<ArrastreActivo | null>(null)
   const refCandidatoPaciente = useRef<{ paciente: PacienteBusqueda; clientX: number; clientY: number } | null>(null)
   const [arrastrePaciente, setArrastrePaciente] = useState<ArrastrePacienteActivo | null>(null)
-  const [citaSeleccionada, setCitaSeleccionada] = useState<CitaBorrador | null>(null)
 
   const dias = Array.from({ length: 7 }, (_, i) => sumarDias(inicioSemanaActual, i))
   const horas = Array.from({ length: HORA_FIN - HORA_INICIO }, (_, i) => HORA_INICIO + i)
@@ -228,7 +226,7 @@ export function VistaSemanal() {
 
     const conflicto = await verificar(actual.inicioPropuesto, actual.finPropuesto, actual.citaId)
     if (conflicto) {
-      window.alert('No se puede mover la cita: choca con otra cita existente.')
+      setMensajeError('No se puede mover la cita: choca con otra cita existente.')
       return
     }
 
@@ -241,9 +239,10 @@ export function VistaSemanal() {
         notas: cita?.notas ?? null,
       })
     } catch (error) {
-      if (error instanceof ErrorPeticion) window.alert(error.message)
+      if (error instanceof ErrorPeticion) setMensajeError(error.message)
     }
   }
+
 
   function iniciarArrastre(cita: Cita, diaIndice: number, modo: 'mover' | 'redimensionar', evento: ReactMouseEvent) {
     refCandidato.current = { cita, diaIndice, modo, pageX: evento.pageX, pageY: evento.pageY }
@@ -280,17 +279,7 @@ export function VistaSemanal() {
     const destino = calcularSoltarEnGrilla(actual.clientX, actual.clientY)
     if (!destino) return
 
-    setCitaSeleccionada({
-      ...citaBorradorVacia(destino.inicio),
-      pacienteId: actual.paciente.id,
-      paciente: {
-        id: actual.paciente.id,
-        nombre: actual.paciente.nombre,
-        tipoTerapia: actual.paciente.tipoTerapia,
-        direccion: actual.paciente.direccion,
-        color: actual.paciente.color,
-      },
-    })
+    abrirCitaParaPaciente(destino.inicio, actual.paciente)
   }
 
   function alDobleClicEnColumna(dia: Date, evento: ReactMouseEvent<HTMLDivElement>) {
@@ -303,22 +292,7 @@ export function VistaSemanal() {
       formatearFechaISO(dia),
       `${String(horaCalculada).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`,
     )
-    setCitaSeleccionada(citaBorradorVacia(inicio))
-  }
-
-  function abrirCitaExistente(cita: Cita) {
-    setCitaSeleccionada({
-      id: cita.id,
-      pacienteId: cita.pacienteId,
-      autorizacionId: cita.autorizacionId,
-      inicio: cita.inicio,
-      fin: cita.fin,
-      estado: cita.estado,
-      valorSesion: cita.valorSesion,
-      copagoCobrado: cita.copagoCobrado,
-      notas: cita.notas,
-      paciente: { id: cita.paciente.id, nombre: cita.paciente.nombre, tipoTerapia: cita.paciente.tipoTerapia, color: cita.paciente.color },
-    })
+    abrirCitaNueva(inicio)
   }
 
   const destinoPaciente = arrastrePaciente ? calcularSoltarEnGrilla(arrastrePaciente.clientX, arrastrePaciente.clientY) : null
@@ -329,7 +303,7 @@ export function VistaSemanal() {
         <BarraSuperior
           vista={vista}
           onCambiarVista={setVista}
-          onNuevaCita={() => setCitaSeleccionada(citaBorradorVacia(combinarFechaHora(hoyISO(), '08:00')))}
+          onNuevaCita={() => abrirCitaNueva(combinarFechaHora(hoyISO(), '08:00'))}
         />
 
         {vista === 'semana' && (
@@ -415,7 +389,7 @@ export function VistaSemanal() {
             fecha={fechaDia}
             onCambiarFecha={setFechaDia}
             onAbrirCita={abrirCitaExistente}
-            onCrearCita={(inicio) => setCitaSeleccionada(citaBorradorVacia(inicio))}
+            onCrearCita={abrirCitaNueva}
           />
         )}
 
@@ -431,14 +405,7 @@ export function VistaSemanal() {
       </div>
 
       <PanelPacientes
-        onSeleccionarPaciente={(paciente: PacienteBusqueda) => {
-          const inicio = combinarFechaHora(hoyISO(), '08:00')
-          setCitaSeleccionada({
-            ...citaBorradorVacia(inicio),
-            pacienteId: paciente.id,
-            paciente: { id: paciente.id, nombre: paciente.nombre, tipoTerapia: paciente.tipoTerapia, direccion: paciente.direccion, color: paciente.color },
-          })
-        }}
+        onSeleccionarPaciente={(paciente: PacienteBusqueda) => abrirCitaParaPaciente(combinarFechaHora(hoyISO(), '08:00'), paciente)}
         onIniciarArrastrePaciente={iniciarArrastrePaciente}
       />
 
@@ -456,37 +423,15 @@ export function VistaSemanal() {
       {citaSeleccionada && (
         <DrawerCita
           cita={citaSeleccionada}
-          onCerrar={() => setCitaSeleccionada(null)}
-          onCrear={async (solicitud) => {
-            const conflicto = await verificar(solicitud.inicio, solicitud.fin)
-            if (conflicto) {
-              window.alert('Esta cita choca con otra existente.')
-              return
-            }
-            await crearCita(solicitud)
-            setCitaSeleccionada(null)
-          }}
-          onGuardarCampos={async (id, cambios) => {
-            const conflicto = await verificar(cambios.inicio, cambios.fin, id)
-            if (conflicto) {
-              window.alert('Esta cita choca con otra existente.')
-              return
-            }
-            const actualizada = await actualizarCita(id, { inicio: cambios.inicio, fin: cambios.fin, autorizacionId: citaSeleccionada.autorizacionId, notas: cambios.notas })
-            setCitaSeleccionada((actual) => (actual ? { ...actual, inicio: actualizada.inicio, fin: actualizada.fin, notas: actualizada.notas } : actual))
-          }}
-          onCambiarEstado={async (estado: EstadoCita) => {
-            const actualizada = await cambiarEstadoCita(citaSeleccionada.id, { estado })
-            setCitaSeleccionada((actual) =>
-              actual ? { ...actual, estado: actualizada.estado, valorSesion: actualizada.valorSesion, copagoCobrado: actualizada.copagoCobrado } : actual,
-            )
-          }}
-          onActualizarCopago={async (id, copago) => {
-            const actualizada = await cambiarEstadoCita(id, { estado: citaSeleccionada.estado, copagoCobrado: copago })
-            setCitaSeleccionada((actual) => (actual ? { ...actual, copagoCobrado: actualizada.copagoCobrado } : actual))
-          }}
+          onCerrar={cerrarDrawer}
+          onCrear={onCrear}
+          onGuardarCampos={onGuardarCampos}
+          onCambiarEstado={onCambiarEstado}
+          onActualizarCopago={onActualizarCopago}
         />
       )}
+
+      <AlertaMensaje mensaje={mensajeError} onCerrar={() => setMensajeError(null)} />
     </div>
   )
 }
@@ -500,14 +445,26 @@ function BarraSuperior({
   onCambiarVista: (vista: VistaCalendario) => void
   onNuevaCita: () => void
 }) {
+  const refSelectorVista = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    const contenedor = refSelectorVista.current
+    const activo = contenedor?.querySelector<HTMLElement>('[data-state="on"]')
+    if (!contenedor || !activo) return
+    contenedor.style.setProperty('--pila-x', `${activo.offsetLeft}px`)
+    contenedor.style.setProperty('--pila-w', `${activo.offsetWidth}px`)
+  }, [vista])
+
   return (
     <div className={styles.barraSuperior}>
       <ToggleGroup
+        ref={refSelectorVista}
         type="single"
         value={vista}
         onValueChange={(valor) => valor && onCambiarVista(valor as VistaCalendario)}
         className={styles.selectorVista}
       >
+        <span className={styles.indicadorVista} />
         <ToggleGroupItem value="semana" className={styles.botonVista}>
           Semana
         </ToggleGroupItem>

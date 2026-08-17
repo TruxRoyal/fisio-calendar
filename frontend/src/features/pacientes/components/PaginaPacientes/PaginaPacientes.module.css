@@ -215,3 +215,51 @@
   font: inherit;
   cursor: pointer;
 }
+
+.filaFiltros {
+  display: none;
+  gap: 6px;
+  margin-top: 12px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.chipFiltro {
+  flex: 0 0 auto;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--bd);
+  background: var(--s1);
+  color: var(--t3);
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 9px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chipFiltro.activo {
+  background: var(--acS);
+  border-color: var(--acL);
+  color: var(--acT);
+}
+
+@media (max-width: 768px) {
+  .filaFiltros {
+    display: flex;
+  }
+
+  .panelLista,
+  .panelDetalle {
+    width: 100%;
+    flex: 1;
+  }
+
+  .ocultoMovil {
+    display: none;
+  }
+
+  .panelDetalle {
+    padding: 20px 18px 32px;
+  }
+}
