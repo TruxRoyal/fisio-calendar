@@ -99,7 +99,11 @@ export function VistaAgendaMovil() {
     return () => {
       vigente = false
     }
-  }, [modoVista, diasGrillaMes])
+    // `citas` (semana-scoped, del store) se agrega como dependencia para refrescar
+    // citasMes tras cualquier mutación exitosa (crear/actualizar/cambiarEstado/eliminar):
+    // esas acciones llaman a cargarSemanaActual() en el store, que siempre genera una
+    // referencia nueva de `citas`, pero nunca re-disparan este fetch por sí solas.
+  }, [modoVista, diasGrillaMes, citas])
 
   const citasDelDia = useMemo(
     () => citas.filter((cita) => cita.inicio.startsWith(diaSeleccionadoISO)).sort((a, b) => a.inicio.localeCompare(b.inicio)),
