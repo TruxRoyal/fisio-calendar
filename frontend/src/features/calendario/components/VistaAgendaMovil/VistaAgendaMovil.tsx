@@ -80,6 +80,7 @@ export function VistaAgendaMovil() {
     let vigente = true
     setCargandoMes(true)
     setErrorMes(false)
+    setCitasMes([])
     const desde = formatearFechaISO(diasGrillaMes[0])
     const hasta = formatearFechaISO(diasGrillaMes[41])
     citasApi
@@ -93,6 +94,7 @@ export function VistaAgendaMovil() {
         if (!vigente) return
         setErrorMes(true)
         setCargandoMes(false)
+        setCitasMes([])
       })
     return () => {
       vigente = false
