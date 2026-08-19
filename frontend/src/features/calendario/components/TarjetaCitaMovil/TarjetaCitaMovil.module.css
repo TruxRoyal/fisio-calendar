@@ -41,6 +41,10 @@
   color: var(--t3);
 }
 
+.hora.cancelada {
+  color: var(--t3);
+}
+
 .tarjeta {
   flex: 1;
   min-width: 0;

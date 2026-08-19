@@ -111,14 +111,15 @@ export function VistaAgendaMovil() {
     [citasMes, diaSeleccionadoISO],
   )
 
-  const gruposSemana = useMemo(() => agruparPorDia(citas.filter((c) => c.estado !== 'cancelada')), [citas])
+  const gruposSemana = useMemo(() => agruparPorDia(citas), [citas])
 
   let citasVisibles: Cita[]
   if (modoVista === 'dia') citasVisibles = citasDelDia
   else if (modoVista === 'semana') citasVisibles = gruposSemana.flatMap((g) => g.citas)
   else citasVisibles = citasDelDiaMes
 
-  const hechas = citasDelDia.filter((c) => c.estado === 'atendida')
+  const citasDelDiaSinCancelar = citasDelDia.filter((c) => c.estado !== 'cancelada')
+  const hechas = citasDelDiaSinCancelar.filter((c) => c.estado === 'atendida')
   const recaudo = hechas.reduce((total, c) => total + c.copagoCobrado, 0)
 
   const indiceAhora = esHoySeleccionado ? citasDelDia.findIndex((c) => c.inicio.slice(11, 16) > horaAhora) : -1
@@ -250,7 +251,7 @@ export function VistaAgendaMovil() {
             <div className={styles.filaStats}>
               <div className={styles.stat}>
                 <span className={styles.valorStat}>
-                  {hechas.length}/{citasDelDia.length}
+                  {hechas.length}/{citasDelDiaSinCancelar.length}
                 </span>
                 <span className={styles.etiquetaStat}>hechas</span>
               </div>
