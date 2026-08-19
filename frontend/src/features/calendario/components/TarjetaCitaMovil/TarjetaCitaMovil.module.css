@@ -1,0 +1,133 @@
+.filaCita {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 10px;
+  border: 0;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.filaCita.lista {
+  position: static;
+}
+
+/* La posición absoluta por horario se implementa en S5 (drag-to-reschedule). */
+.filaCita.grilla {
+  position: relative;
+}
+
+.filaCita.arrastrando {
+  opacity: .85;
+  z-index: 10;
+}
+
+.columnaHora {
+  flex: 0 0 44px;
+  padding-top: 13px;
+  text-align: right;
+}
+
+.hora {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--fuenteMono);
+  color: var(--t1);
+  font-variant-numeric: tabular-nums;
+}
+
+.hora.atendida {
+  color: var(--t3);
+}
+
+.tarjeta {
+  flex: 1;
+  min-width: 0;
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  border-left-width: 3px;
+  border-left-color: var(--color-borde, var(--bd));
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tarjeta.atendida {
+  border-color: var(--dnBd);
+  background: var(--dnBg);
+}
+
+.tarjeta.cancelada {
+  border-color: var(--bd);
+  background: var(--s2);
+  opacity: .7;
+}
+
+.filaNombre {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.nombre {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--t1);
+}
+
+.iconoTipo {
+  color: var(--t3);
+  flex: 0 0 auto;
+}
+
+.iconoCheck {
+  color: var(--okFg);
+  flex: 0 0 auto;
+}
+
+.filaDireccion {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--t3);
+  font-size: 12.5px;
+}
+
+.filaDireccion span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filaBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.badgeCopago,
+.badgeSesiones {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--t3);
+  background: var(--s3);
+  border: 1px solid var(--bd);
+  padding: 3px 8px;
+  border-radius: 7px;
+}
+
+.badgeSesiones.urgente {
+  color: var(--wrFg);
+  background: var(--wrBg);
+  border-color: var(--wrBd);
+}

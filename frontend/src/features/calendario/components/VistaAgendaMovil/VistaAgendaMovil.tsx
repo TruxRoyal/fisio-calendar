@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { useCitas } from '../../hooks/useCitas'
 import { useGestionCita } from '../../hooks/useGestionCita'
@@ -9,14 +8,14 @@ import { Icono } from '../../../../shared/components/Icono/Icono'
 import { AlertaMensaje } from '../../../../shared/components/AlertaMensaje/AlertaMensaje'
 import { PaletaComandos } from '../../../../shared/components/PaletaComandos/PaletaComandos'
 import { ToggleGroup, ToggleGroupItem } from '../../../../shared/components/ui/toggle-group'
-import { TIPO_TERAPIA_COLOR } from '../../../../shared/theme/paletas'
+import { TarjetaCitaMovil } from '../TarjetaCitaMovil/TarjetaCitaMovil'
+import { VistaMesMovil } from '../VistaMesMovil/VistaMesMovil'
 import {
   combinarFechaHora,
   esMismoDia,
   formatearDiaSemana,
   formatearFechaCorta,
   formatearFechaISO,
-  formatearHora,
   formatearMesAnio,
   hoy,
   hoyISO,
@@ -159,7 +158,11 @@ export function VistaAgendaMovil() {
 
   function irADia(fechaISO: string) {
     const [anio, mes, dia] = fechaISO.split('-').map(Number)
-    setDiaSeleccionado(new Date(anio, mes - 1, dia))
+    const fecha = new Date(anio, mes - 1, dia)
+    const inicioSemanaFecha = inicioSemana(fecha)
+    const diferenciaSemanas = Math.round((inicioSemanaFecha.getTime() - inicioSemanaActual.getTime()) / (7 * 24 * 60 * 60 * 1000))
+    for (let i = 0; i < Math.abs(diferenciaSemanas); i++) irSemana(diferenciaSemanas > 0 ? 1 : -1)
+    setDiaSeleccionado(fecha)
     setModoVista('dia')
   }
 
@@ -270,60 +273,24 @@ export function VistaAgendaMovil() {
         )}
 
         {modoVista === 'mes' && (
-          <>
-            <div className={styles.filaNavRango}>
-              <button
-                type="button"
-                onClick={() => setMesReferencia((f) => new Date(f.getFullYear(), f.getMonth() - 1, 1))}
-                aria-label="Mes anterior"
-                className={styles.botonNavRango}
-              >
-                <Icono nombre="chevronIzquierda" tamano={16} grosor={2} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setMesReferencia((f) => new Date(f.getFullYear(), f.getMonth() + 1, 1))}
-                aria-label="Mes siguiente"
-                className={styles.botonNavRango}
-              >
-                <Icono nombre="chevronDerecha" tamano={16} grosor={2} />
-              </button>
-            </div>
-
-            <div className={styles.filaNombresGrilla}>
-              {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((n, i) => (
-                <div key={`${n}-${i}`} className={styles.nombreDiaGrilla}>
-                  {n}
-                </div>
-              ))}
-            </div>
-
-            <div className={styles.grillaMes}>
-              {diasGrillaMes.map((dia) => {
-                const iso = formatearFechaISO(dia)
-                const enMes = dia.getMonth() === mesReferencia.getMonth()
-                const esHoy = esMismoDia(iso, hoyISO())
-                const seleccionado = iso === diaSeleccionadoISO
-                const tieneVisitas = contarVisitasPorDia(citasMes, dia) > 0
-                return (
-                  <button
-                    key={iso}
-                    type="button"
-                    onClick={() => alSeleccionarDiaMes(dia)}
-                    className={cn(
-                      styles.celdaMes,
-                      !enMes && styles.fueraDeMes,
-                      esHoy && styles.hoyCelda,
-                      seleccionado && styles.seleccionadaCelda,
-                    )}
-                  >
-                    <span className={styles.numeroCelda}>{dia.getDate()}</span>
-                    <span className={cn(styles.puntoCelda, tieneVisitas && styles.visible)} />
-                  </button>
-                )
-              })}
-            </div>
-          </>
+          <div className={styles.filaNavRango}>
+            <button
+              type="button"
+              onClick={() => setMesReferencia((f) => new Date(f.getFullYear(), f.getMonth() - 1, 1))}
+              aria-label="Mes anterior"
+              className={styles.botonNavRango}
+            >
+              <Icono nombre="chevronIzquierda" tamano={16} grosor={2} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setMesReferencia((f) => new Date(f.getFullYear(), f.getMonth() + 1, 1))}
+              aria-label="Mes siguiente"
+              className={styles.botonNavRango}
+            >
+              <Icono nombre="chevronDerecha" tamano={16} grosor={2} />
+            </button>
+          </div>
         )}
       </div>
 
@@ -371,40 +338,21 @@ export function VistaAgendaMovil() {
           </div>
         )}
 
-        {modoVista === 'mes' && cargandoMes && (
-          <div className={styles.vacio}>
-            <p>Cargando…</p>
-          </div>
-        )}
-
-        {modoVista === 'mes' && !cargandoMes && errorMes && (
-          <div className={styles.vacio}>
-            <Icono nombre="alerta" tamano={22} grosor={1.6} />
-            <p>No se pudo cargar el mes.</p>
-            <button type="button" onClick={() => setMesReferencia((f) => new Date(f))} className={styles.botonReintentar}>
-              Reintentar
-            </button>
-          </div>
-        )}
-
-        {modoVista === 'mes' && !cargandoMes && !errorMes && (
-          <>
-            <button type="button" onClick={() => irADia(diaSeleccionadoISO)} className={styles.cabeceraGrupo}>
-              <span className={cn(esHoySeleccionado && styles.hoyGrupo)}>
-                {formatearDiaSemana(diaSeleccionadoISO, false)} {formatearFechaCorta(combinarFechaHora(diaSeleccionadoISO, '00:00'))}
-              </span>
-              <Icono nombre="chevronDerecha" tamano={14} grosor={2} />
-            </button>
-            {citasDelDiaMes.map((cita) => (
-              <TarjetaCitaMovil key={cita.id} cita={cita} autorizacion={autorizaciones[cita.pacienteId]} onAbrir={() => abrirCitaExistente(cita)} />
-            ))}
-            {citasDelDiaMes.length === 0 && (
-              <div className={styles.vacio}>
-                <Icono nombre="calendario" tamano={22} grosor={1.6} />
-                <p>No hay citas agendadas este día.</p>
-              </div>
-            )}
-          </>
+        {modoVista === 'mes' && (
+          <VistaMesMovil
+            diasGrilla={diasGrillaMes}
+            mesReferencia={mesReferencia}
+            diaSeleccionadoISO={diaSeleccionadoISO}
+            citasMes={citasMes}
+            citasDelDiaSeleccionado={citasDelDiaMes}
+            autorizaciones={autorizaciones}
+            cargando={cargandoMes}
+            error={errorMes}
+            onSeleccionarDia={alSeleccionarDiaMes}
+            onReintentar={() => setMesReferencia((f) => new Date(f))}
+            onIrADia={irADia}
+            onAbrirCita={abrirCitaExistente}
+          />
         )}
       </div>
 
@@ -440,51 +388,4 @@ function formatearFechaTitulo(fecha: Date): string {
     'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
   ]
   return `${fecha.getDate()} de ${meses[fecha.getMonth()]}`
-}
-
-function TarjetaCitaMovil({ cita, autorizacion, onAbrir }: { cita: Cita; autorizacion?: AutorizacionResumen | null; onAbrir: () => void }) {
-  const estado = cita.estado
-  const colorTipo = cita.paciente.tipoTerapia ? TIPO_TERAPIA_COLOR[cita.paciente.tipoTerapia] : null
-  const colorBorde = cita.paciente.color ?? colorTipo?.fg ?? 'var(--ac)'
-  const sesionesBajas = !!autorizacion && (autorizacion.sesionesRestantes <= 1 || autorizacion.alertaVencimiento)
-
-  return (
-    <button type="button" onClick={onAbrir} className={styles.filaCita}>
-      <div className={styles.columnaHora}>
-        <span className={cn(styles.hora, styles[estado])}>{formatearHora(cita.inicio)}</span>
-      </div>
-      <div className={cn(styles.tarjeta, styles[estado])} style={{ '--color-borde': colorBorde } as CSSProperties}>
-        <div className={styles.filaNombre}>
-          <span className={styles.nombre}>{cita.paciente.nombre}</span>
-          {cita.paciente.tipoTerapia && (
-            <Icono
-              nombre={cita.paciente.tipoTerapia === 'respiratoria' ? 'pulmon' : 'pulso'}
-              tamano={13}
-              grosor={1.9}
-              className={styles.iconoTipo}
-            />
-          )}
-          {estado === 'atendida' && <Icono nombre="check" tamano={14} grosor={2.6} className={styles.iconoCheck} />}
-        </div>
-        {cita.paciente.direccion && (
-          <div className={styles.filaDireccion}>
-            <Icono nombre="ubicacion" tamano={12} grosor={1.9} />
-            <span>{cita.paciente.direccion}</span>
-          </div>
-        )}
-        {(autorizacion || cita.copagoCobrado > 0) && (
-          <div className={styles.filaBadges}>
-            {autorizacion && (
-              <span className={cn(styles.badgeSesiones, sesionesBajas && styles.urgente)}>
-                {autorizacion.sesionesRestantes <= 1
-                  ? `${autorizacion.sesionesRestantes} sesión restante`
-                  : `${autorizacion.sesionesRestantes} sesiones`}
-              </span>
-            )}
-            {cita.copagoCobrado > 0 && <span className={styles.badgeCopago}>Copago {formatearCOP(cita.copagoCobrado)}</span>}
-          </div>
-        )}
-      </div>
-    </button>
-  )
 }
