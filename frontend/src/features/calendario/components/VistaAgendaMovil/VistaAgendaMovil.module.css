@@ -106,26 +106,6 @@
   cursor: pointer;
 }
 
-.cabeceraGrupo {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  padding: 14px 2px 8px;
-  font-size: 12.5px;
-  font-weight: 700;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  color: var(--t3);
-}
-
-.hoyGrupo {
-  color: var(--acT);
-}
-
 .tiraDias {
   display: flex;
   justify-content: center;
@@ -244,46 +224,6 @@
   .lista {
     animation: none;
   }
-}
-
-.divisorAhora {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 4px 0 14px;
-}
-
-.puntoAhora {
-  width: 8px;
-  height: 8px;
-  border-radius: 99px;
-  background: var(--now, var(--ac));
-  flex: 0 0 8px;
-}
-
-.textoAhora {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--now, var(--ac));
-  letter-spacing: .06em;
-  font-family: var(--fuenteMono);
-}
-
-.lineaAhora {
-  flex: 1;
-  height: 1.5px;
-  background: var(--bd);
-}
-
-.vacio {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  color: var(--t3);
-  padding: 48px 16px;
-  text-align: center;
-  font-size: 13.5px;
 }
 
 .botonAgregar {

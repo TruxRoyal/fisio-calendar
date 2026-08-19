@@ -8,8 +8,9 @@ import { Icono } from '../../../../shared/components/Icono/Icono'
 import { AlertaMensaje } from '../../../../shared/components/AlertaMensaje/AlertaMensaje'
 import { PaletaComandos } from '../../../../shared/components/PaletaComandos/PaletaComandos'
 import { ToggleGroup, ToggleGroupItem } from '../../../../shared/components/ui/toggle-group'
-import { TarjetaCitaMovil } from '../TarjetaCitaMovil/TarjetaCitaMovil'
 import { VistaMesMovil } from '../VistaMesMovil/VistaMesMovil'
+import { VistaDiaMovil } from '../VistaDiaMovil/VistaDiaMovil'
+import { VistaSemanaMovil } from '../VistaSemanaMovil/VistaSemanaMovil'
 import {
   combinarFechaHora,
   esMismoDia,
@@ -295,47 +296,22 @@ export function VistaAgendaMovil() {
       </div>
 
       <div className={styles.lista} key={modoVista}>
-        {modoVista === 'dia' &&
-          citasDelDia.map((cita, indice) => (
-            <div key={cita.id}>
-              {indice === indiceAhora && (
-                <div className={styles.divisorAhora}>
-                  <span className={styles.puntoAhora} />
-                  <span className={styles.textoAhora}>AHORA</span>
-                  <span className={styles.lineaAhora} />
-                </div>
-              )}
-              <TarjetaCitaMovil cita={cita} autorizacion={autorizaciones[cita.pacienteId]} onAbrir={() => abrirCitaExistente(cita)} />
-            </div>
-          ))}
-
-        {modoVista === 'dia' && citasDelDia.length === 0 && (
-          <div className={styles.vacio}>
-            <Icono nombre="calendario" tamano={22} grosor={1.6} />
-            <p>No hay citas agendadas para este día.</p>
-          </div>
+        {modoVista === 'dia' && (
+          <VistaDiaMovil
+            citasDelDia={citasDelDia}
+            autorizaciones={autorizaciones}
+            indiceAhora={indiceAhora}
+            onAbrirCita={abrirCitaExistente}
+          />
         )}
 
-        {modoVista === 'semana' &&
-          gruposSemana.map((grupo) => (
-            <div key={grupo.fechaISO}>
-              <button type="button" onClick={() => irADia(grupo.fechaISO)} className={styles.cabeceraGrupo}>
-                <span className={cn(esMismoDia(grupo.fechaISO, hoyISO()) && styles.hoyGrupo)}>
-                  {formatearDiaSemana(grupo.fechaISO, false)} {formatearFechaCorta(combinarFechaHora(grupo.fechaISO, '00:00'))}
-                </span>
-                <Icono nombre="chevronDerecha" tamano={14} grosor={2} />
-              </button>
-              {grupo.citas.map((cita) => (
-                <TarjetaCitaMovil key={cita.id} cita={cita} autorizacion={autorizaciones[cita.pacienteId]} onAbrir={() => abrirCitaExistente(cita)} />
-              ))}
-            </div>
-          ))}
-
-        {modoVista === 'semana' && gruposSemana.length === 0 && (
-          <div className={styles.vacio}>
-            <Icono nombre="calendario" tamano={22} grosor={1.6} />
-            <p>No hay citas agendadas en este rango.</p>
-          </div>
+        {modoVista === 'semana' && (
+          <VistaSemanaMovil
+            gruposSemana={gruposSemana}
+            autorizaciones={autorizaciones}
+            onIrADia={irADia}
+            onAbrirCita={abrirCitaExistente}
+          />
         )}
 
         {modoVista === 'mes' && (
