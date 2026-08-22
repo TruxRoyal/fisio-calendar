@@ -13,9 +13,11 @@
   position: static;
 }
 
-/* La posición absoluta por horario se implementa en S5 (drag-to-reschedule). */
+/* Posicionada por GrillaHoraria vía top/height (style prop); el arrastre táctil se agrega en S5. */
 .filaCita.grilla {
-  position: relative;
+  position: absolute;
+  left: 0;
+  overflow: hidden;
 }
 
 .filaCita.arrastrando {

@@ -11,13 +11,13 @@ export interface PropsTarjetaCitaMovil {
   cita: Cita
   autorizacion?: AutorizacionResumen | null
   onAbrir: () => void
-  /** 'lista' (por defecto) para listas verticales; 'grilla' se posiciona por tiempo (S5). */
+  /** 'lista' (por defecto) para listas verticales; 'grilla' se posiciona por tiempo dentro de GrillaHoraria. */
   variante?: 'lista' | 'grilla'
   /** Reservado para el arrastre táctil (S5): true mientras la tarjeta se está moviendo. */
   arrastrando?: boolean
   /** Reservado para el arrastre táctil (S5): inicia el long-press que arma el drag. */
   onPointerDown?: PointerEventHandler<HTMLButtonElement>
-  /** Reservado para el posicionamiento absoluto de la variante 'grilla' (S5). */
+  /** Usado por GrillaHoraria (variante 'grilla') para posicionar la tarjeta por horario (top/height absolutos). */
   style?: CSSProperties
 }
 

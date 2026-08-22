@@ -1,40 +1,48 @@
 import { Icono } from '../../../../shared/components/Icono/Icono'
-import { TarjetaCitaMovil } from '../TarjetaCitaMovil/TarjetaCitaMovil'
-import { esMismoDia, formatearDiaSemana, formatearFechaCorta, combinarFechaHora, hoyISO } from '../../../../shared/lib/fecha'
+import { GrillaHoraria } from '../GrillaHoraria/GrillaHoraria'
+import type { ColumnaGrillaHoraria } from '../GrillaHoraria/GrillaHoraria'
+import { esMismoDia, formatearDiaSemana, hoyISO } from '../../../../shared/lib/fecha'
 import { cn } from '../../../../shared/lib/clases'
+import type { RangoHorario } from '../../lib'
 import type { AutorizacionResumen, Cita } from '../../types'
 import styles from './VistaSemanaMovil.module.css'
 
-export interface GrupoDiaSemana {
-  fechaISO: string
-  citas: Cita[]
-}
-
 export interface PropsVistaSemanaMovil {
-  gruposSemana: GrupoDiaSemana[]
+  columnas: ColumnaGrillaHoraria[]
+  rango: RangoHorario
   autorizaciones: Record<number, AutorizacionResumen | null>
   onIrADia: (fechaISO: string) => void
   onAbrirCita: (cita: Cita) => void
 }
 
-export function VistaSemanaMovil({ gruposSemana, autorizaciones, onIrADia, onAbrirCita }: PropsVistaSemanaMovil) {
+export function VistaSemanaMovil({ columnas, rango, autorizaciones, onIrADia, onAbrirCita }: PropsVistaSemanaMovil) {
+  const hoyIso = hoyISO()
+  const hayCitas = columnas.some((columna) => columna.citas.length > 0)
+
   return (
     <>
-      {gruposSemana.map((grupo) => (
-        <div key={grupo.fechaISO}>
-          <button type="button" onClick={() => onIrADia(grupo.fechaISO)} className={styles.cabeceraGrupo}>
-            <span className={cn(esMismoDia(grupo.fechaISO, hoyISO()) && styles.hoyGrupo)}>
-              {formatearDiaSemana(grupo.fechaISO, false)} {formatearFechaCorta(combinarFechaHora(grupo.fechaISO, '00:00'))}
-            </span>
-            <Icono nombre="chevronDerecha" tamano={14} grosor={2} />
-          </button>
-          {grupo.citas.map((cita) => (
-            <TarjetaCitaMovil key={cita.id} cita={cita} autorizacion={autorizaciones[cita.pacienteId]} onAbrir={() => onAbrirCita(cita)} />
-          ))}
-        </div>
-      ))}
+      <div className={styles.tiraDias}>
+        {columnas.map((columna) => {
+          const esHoy = esMismoDia(columna.fechaISO, hoyIso)
+          const tieneVisitas = columna.citas.some((c) => c.estado !== 'cancelada')
+          return (
+            <button
+              key={columna.fechaISO}
+              type="button"
+              onClick={() => onIrADia(columna.fechaISO)}
+              className={cn(styles.chipDia, esHoy && styles.hoy)}
+            >
+              <span className={styles.nombreChip}>{formatearDiaSemana(columna.fechaISO)}</span>
+              <span className={styles.numeroChip}>{Number(columna.fechaISO.slice(8, 10))}</span>
+              <span className={cn(styles.puntoChip, tieneVisitas && styles.visible)} />
+            </button>
+          )
+        })}
+      </div>
 
-      {gruposSemana.length === 0 && (
+      <GrillaHoraria columnas={columnas} rango={rango} autorizaciones={autorizaciones} onAbrirCita={onAbrirCita} />
+
+      {!hayCitas && (
         <div className={styles.vacio}>
           <Icono nombre="calendario" tamano={22} grosor={1.6} />
           <p>No hay citas agendadas en este rango.</p>

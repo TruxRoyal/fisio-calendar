@@ -1,21 +1,53 @@
-.cabeceraGrupo {
+.tiraDias {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  width: 100%;
-  border: 0;
-  background: transparent;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.chipDia {
+  flex: 1;
+  min-width: 0;
+  height: 54px;
+  border-radius: 12px;
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
   cursor: pointer;
-  padding: 14px 2px 8px;
-  font-size: 12.5px;
-  font-weight: 700;
-  letter-spacing: .04em;
+}
+
+.chipDia.hoy {
+  border-color: var(--acL);
+}
+
+.nombreChip {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: .03em;
   text-transform: uppercase;
   color: var(--t3);
 }
 
-.hoyGrupo {
-  color: var(--acT);
+.numeroChip {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--t1);
+  font-variant-numeric: tabular-nums;
+}
+
+.puntoChip {
+  width: 4px;
+  height: 4px;
+  border-radius: 99px;
+  background: transparent;
+}
+
+.puntoChip.visible {
+  background: var(--acD);
 }
 
 .vacio {

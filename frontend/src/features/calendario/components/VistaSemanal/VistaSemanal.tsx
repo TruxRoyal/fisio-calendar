@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react'
 import { useCitas } from '../../hooks/useCitas'
 import { useGestionCita } from '../../hooks/useGestionCita'
-import { contarVisitasPorDia } from '../../lib'
+import { MINUTOS_SNAP, contarVisitasPorDia, minutosDesdeHoraBase, snap } from '../../lib'
 import { BloqueCita } from '../BloqueCita/BloqueCita'
 import { PanelPacientes } from '../PanelPacientes/PanelPacientes'
 import { DrawerCita } from '../DrawerCita/DrawerCita'
@@ -35,7 +35,6 @@ import styles from './VistaSemanal.module.css'
 const HORA_INICIO = 6
 const HORA_FIN = 20
 const ALTURA_HORA = 56
-const MINUTOS_SNAP = 15
 const DURACION_DEFECTO = 30
 
 export function VistaSemanal() {
@@ -60,15 +59,6 @@ interface ArrastrePacienteActivo {
   paciente: PacienteBusqueda
   clientX: number
   clientY: number
-}
-
-function minutosDesdeInicioDia(iso: string): number {
-  const fecha = analizarFechaHora(iso)
-  return (fecha.getHours() - HORA_INICIO) * 60 + fecha.getMinutes()
-}
-
-function snap(minutos: number): number {
-  return Math.round(minutos / MINUTOS_SNAP) * MINUTOS_SNAP
 }
 
 function VistaSemanalEscritorio() {
@@ -351,7 +341,7 @@ function VistaSemanalEscritorio() {
                           <BloqueCita
                             key={cita.id}
                             cita={cita}
-                            top={(minutosDesdeInicioDia(cita.inicio) / 60) * ALTURA_HORA}
+                            top={(minutosDesdeHoraBase(cita.inicio, HORA_INICIO) / 60) * ALTURA_HORA}
                             altura={(diferenciaMinutos(cita.inicio, cita.fin) / 60) * ALTURA_HORA}
                             onAbrir={() => abrirCitaExistente(cita)}
                             onIniciarArrastre={(evento) => iniciarArrastre(cita, indiceDia, 'mover', evento)}
@@ -363,7 +353,7 @@ function VistaSemanalEscritorio() {
                         <BloqueCitaFantasma
                           inicio={arrastre.inicioPropuesto}
                           fin={arrastre.finPropuesto}
-                          top={(minutosDesdeInicioDia(arrastre.inicioPropuesto) / 60) * ALTURA_HORA}
+                          top={(minutosDesdeHoraBase(arrastre.inicioPropuesto, HORA_INICIO) / 60) * ALTURA_HORA}
                           altura={(diferenciaMinutos(arrastre.inicioPropuesto, arrastre.finPropuesto) / 60) * ALTURA_HORA}
                         />
                       )}
@@ -372,7 +362,7 @@ function VistaSemanalEscritorio() {
                         <BloqueCitaFantasma
                           inicio={destinoPaciente.inicio}
                           fin={sumarMinutos(destinoPaciente.inicio, DURACION_DEFECTO)}
-                          top={(minutosDesdeInicioDia(destinoPaciente.inicio) / 60) * ALTURA_HORA}
+                          top={(minutosDesdeHoraBase(destinoPaciente.inicio, HORA_INICIO) / 60) * ALTURA_HORA}
                           altura={(DURACION_DEFECTO / 60) * ALTURA_HORA}
                         />
                       )}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useCitas } from '../../hooks/useCitas'
 import { useGestionCita } from '../../hooks/useGestionCita'
-import { contarVisitasPorDia } from '../../lib'
+import { contarVisitasPorDia, rangoHorarioDelDia } from '../../lib'
 import { citasApi, autorizacionesResumenApi } from '../../api'
 import { DrawerCita } from '../DrawerCita/DrawerCita'
 import { Icono } from '../../../../shared/components/Icono/Icono'
@@ -29,18 +29,6 @@ import { cn } from '../../../../shared/lib/clases'
 import type { AutorizacionResumen, Cita, VistaCalendario } from '../../types'
 import styles from './VistaAgendaMovil.module.css'
 
-function agruparPorDia(citas: Cita[]): { fechaISO: string; citas: Cita[] }[] {
-  const mapa = new Map<string, Cita[]>()
-  for (const cita of citas) {
-    const fechaISO = cita.inicio.slice(0, 10)
-    const lista = mapa.get(fechaISO) ?? []
-    lista.push(cita)
-    mapa.set(fechaISO, lista)
-  }
-  const entradas = Array.from(mapa.entries()).sort(([a], [b]) => a.localeCompare(b))
-  return entradas.map(([fechaISO, lista]) => ({ fechaISO, citas: lista.toSorted((a, b) => a.inicio.localeCompare(b.inicio)) }))
-}
-
 export function VistaAgendaMovil() {
   const { citas, inicioSemanaActual, irSemana, irHoy } = useCitas()
   const {
@@ -66,9 +54,6 @@ export function VistaAgendaMovil() {
 
   const dias = Array.from({ length: 7 }, (_, i) => sumarDias(inicioSemanaActual, i))
   const diaSeleccionadoISO = formatearFechaISO(diaSeleccionado)
-  const esHoySeleccionado = esMismoDia(diaSeleccionadoISO, hoyISO())
-  const ahora = new Date()
-  const horaAhora = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`
 
   const diasGrillaMes = useMemo(() => {
     const inicioGrilla = inicioSemana(inicioMes(mesReferencia))
@@ -115,18 +100,29 @@ export function VistaAgendaMovil() {
     [citasMes, diaSeleccionadoISO],
   )
 
-  const gruposSemana = useMemo(() => agruparPorDia(citas), [citas])
+  const rangoDia = useMemo(() => rangoHorarioDelDia(citasDelDia), [citasDelDia])
+
+  const columnasSemana = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, i) => sumarDias(inicioSemanaActual, i)).map((dia) => {
+        const fechaISO = formatearFechaISO(dia)
+        return {
+          fechaISO,
+          citas: citas.filter((cita) => cita.inicio.startsWith(fechaISO)).sort((a, b) => a.inicio.localeCompare(b.inicio)),
+        }
+      }),
+    [citas, inicioSemanaActual],
+  )
+  const rangoSemana = useMemo(() => rangoHorarioDelDia(citas), [citas])
 
   let citasVisibles: Cita[]
   if (modoVista === 'dia') citasVisibles = citasDelDia
-  else if (modoVista === 'semana') citasVisibles = gruposSemana.flatMap((g) => g.citas)
+  else if (modoVista === 'semana') citasVisibles = citas
   else citasVisibles = citasDelDiaMes
 
   const citasDelDiaSinCancelar = citasDelDia.filter((c) => c.estado !== 'cancelada')
   const hechas = citasDelDiaSinCancelar.filter((c) => c.estado === 'atendida')
   const recaudo = hechas.reduce((total, c) => total + c.copagoCobrado, 0)
-
-  const indiceAhora = esHoySeleccionado ? citasDelDia.findIndex((c) => c.inicio.slice(11, 16) > horaAhora) : -1
 
   const idsPacientesClave = useMemo(
     () => Array.from(new Set(citasVisibles.map((c) => c.pacienteId))).sort((a, b) => a - b).join(','),
@@ -303,16 +299,18 @@ export function VistaAgendaMovil() {
       <div className={styles.lista} key={modoVista}>
         {modoVista === 'dia' && (
           <VistaDiaMovil
+            fechaISO={diaSeleccionadoISO}
             citasDelDia={citasDelDia}
+            rango={rangoDia}
             autorizaciones={autorizaciones}
-            indiceAhora={indiceAhora}
             onAbrirCita={abrirCitaExistente}
           />
         )}
 
         {modoVista === 'semana' && (
           <VistaSemanaMovil
-            gruposSemana={gruposSemana}
+            columnas={columnasSemana}
+            rango={rangoSemana}
             autorizaciones={autorizaciones}
             onIrADia={irADia}
             onAbrirCita={abrirCitaExistente}

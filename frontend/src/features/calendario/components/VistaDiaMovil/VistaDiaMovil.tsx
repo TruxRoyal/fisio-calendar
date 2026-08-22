@@ -1,30 +1,26 @@
 import { Icono } from '../../../../shared/components/Icono/Icono'
-import { TarjetaCitaMovil } from '../TarjetaCitaMovil/TarjetaCitaMovil'
+import { GrillaHoraria } from '../GrillaHoraria/GrillaHoraria'
+import type { RangoHorario } from '../../lib'
 import type { AutorizacionResumen, Cita } from '../../types'
 import styles from './VistaDiaMovil.module.css'
 
 export interface PropsVistaDiaMovil {
+  fechaISO: string
   citasDelDia: Cita[]
+  rango: RangoHorario
   autorizaciones: Record<number, AutorizacionResumen | null>
-  indiceAhora: number
   onAbrirCita: (cita: Cita) => void
 }
 
-export function VistaDiaMovil({ citasDelDia, autorizaciones, indiceAhora, onAbrirCita }: PropsVistaDiaMovil) {
+export function VistaDiaMovil({ fechaISO, citasDelDia, rango, autorizaciones, onAbrirCita }: PropsVistaDiaMovil) {
   return (
     <>
-      {citasDelDia.map((cita, indice) => (
-        <div key={cita.id}>
-          {indice === indiceAhora && (
-            <div className={styles.divisorAhora}>
-              <span className={styles.puntoAhora} />
-              <span className={styles.textoAhora}>AHORA</span>
-              <span className={styles.lineaAhora} />
-            </div>
-          )}
-          <TarjetaCitaMovil cita={cita} autorizacion={autorizaciones[cita.pacienteId]} onAbrir={() => onAbrirCita(cita)} />
-        </div>
-      ))}
+      <GrillaHoraria
+        columnas={[{ fechaISO, citas: citasDelDia }]}
+        rango={rango}
+        autorizaciones={autorizaciones}
+        onAbrirCita={onAbrirCita}
+      />
 
       {citasDelDia.length === 0 && (
         <div className={styles.vacio}>
