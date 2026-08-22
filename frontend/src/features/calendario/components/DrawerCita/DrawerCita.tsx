@@ -62,17 +62,41 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
   const listo = useRef(false)
   const listoCopago = useRef(false)
 
+  // Bookkeeping de "saltar el primer render" desacoplado de los efectos de
+  // autoguardado: su cleanup solo debe correr al desmontar el drawer, no en
+  // cada re-ejecución disparada por cambios de fecha/hora/notas/copago.
+  useEffect(() => {
+    return () => {
+      listo.current = false
+      listoCopago.current = false
+    }
+  }, [])
+
   const pacienteInfo = !cita.pacienteId && pacienteElegido
     ? { id: pacienteElegido.id, nombre: pacienteElegido.nombre, tipoTerapia: pacienteElegido.tipoTerapia, direccion: pacienteElegido.direccion, color: pacienteElegido.color }
     : cita.paciente
   const pacienteIdActivo = cita.pacienteId || pacienteElegido?.id || 0
 
   useEffect(() => {
-    if (pacienteIdActivo) autorizacionesResumenApi.obtenerActiva(pacienteIdActivo).then(setAutorizacion)
+    if (!pacienteIdActivo) return
+    let vigente = true
+    autorizacionesResumenApi.obtenerActiva(pacienteIdActivo).then((resultado) => {
+      if (vigente) setAutorizacion(resultado)
+    })
+    return () => {
+      vigente = false
+    }
   }, [pacienteIdActivo])
 
   useEffect(() => {
-    if (!esNueva && cita.pacienteId) pacientesBusquedaApi.obtenerParaDrawer(cita.pacienteId).then(setPacienteCompleto)
+    if (esNueva || !cita.pacienteId) return
+    let vigente = true
+    pacientesBusquedaApi.obtenerParaDrawer(cita.pacienteId).then((resultado) => {
+      if (vigente) setPacienteCompleto(resultado)
+    })
+    return () => {
+      vigente = false
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cita.id])
 
@@ -110,9 +134,7 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
     if (esNueva) return
     if (!listo.current) {
       listo.current = true
-      return () => {
-        listo.current = false
-      }
+      return
     }
     const inicioActual = combinarFechaHora(fecha, horaInicio)
     const temporizador = setTimeout(async () => {
@@ -127,9 +149,7 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
     if (esNueva) return
     if (!listoCopago.current) {
       listoCopago.current = true
-      return () => {
-        listoCopago.current = false
-      }
+      return
     }
     const temporizador = setTimeout(async () => {
       await onActualizarCopago(cita.id, copago)
