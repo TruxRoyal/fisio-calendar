@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useCitas } from '../../hooks/useCitas'
 import { useGestionCita } from '../../hooks/useGestionCita'
-import { contarVisitasPorDia, rangoHorarioDelDia } from '../../lib'
+import { rangoHorarioDelDia } from '../../lib'
 import { citasApi, autorizacionesResumenApi } from '../../api'
 import { DrawerCita } from '../DrawerCita/DrawerCita'
 import { Icono } from '../../../../shared/components/Icono/Icono'
@@ -13,13 +13,11 @@ import { VistaDiaMovil } from '../VistaDiaMovil/VistaDiaMovil'
 import { VistaSemanaMovil } from '../VistaSemanaMovil/VistaSemanaMovil'
 import {
   combinarFechaHora,
-  esMismoDia,
   formatearDiaSemana,
   formatearFechaCorta,
   formatearFechaISO,
   formatearMesAnio,
   hoy,
-  hoyISO,
   inicioMes,
   inicioSemana,
   sumarDias,
@@ -145,12 +143,6 @@ export function VistaAgendaMovil() {
     }
   }, [idsPacientesClave])
 
-  function alSeleccionarDia(dia: Date) {
-    setDiaSeleccionado(dia)
-    if (dia < inicioSemanaActual) irSemana(-1)
-    if (dia > sumarDias(inicioSemanaActual, 6)) irSemana(1)
-  }
-
   function alSeleccionarDiaMes(dia: Date) {
     setDiaSeleccionado(dia)
     if (dia.getMonth() !== mesReferencia.getMonth() || dia.getFullYear() !== mesReferencia.getFullYear()) {
@@ -226,41 +218,18 @@ export function VistaAgendaMovil() {
         </ToggleGroup>
 
         {modoVista === 'dia' && (
-          <>
-            <div className={styles.tiraDias}>
-              {dias.map((dia) => {
-                const iso = formatearFechaISO(dia)
-                const seleccionado = iso === diaSeleccionadoISO
-                const esHoy = esMismoDia(iso, hoyISO())
-                const tieneVisitas = contarVisitasPorDia(citas, dia) > 0
-                return (
-                  <button
-                    key={iso}
-                    type="button"
-                    onClick={() => alSeleccionarDia(dia)}
-                    className={cn(styles.chipDia, seleccionado && styles.seleccionado, !seleccionado && esHoy && styles.hoy)}
-                  >
-                    <span className={styles.nombreChip}>{formatearDiaSemana(iso)}</span>
-                    <span className={styles.numeroChip}>{dia.getDate()}</span>
-                    <span className={cn(styles.puntoChip, tieneVisitas && styles.visible)} />
-                  </button>
-                )
-              })}
+          <div className={styles.filaStats}>
+            <div className={styles.stat}>
+              <span className={styles.valorStat}>
+                {hechas.length}/{citasDelDiaSinCancelar.length}
+              </span>
+              <span className={styles.etiquetaStat}>hechas</span>
             </div>
-
-            <div className={styles.filaStats}>
-              <div className={styles.stat}>
-                <span className={styles.valorStat}>
-                  {hechas.length}/{citasDelDiaSinCancelar.length}
-                </span>
-                <span className={styles.etiquetaStat}>hechas</span>
-              </div>
-              <div className={styles.stat}>
-                <span className={cn(styles.valorStat, styles.acento)}>{formatearCOP(recaudo)}</span>
-                <span className={styles.etiquetaStat}>recaudo</span>
-              </div>
+            <div className={styles.stat}>
+              <span className={cn(styles.valorStat, styles.acento)}>{formatearCOP(recaudo)}</span>
+              <span className={styles.etiquetaStat}>recaudo</span>
             </div>
-          </>
+          </div>
         )}
 
         {modoVista === 'semana' && (

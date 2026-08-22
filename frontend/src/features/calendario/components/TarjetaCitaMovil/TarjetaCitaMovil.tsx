@@ -35,10 +35,15 @@ export function TarjetaCitaMovil({ cita, autorizacion, onAbrir, variante = 'list
       className={cn(styles.filaCita, styles[variante], arrastrando && styles.arrastrando)}
       style={style}
     >
-      <div className={styles.columnaHora}>
-        <span className={cn(styles.hora, styles[estado])}>{formatearHora(cita.inicio)}</span>
-      </div>
-      <div className={cn(styles.tarjeta, styles[estado])} style={{ '--color-borde': colorBorde } as CSSProperties}>
+      {variante === 'lista' && (
+        <div className={styles.columnaHora}>
+          <span className={cn(styles.hora, styles[estado])}>{formatearHora(cita.inicio)}</span>
+        </div>
+      )}
+      <div
+        className={cn(styles.tarjeta, styles[estado], variante === 'grilla' && styles.tarjetaGrilla)}
+        style={{ '--color-borde': colorBorde } as CSSProperties}
+      >
         <div className={styles.filaNombre}>
           <span className={styles.nombre}>{cita.paciente.nombre}</span>
           {cita.paciente.tipoTerapia && (
