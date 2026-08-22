@@ -25,6 +25,19 @@
   gap: 0;
 }
 
+/* Posicionada por GrillaSemanal vía left/width; llena toda la altura de la fila del día (una
+   por hora-columna de duración), en vez de ocupar todo el ancho como la variante 'grilla'. */
+.filaCita.grillaHorizontal {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  right: auto;
+  overflow: hidden;
+  padding-bottom: 0;
+  gap: 0;
+}
+
 .filaCita.arrastrando {
   opacity: .85;
   z-index: 10;
@@ -88,6 +101,17 @@
   justify-content: center;
 }
 
+/* Tarjeta de GrillaSemanal: fila de día completa de alto, ancho variable por duración (puede
+   ser angosta) — padding/gap más ajustados que tarjetaGrilla para dejar el máximo espacio al
+   texto (hora + nombre en una fila, dirección en la siguiente). */
+.tarjeta.tarjetaGrillaHorizontal {
+  height: 100%;
+  border-radius: 8px;
+  padding: 5px 8px;
+  gap: 1px;
+  justify-content: center;
+}
+
 .filaNombre {
   display: flex;
   align-items: center;
@@ -104,6 +128,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--t1);
+}
+
+.horaGrilla {
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: var(--fuenteMono);
+  color: var(--t3);
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
 }
 
 .iconoTipo {

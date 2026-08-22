@@ -100,7 +100,7 @@ export function VistaAgendaMovil() {
 
   const rangoDia = useMemo(() => rangoHorarioDelDia(citasDelDia), [citasDelDia])
 
-  const columnasSemana = useMemo(
+  const diasSemana = useMemo(
     () =>
       Array.from({ length: 7 }, (_, i) => sumarDias(inicioSemanaActual, i)).map((dia) => {
         const fechaISO = formatearFechaISO(dia)
@@ -278,7 +278,7 @@ export function VistaAgendaMovil() {
 
         {modoVista === 'semana' && (
           <VistaSemanaMovil
-            columnas={columnasSemana}
+            dias={diasSemana}
             rango={rangoSemana}
             autorizaciones={autorizaciones}
             onIrADia={irADia}
