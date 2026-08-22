@@ -61,14 +61,23 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
 
   const listo = useRef(false)
   const listoCopago = useRef(false)
+  const guardarCamposPendiente = useRef<(() => void) | null>(null)
+  const guardarCopagoPendiente = useRef<(() => void) | null>(null)
 
-  // Bookkeeping de "saltar el primer render" desacoplado de los efectos de
-  // autoguardado: su cleanup solo debe correr al desmontar el drawer, no en
-  // cada re-ejecución disparada por cambios de fecha/hora/notas/copago.
   useEffect(() => {
     return () => {
       listo.current = false
       listoCopago.current = false
+    }
+  }, [])
+
+  // Si el drawer se desmonta (p. ej. el usuario cierra justo después de
+  // editar) con un autoguardado todavía esperando su debounce, lo ejecuta
+  // de inmediato en vez de dejar que clearTimeout descarte el cambio.
+  useEffect(() => {
+    return () => {
+      guardarCamposPendiente.current?.()
+      guardarCopagoPendiente.current?.()
     }
   }, [])
 
@@ -137,10 +146,14 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
       return
     }
     const inicioActual = combinarFechaHora(fecha, horaInicio)
-    const temporizador = setTimeout(async () => {
-      const guardado = await onGuardarCampos(cita.id, { inicio: inicioActual, fin: sumarMinutos(inicioActual, duracion), notas: notas || null })
-      if (guardado) mostrarGuardado()
-    }, 700)
+    const ejecutar = () => {
+      guardarCamposPendiente.current = null
+      onGuardarCampos(cita.id, { inicio: inicioActual, fin: sumarMinutos(inicioActual, duracion), notas: notas || null }).then((guardado) => {
+        if (guardado) mostrarGuardado()
+      })
+    }
+    guardarCamposPendiente.current = ejecutar
+    const temporizador = setTimeout(ejecutar, 700)
     return () => clearTimeout(temporizador)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duracion, notas, fecha, horaInicio])
@@ -151,10 +164,12 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
       listoCopago.current = true
       return
     }
-    const temporizador = setTimeout(async () => {
-      await onActualizarCopago(cita.id, copago)
-      mostrarGuardado()
-    }, 700)
+    const ejecutar = () => {
+      guardarCopagoPendiente.current = null
+      onActualizarCopago(cita.id, copago).then(() => mostrarGuardado())
+    }
+    guardarCopagoPendiente.current = ejecutar
+    const temporizador = setTimeout(ejecutar, 700)
     return () => clearTimeout(temporizador)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [copago])
