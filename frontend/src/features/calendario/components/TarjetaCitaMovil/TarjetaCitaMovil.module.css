@@ -26,11 +26,14 @@
 }
 
 /* Posicionada por GrillaSemanal vía left/width; llena toda la altura de la fila del día (una
-   por hora-columna de duración), en vez de ocupar todo el ancho como la variante 'grilla'. */
+   por hora-columna de duración), en vez de ocupar todo el ancho como la variante 'grilla'. Un
+   inset de 3px dejaba la esquina redondeada + el borde de acento demasiado pegados a la línea
+   divisoria de arriba/abajo — visualmente se leía como que la tarjeta "tocaba" el encabezado de
+   horas o la fila vecina, aunque la posición en píxeles ya fuera correcta. 7px da aire visible. */
 .filaCita.grillaHorizontal {
   position: absolute;
-  top: 3px;
-  bottom: 3px;
+  top: 7px;
+  bottom: 7px;
   left: 0;
   right: auto;
   overflow: hidden;

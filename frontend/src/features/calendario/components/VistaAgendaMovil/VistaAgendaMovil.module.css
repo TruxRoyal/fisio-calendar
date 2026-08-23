@@ -141,15 +141,18 @@
   animation: entrada-contenido .22s ease-out;
 }
 
-/* Solo para Semana: convierte a `.lista` en un contenedor flex-columna acotado (su propia
-   altura ya está acotada por `.contenedor`/`.cabecera` arriba en la cadena) para que
-   GrillaSemanal pueda crecer y llenar exactamente el espacio disponible en vez de quedarse en
-   su altura de contenido natural (fija por fila), dejando un hueco vacío antes del FAB. Día y
-   Mes NO usan esta clase — siguen con el flujo de documento normal + scroll natural de `.lista`
-   sin cambios. */
+/* Solo para Semana: convierte a `.lista` en un contenedor flex acotado (su propia altura ya
+   está acotada por `.contenedor`/`.cabecera` arriba en la cadena) para que GrillaSemanal pueda
+   crecer y llenar exactamente el espacio disponible en vez de quedarse en su altura de
+   contenido natural (fija por fila), dejando un hueco vacío antes del FAB. Sin
+   flex-direction: column a propósito — con column de más, el alto que recibía `.raiz` (el hijo
+   único) llegaba con un redondeo de subpíxel distinto al que ya resuelve el grid interno de
+   GrillaSemanal, y esa diferencia se notaba como una tarjeta "pegada" al borde de su fila. En
+   fila (el default), `.raiz` se estira igual por `align-items: stretch` pero sin ese paso extra
+   de redondeo. Día y Mes NO usan esta clase — siguen con el flujo de documento normal + scroll
+   natural de `.lista` sin cambios. */
 .listaSemana {
   display: flex;
-  flex-direction: column;
 }
 
 @keyframes entrada-contenido {
