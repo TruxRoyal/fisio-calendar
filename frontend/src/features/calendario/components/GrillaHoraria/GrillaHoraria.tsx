@@ -8,6 +8,11 @@ import styles from './GrillaHoraria.module.css'
 
 const ALTURA_HORA = 56
 const ALTURA_MINIMA_BLOQUE = 30
+// Por debajo de este alto, dirección/badges no caben sin recortarse (una cita de 30-45 min a
+// esta escala mide 28-42px; el nombre + el padding de la tarjeta ya ocupan buena parte de eso) —
+// se pide la variante compacta (solo nombre + check) en vez de dejar que overflow:hidden corte
+// contenido a la mitad. 60 min (56px) y más sí entran completas.
+const ALTURA_COMPACTA = 48
 
 export interface ColumnaGrillaHoraria {
   fechaISO: string
@@ -59,19 +64,20 @@ export function GrillaHoraria({ columnas, rango, autorizaciones, onAbrirCita }: 
                 </div>
               )}
 
-              {columna.citas.map((cita) => (
-                <TarjetaCitaMovil
-                  key={cita.id}
-                  cita={cita}
-                  autorizacion={autorizaciones[cita.pacienteId]}
-                  onAbrir={() => onAbrirCita(cita)}
-                  variante="grilla"
-                  style={{
-                    top: (minutosDesdeHoraBase(cita.inicio, horaInicio) / 60) * ALTURA_HORA,
-                    height: Math.max((diferenciaMinutos(cita.inicio, cita.fin) / 60) * ALTURA_HORA, ALTURA_MINIMA_BLOQUE),
-                  }}
-                />
-              ))}
+              {columna.citas.map((cita) => {
+                const altura = Math.max((diferenciaMinutos(cita.inicio, cita.fin) / 60) * ALTURA_HORA, ALTURA_MINIMA_BLOQUE)
+                return (
+                  <TarjetaCitaMovil
+                    key={cita.id}
+                    cita={cita}
+                    autorizacion={autorizaciones[cita.pacienteId]}
+                    onAbrir={() => onAbrirCita(cita)}
+                    variante="grilla"
+                    compacto={altura < ALTURA_COMPACTA}
+                    style={{ top: (minutosDesdeHoraBase(cita.inicio, horaInicio) / 60) * ALTURA_HORA, height: altura }}
+                  />
+                )
+              })}
             </div>
           )
         })}

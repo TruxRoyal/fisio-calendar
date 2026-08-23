@@ -17,6 +17,13 @@ export interface PropsTarjetaCitaMovil {
    * dentro de GrillaSemanal (Vista Semana, filas por día / columnas por hora).
    */
   variante?: 'lista' | 'grilla' | 'grillaHorizontal'
+  /**
+   * true cuando la tarjeta (variante 'grilla') mide menos que lo necesario para mostrar
+   * dirección/badges sin recortarse (citas de 30-45 min a la escala de hora de GrillaHoraria) —
+   * en ese caso solo se muestran nombre + check, igual que 'grillaHorizontal' ya prioriza el
+   * nombre por ancho angosto. Se calcula en el llamador, que es quien conoce el alto real.
+   */
+  compacto?: boolean
   /** Reservado para el arrastre táctil (S5): true mientras la tarjeta se está moviendo. */
   arrastrando?: boolean
   /** Reservado para el arrastre táctil (S5): inicia el long-press que arma el drag. */
@@ -25,7 +32,7 @@ export interface PropsTarjetaCitaMovil {
   style?: CSSProperties
 }
 
-export function TarjetaCitaMovil({ cita, autorizacion, onAbrir, variante = 'lista', arrastrando, onPointerDown, style }: PropsTarjetaCitaMovil) {
+export function TarjetaCitaMovil({ cita, autorizacion, onAbrir, variante = 'lista', compacto, arrastrando, onPointerDown, style }: PropsTarjetaCitaMovil) {
   const estado = cita.estado
   const colorTipo = cita.paciente.tipoTerapia ? TIPO_TERAPIA_COLOR[cita.paciente.tipoTerapia] : null
   const colorBorde = cita.paciente.color ?? colorTipo?.fg ?? 'var(--ac)'
@@ -85,13 +92,13 @@ export function TarjetaCitaMovil({ cita, autorizacion, onAbrir, variante = 'list
               )}
               {estado === 'atendida' && <Icono nombre="check" tamano={14} grosor={2.6} className={styles.iconoCheck} />}
             </div>
-            {cita.paciente.direccion && (
+            {!compacto && cita.paciente.direccion && (
               <div className={styles.filaDireccion}>
                 <Icono nombre="ubicacion" tamano={12} grosor={1.9} />
                 <span>{cita.paciente.direccion}</span>
               </div>
             )}
-            {(autorizacion || cita.copagoCobrado > 0) && (
+            {!compacto && (autorizacion || cita.copagoCobrado > 0) && (
               <div className={styles.filaBadges}>
                 {autorizacion && (
                   <span className={cn(styles.badgeSesiones, sesionesBajas && styles.urgente)}>
