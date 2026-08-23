@@ -119,11 +119,6 @@ export const TEMAS: Record<IdTema, Accent> = {
     acD: '#BFDEE8',
     oscuro: { acT: '#B9D6DF', acS: '#233034', acS2: '#2C3A3F', acL: '#3A4A50' },
   },
-  // Familia "pastel" a H=357° (mismo matiz base que 'rojo', familia "vívida").
-  // Todos los valores siguen la receta pastel exacta (misma S/L que
-  // rosa/durazno/cielo) salvo acD, fijado al hex exacto del mockup en vez de
-  // calculado — ligera desviación intencional de la receta, aceptada porque
-  // ambos casos superan el mínimo de contraste AA (ver comentario superior).
   salmon: {
     nombre: 'Salmón',
     ac: '#93393E',

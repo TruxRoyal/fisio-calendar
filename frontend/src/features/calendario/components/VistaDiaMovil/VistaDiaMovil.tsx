@@ -12,9 +12,7 @@ export interface PropsVistaDiaMovil {
   rango: RangoHorario
   autorizaciones: Record<number, AutorizacionResumen | null>
   onAbrirCita: (cita: Cita) => void
-  /** Posición optimista de la cita arrastrada (ver PropsGrillaHoraria.citaArrastrada). */
   citaArrastrada?: PosicionArrastre | null
-  /** Inicia el long-press que arma el arrastre de `cita` (ver useArrastreMovil). */
   onIniciarArrastre?: (cita: Cita) => (evento: EventoPunteroReact<HTMLButtonElement>) => void
 }
 

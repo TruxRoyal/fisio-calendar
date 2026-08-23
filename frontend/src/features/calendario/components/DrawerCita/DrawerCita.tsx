@@ -71,9 +71,6 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
     }
   }, [])
 
-  // Si el drawer se desmonta (p. ej. el usuario cierra justo después de
-  // editar) con un autoguardado todavía esperando su debounce, lo ejecuta
-  // de inmediato en vez de dejar que clearTimeout descarte el cambio.
   useEffect(() => {
     return () => {
       guardarCamposPendiente.current?.()

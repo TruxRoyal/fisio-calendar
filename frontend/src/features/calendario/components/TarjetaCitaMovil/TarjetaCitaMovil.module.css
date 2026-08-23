@@ -13,9 +13,6 @@
   position: static;
 }
 
-/* Posicionada por GrillaHoraria vía top/height (style prop); el arrastre táctil se agrega en S5.
-   Sin gap/columnaHora: GrillaHoraria ya tiene su propio riel de horas compartido, así que la
-   tarjeta usa todo el ancho de la columna solo para el contenido (nombre, dirección, badges). */
 .filaCita.grilla {
   position: absolute;
   left: 0;
@@ -25,11 +22,6 @@
   gap: 0;
 }
 
-/* Posicionada por GrillaSemanal vía left/width; llena toda la altura de la fila del día (una
-   por hora-columna de duración), en vez de ocupar todo el ancho como la variante 'grilla'. Un
-   inset de 3px dejaba la esquina redondeada + el borde de acento demasiado pegados a la línea
-   divisoria de arriba/abajo — visualmente se leía como que la tarjeta "tocaba" el encabezado de
-   horas o la fila vecina, aunque la posición en píxeles ya fuera correcta. 7px da aire visible. */
 .filaCita.grillaHorizontal {
   position: absolute;
   top: 7px;
@@ -94,10 +86,6 @@
   opacity: .7;
 }
 
-/* Celdas de GrillaHoraria son mucho más compactas (30-42px de alto típico) que una fila de
-   lista: un radio/padding pensado para una fila completa hace que la esquina redondeada del
-   borde izquierdo se vea como un gancho oscuro flotando sobre el texto. Se reduce ambos para
-   que el acento de color siga siendo una franja recta y el nombre truncado no quede tapado. */
 .tarjeta.tarjetaGrilla {
   border-radius: 8px;
   padding: 6px 10px;
@@ -105,9 +93,6 @@
   justify-content: center;
 }
 
-/* Tarjeta de GrillaSemanal: fila de día completa de alto, ancho variable por duración (puede
-   ser angosta) — padding/gap más ajustados que tarjetaGrilla para dejar el máximo espacio al
-   texto (hora + nombre en una fila, dirección en la siguiente). */
 .tarjeta.tarjetaGrillaHorizontal {
   height: 100%;
   border-radius: 8px;

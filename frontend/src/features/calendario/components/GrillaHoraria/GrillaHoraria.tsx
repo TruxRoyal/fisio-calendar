@@ -10,10 +10,6 @@ import styles from './GrillaHoraria.module.css'
 
 export const ALTURA_HORA = 56
 const ALTURA_MINIMA_BLOQUE = 30
-// Por debajo de este alto, dirección/badges no caben sin recortarse (una cita de 30-45 min a
-// esta escala mide 28-42px; el nombre + el padding de la tarjeta ya ocupan buena parte de eso) —
-// se pide la variante compacta (solo nombre + check) en vez de dejar que overflow:hidden corte
-// contenido a la mitad. 60 min (56px) y más sí entran completas.
 const ALTURA_COMPACTA = 48
 
 export interface ColumnaGrillaHoraria {
@@ -26,24 +22,10 @@ export interface PropsGrillaHoraria {
   rango: RangoHorario
   autorizaciones: Record<number, AutorizacionResumen | null>
   onAbrirCita: (cita: Cita) => void
-  /**
-   * Posición optimista de la cita actualmente arrastrada (durante el gesto y mientras se
-   * confirma el drop en el servidor): reemplaza el horario real para calcular su top/height,
-   * para que la tarjeta no salte de "posición vieja" a "posición nueva" al soltar. Reservado
-   * para Vista Día (eje único); Vista Semana (2 ejes) es un slice separado.
-   */
   citaArrastrada?: PosicionArrastre | null
-  /** Inicia el long-press que arma el arrastre de `cita` (ver useArrastreMovil). */
   onIniciarArrastre?: (cita: Cita) => (evento: EventoPunteroReact<HTMLButtonElement>) => void
 }
 
-/**
- * Grilla horaria compartida por Vista Día (1 columna) y Vista Semana (7 columnas).
- * Presentacional pura: recibe las citas ya agrupadas por columna y el rango de horas a mostrar
- * (ver rangoHorarioDelDia en lib.ts). El estado del arrastre táctil vive en useArrastreMovil,
- * instanciado por el contenedor (VistaAgendaMovil) — esta grilla solo aplica la posición
- * optimista recibida y reenvía el inicio del gesto por tarjeta.
- */
 export function GrillaHoraria({ columnas, rango, autorizaciones, onAbrirCita, citaArrastrada, onIniciarArrastre }: PropsGrillaHoraria) {
   const { horaInicio, horaFin } = rango
   const horas = Array.from({ length: horaFin - horaInicio }, (_, i) => horaInicio + i)

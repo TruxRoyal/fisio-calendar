@@ -6,15 +6,12 @@ export function contarVisitasPorDia(citas: Cita[], dia: Date): number {
   return citas.filter((c) => c.inicio.startsWith(iso) && c.estado !== 'cancelada').length
 }
 
-/** Incremento de encaje (minutos) usado por el arrastre de citas en las grillas horarias. */
 export const MINUTOS_SNAP = 15
 
-/** Redondea `minutos` al múltiplo de MINUTOS_SNAP más cercano. */
 export function snap(minutos: number): number {
   return Math.round(minutos / MINUTOS_SNAP) * MINUTOS_SNAP
 }
 
-/** Minutos transcurridos desde `horaBase` (hora entera) hasta la hora de `iso`, dentro del mismo día. */
 export function minutosDesdeHoraBase(iso: string, horaBase: number): number {
   const fecha = analizarFechaHora(iso)
   return (fecha.getHours() - horaBase) * 60 + fecha.getMinutes()
@@ -26,22 +23,13 @@ export interface RangoHorario {
 }
 
 export interface OpcionesRangoHorario {
-  /** Duración mínima del rango, en horas. Por defecto 4. */
   spanMinimoHoras?: number
-  /** Rango a usar cuando `citas` está vacío. Por defecto 08:00–18:00. */
   rangoPorDefecto?: RangoHorario
 }
 
 const RANGO_HORARIO_POR_DEFECTO: RangoHorario = { horaInicio: 8, horaFin: 18 }
 const SPAN_MINIMO_HORAS_POR_DEFECTO = 4
 
-/**
- * Calcula el rango de horas (enteras) que debe cubrir una grilla horaria para mostrar `citas`
- * sin recortarlas: se ajusta a la cita más temprana y a la más tardía, con una duración mínima
- * de `spanMinimoHoras` (por defecto 4h). Si no hay citas, usa `rangoPorDefecto` (08:00–18:00).
- * Para Vista Semana, se le pasa la unión de citas de los días visibles (Lun-Sáb) para compartir
- * un solo eje Y.
- */
 export function rangoHorarioDelDia(citas: Cita[], opciones?: OpcionesRangoHorario): RangoHorario {
   const rangoPorDefecto = opciones?.rangoPorDefecto ?? RANGO_HORARIO_POR_DEFECTO
   if (citas.length === 0) return { ...rangoPorDefecto }

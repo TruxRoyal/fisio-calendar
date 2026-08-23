@@ -56,14 +56,8 @@ export function VistaAgendaMovil() {
   const [errorMes, setErrorMes] = useState(false)
   const [buscadorAbierto, setBuscadorAbierto] = useState(false)
   const [autorizaciones, setAutorizaciones] = useState<Record<number, AutorizacionResumen | null>>({})
-  // Posición optimista de la cita que se está arrastrando (o recién soltada, mientras se
-  // confirma en el servidor) — compartida por Vista Día y Vista Semana (useArrastreMovil, 2
-  // instancias abajo). Solo una vista está visible a la vez, así que un único estado alcanza:
-  // no puede haber un arrastre de Día y uno de Semana simultáneos.
   const [citaArrastrada, setCitaArrastrada] = useState<PosicionArrastre | null>(null)
 
-  // Solo se usa para el título del rango de la cabecera de Semana (Lun-Sáb, sin Domingo: el
-  // usuario no atiende ese día).
   const dias = Array.from({ length: 6 }, (_, i) => sumarDias(inicioSemanaActual, i))
   const diaSeleccionadoISO = formatearFechaISO(diaSeleccionado)
 
@@ -96,10 +90,6 @@ export function VistaAgendaMovil() {
     return () => {
       vigente = false
     }
-    // `citas` (semana-scoped, del store) se agrega como dependencia para refrescar
-    // citasMes tras cualquier mutación exitosa (crear/actualizar/cambiarEstado/eliminar):
-    // esas acciones llaman a cargarSemanaActual() en el store, que siempre genera una
-    // referencia nueva de `citas`, pero nunca re-disparan este fetch por sí solas.
   }, [modoVista, diasGrillaMes, citas])
 
   const citasDelDia = useMemo(
@@ -114,31 +104,16 @@ export function VistaAgendaMovil() {
 
   const rangoDia = useMemo(() => rangoHorarioDelDia(citasDelDia), [citasDelDia])
 
-  // Arrastre táctil, compartido por Vista Día (eje único: solo cambia la hora) y Vista Semana
-  // (2 ejes: hora Y día, ver iniciarArrastreSemana más abajo). La posición optimista
-  // (citaArrastrada) se fija de inmediato al armarse el gesto y en cada movimiento, y se
-  // mantiene tal cual al soltar mientras se confirma en el servidor — así la tarjeta nunca
-  // "regresa" a su posición vieja para luego saltar a la nueva (decisión: colocación optimista).
-  // `posicion.nuevoInicio`/`nuevoFin` ya traen la fecha correcta (día + hora combinados) sin
-  // importar de qué vista vino el arrastre, así que esta función sirve para ambas sin cambios.
   async function confirmarArrastre(posicion: PosicionArrastre) {
     const cita = citas.find((c) => c.id === posicion.citaId)
     if (!cita) {
       setCitaArrastrada(null)
       return
     }
-    // Un long-press sin movimiento real (o uno que, tras encajar a 15 min, cae en el mismo
-    // horario) no debe disparar una petición de red ni pasar por verificar()/actualizarCita():
-    // sería un no-op para el servidor y, si la cita original no estaba alineada a 15 min,
-    // "reagendaría" la cita al horario encajado sin que el usuario haya arrastrado nada.
     if (posicion.nuevoInicio === cita.inicio && posicion.nuevoFin === cita.fin) {
       setCitaArrastrada(null)
       return
     }
-    // `verificar` también puede rechazar (fallo de red/timeout de verificar-choque, no solo un
-    // choque real): sin este try/catch envolviéndola también, esa excepción se escaparía de
-    // confirmarArrastre sin limpiar citaArrastrada ni mostrar mensajeError, dejando la tarjeta
-    // "pegada" en su posición optimista para siempre (hallazgo real de la revisión de gga).
     try {
       const conflicto = await verificar(posicion.nuevoInicio, posicion.nuevoFin, posicion.citaId)
       if (conflicto) {
@@ -171,7 +146,6 @@ export function VistaAgendaMovil() {
     onCancelar: () => setCitaArrastrada(null),
   })
 
-  // Lun-Sáb únicamente: el usuario no atiende los domingos, así que Vista Semana no lo muestra.
   const diasSemana = useMemo(
     () =>
       Array.from({ length: 6 }, (_, i) => sumarDias(inicioSemanaActual, i)).map((dia) => {
@@ -183,16 +157,9 @@ export function VistaAgendaMovil() {
       }),
     [citas, inicioSemanaActual],
   )
-  // Se calcula solo a partir de los días visibles (no de `citas` completo): una cita de un
-  // domingo (que ya no se muestra) no debe ensanchar el rango de horas de una grilla que nadie ve.
   const citasSemanaVisible = useMemo(() => diasSemana.flatMap((dia) => dia.citas), [diasSemana])
   const rangoSemana = useMemo(() => rangoHorarioDelDia(citasSemanaVisible), [citasSemanaVisible])
 
-  // Hit-test de posición para el eje de día del arrastre de Vista Semana: dado un punto de
-  // pantalla, busca el elemento visualmente debajo (elementFromPoint) y sube hasta encontrar la
-  // fila de día más cercana (data-fecha-iso, ver GrillaSemanal). Se resuelve por posición real
-  // en vez de por delta de píxeles porque las filas de GrillaSemanal miden alto variable (flex),
-  // así que un delta no se traduce de forma confiable a "cuántas filas" cruzó el puntero.
   function obtenerDiaEnPuntoSemana(clientX: number, clientY: number): string | null {
     const elemento = document.elementFromPoint(clientX, clientY)
     return elemento?.closest<HTMLElement>('[data-fecha-iso]')?.dataset.fechaIso ?? null
@@ -259,12 +226,6 @@ export function VistaAgendaMovil() {
     setModoVista('dia')
   }
 
-  // `irSemana` es async (dispara una recarga de red por llamada): se recorren las semanas de
-  // a una, esperando cada una antes de la siguiente, para evitar disparar N fetches concurrentes
-  // hacia rangos de fecha distintos cuyo orden de resolución de red no está garantizado (una
-  // respuesta más antigua podría llegar después de una más reciente y dejar `citas` de una
-  // semana equivocada). El cambio de modo/día seleccionado en `irADia` sigue siendo inmediato:
-  // no se espera a esta función para no demorar la navegación visible.
   async function irVariasSemanas(diferenciaSemanas: number) {
     for (let i = 0; i < Math.abs(diferenciaSemanas); i++) {
       await irSemana(diferenciaSemanas > 0 ? 1 : -1)

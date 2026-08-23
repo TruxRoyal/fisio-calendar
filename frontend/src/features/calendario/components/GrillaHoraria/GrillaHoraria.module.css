@@ -68,8 +68,6 @@
   background: var(--now);
 }
 
-/* Chip flotante con la hora propuesta mientras se arrastra una cita (feedback visual del
-   arrastre táctil, S5). Se posiciona por top como las tarjetas, pero por encima de ellas. */
 .chipHora {
   position: absolute;
   left: 0;

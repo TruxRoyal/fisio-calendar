@@ -13,9 +13,7 @@ export interface PropsVistaSemanaMovil {
   autorizaciones: Record<number, AutorizacionResumen | null>
   onIrADia: (fechaISO: string) => void
   onAbrirCita: (cita: Cita) => void
-  /** Posición optimista de la cita arrastrada (ver PropsGrillaSemanal.citaArrastrada). */
   citaArrastrada?: PosicionArrastre | null
-  /** Inicia el long-press que arma el arrastre de `cita` (ver useArrastreMovil). */
   onIniciarArrastre?: (cita: Cita) => (evento: EventoPunteroReact<HTMLButtonElement>) => void
 }
 

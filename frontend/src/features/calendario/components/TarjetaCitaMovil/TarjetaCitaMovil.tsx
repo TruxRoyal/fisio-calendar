@@ -11,24 +11,10 @@ export interface PropsTarjetaCitaMovil {
   cita: Cita
   autorizacion?: AutorizacionResumen | null
   onAbrir: () => void
-  /**
-   * 'lista' (por defecto) para listas verticales; 'grilla' se posiciona por tiempo (top/height)
-   * dentro de GrillaHoraria (Vista Día); 'grillaHorizontal' se posiciona por tiempo (left/width)
-   * dentro de GrillaSemanal (Vista Semana, filas por día / columnas por hora).
-   */
   variante?: 'lista' | 'grilla' | 'grillaHorizontal'
-  /**
-   * true cuando la tarjeta (variante 'grilla') mide menos que lo necesario para mostrar
-   * dirección/badges sin recortarse (citas de 30-45 min a la escala de hora de GrillaHoraria) —
-   * en ese caso solo se muestran nombre + check, igual que 'grillaHorizontal' ya prioriza el
-   * nombre por ancho angosto. Se calcula en el llamador, que es quien conoce el alto real.
-   */
   compacto?: boolean
-  /** Reservado para el arrastre táctil (S5): true mientras la tarjeta se está moviendo. */
   arrastrando?: boolean
-  /** Reservado para el arrastre táctil (S5): inicia el long-press que arma el drag. */
   onPointerDown?: PointerEventHandler<HTMLButtonElement>
-  /** Usado por GrillaHoraria (variante 'grilla') para posicionar la tarjeta por horario (top/height absolutos). */
   style?: CSSProperties
 }
 
@@ -62,13 +48,6 @@ export function TarjetaCitaMovil({ cita, autorizacion, onAbrir, variante = 'list
       >
         {variante === 'grillaHorizontal' ? (
           <>
-            {/*
-              La tarjeta horizontal prioriza legibilidad del nombre sobre íconos secundarios:
-              a duraciones cortas (30-45min) el ancho disponible es escaso, así que la hora
-              y el ícono de tipo de terapia (no exigidos por el requisito de esta variante)
-              se omiten del primer renglón para no competirle espacio al nombre. La hora se
-              muestra en el segundo renglón junto con el fragmento de dirección.
-            */}
             <div className={styles.filaNombre}>
               <span className={styles.nombre}>{cita.paciente.nombre}</span>
               {estado === 'atendida' && <Icono nombre="check" tamano={12} grosor={2.6} className={styles.iconoCheck} />}
