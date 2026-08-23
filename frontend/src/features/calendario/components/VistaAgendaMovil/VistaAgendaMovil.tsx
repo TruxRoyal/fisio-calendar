@@ -50,7 +50,9 @@ export function VistaAgendaMovil() {
   const [buscadorAbierto, setBuscadorAbierto] = useState(false)
   const [autorizaciones, setAutorizaciones] = useState<Record<number, AutorizacionResumen | null>>({})
 
-  const dias = Array.from({ length: 7 }, (_, i) => sumarDias(inicioSemanaActual, i))
+  // Solo se usa para el título del rango de la cabecera de Semana (Lun-Sáb, sin Domingo: el
+  // usuario no atiende ese día).
+  const dias = Array.from({ length: 6 }, (_, i) => sumarDias(inicioSemanaActual, i))
   const diaSeleccionadoISO = formatearFechaISO(diaSeleccionado)
 
   const diasGrillaMes = useMemo(() => {
@@ -100,9 +102,10 @@ export function VistaAgendaMovil() {
 
   const rangoDia = useMemo(() => rangoHorarioDelDia(citasDelDia), [citasDelDia])
 
+  // Lun-Sáb únicamente: el usuario no atiende los domingos, así que Vista Semana no lo muestra.
   const diasSemana = useMemo(
     () =>
-      Array.from({ length: 7 }, (_, i) => sumarDias(inicioSemanaActual, i)).map((dia) => {
+      Array.from({ length: 6 }, (_, i) => sumarDias(inicioSemanaActual, i)).map((dia) => {
         const fechaISO = formatearFechaISO(dia)
         return {
           fechaISO,
@@ -111,11 +114,14 @@ export function VistaAgendaMovil() {
       }),
     [citas, inicioSemanaActual],
   )
-  const rangoSemana = useMemo(() => rangoHorarioDelDia(citas), [citas])
+  // Se calcula solo a partir de los días visibles (no de `citas` completo): una cita de un
+  // domingo (que ya no se muestra) no debe ensanchar el rango de horas de una grilla que nadie ve.
+  const citasSemanaVisible = useMemo(() => diasSemana.flatMap((dia) => dia.citas), [diasSemana])
+  const rangoSemana = useMemo(() => rangoHorarioDelDia(citasSemanaVisible), [citasSemanaVisible])
 
   let citasVisibles: Cita[]
   if (modoVista === 'dia') citasVisibles = citasDelDia
-  else if (modoVista === 'semana') citasVisibles = citas
+  else if (modoVista === 'semana') citasVisibles = citasSemanaVisible
   else citasVisibles = citasDelDiaMes
 
   const citasDelDiaSinCancelar = citasDelDia.filter((c) => c.estado !== 'cancelada')
@@ -155,9 +161,21 @@ export function VistaAgendaMovil() {
     const fecha = new Date(anio, mes - 1, dia)
     const inicioSemanaFecha = inicioSemana(fecha)
     const diferenciaSemanas = Math.round((inicioSemanaFecha.getTime() - inicioSemanaActual.getTime()) / (7 * 24 * 60 * 60 * 1000))
-    for (let i = 0; i < Math.abs(diferenciaSemanas); i++) irSemana(diferenciaSemanas > 0 ? 1 : -1)
+    void irVariasSemanas(diferenciaSemanas)
     setDiaSeleccionado(fecha)
     setModoVista('dia')
+  }
+
+  // `irSemana` es async (dispara una recarga de red por llamada): se recorren las semanas de
+  // a una, esperando cada una antes de la siguiente, para evitar disparar N fetches concurrentes
+  // hacia rangos de fecha distintos cuyo orden de resolución de red no está garantizado (una
+  // respuesta más antigua podría llegar después de una más reciente y dejar `citas` de una
+  // semana equivocada). El cambio de modo/día seleccionado en `irADia` sigue siendo inmediato:
+  // no se espera a esta función para no demorar la navegación visible.
+  async function irVariasSemanas(diferenciaSemanas: number) {
+    for (let i = 0; i < Math.abs(diferenciaSemanas); i++) {
+      await irSemana(diferenciaSemanas > 0 ? 1 : -1)
+    }
   }
 
   function irHoyCompleto() {
@@ -173,7 +191,7 @@ export function VistaAgendaMovil() {
     tituloCabecera = formatearFechaTitulo(diaSeleccionado)
   } else if (modoVista === 'semana') {
     etiquetaCabecera = 'Semana'
-    tituloCabecera = `${formatearFechaCorta(combinarFechaHora(formatearFechaISO(dias[0]), '00:00'))} – ${formatearFechaCorta(combinarFechaHora(formatearFechaISO(dias[6]), '00:00'))}`
+    tituloCabecera = `${formatearFechaCorta(combinarFechaHora(formatearFechaISO(dias[0]), '00:00'))} – ${formatearFechaCorta(combinarFechaHora(formatearFechaISO(dias[5]), '00:00'))}`
   } else {
     etiquetaCabecera = 'Mes'
     tituloCabecera = formatearMesAnio(mesReferencia.getFullYear(), mesReferencia.getMonth() + 1)
@@ -265,7 +283,7 @@ export function VistaAgendaMovil() {
         )}
       </div>
 
-      <div className={styles.lista} key={modoVista}>
+      <div className={cn(styles.lista, modoVista === 'semana' && styles.listaSemana)} key={modoVista}>
         {modoVista === 'dia' && (
           <VistaDiaMovil
             fechaISO={diaSeleccionadoISO}

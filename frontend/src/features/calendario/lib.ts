@@ -39,7 +39,8 @@ const SPAN_MINIMO_HORAS_POR_DEFECTO = 4
  * Calcula el rango de horas (enteras) que debe cubrir una grilla horaria para mostrar `citas`
  * sin recortarlas: se ajusta a la cita más temprana y a la más tardía, con una duración mínima
  * de `spanMinimoHoras` (por defecto 4h). Si no hay citas, usa `rangoPorDefecto` (08:00–18:00).
- * Para Vista Semana, se le pasa la unión de citas de los 7 días para compartir un solo eje Y.
+ * Para Vista Semana, se le pasa la unión de citas de los días visibles (Lun-Sáb) para compartir
+ * un solo eje Y.
  */
 export function rangoHorarioDelDia(citas: Cita[], opciones?: OpcionesRangoHorario): RangoHorario {
   const rangoPorDefecto = opciones?.rangoPorDefecto ?? RANGO_HORARIO_POR_DEFECTO

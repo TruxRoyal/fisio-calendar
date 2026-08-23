@@ -1,22 +1,38 @@
+/* `flex: 1` + `align-items: stretch` (el valor por defecto): dentro de Semana, `.raiz` es en sí
+   mismo un item flex de `.listaSemana` (VistaAgendaMovil.module.css) y crece para llenar toda
+   la altura acotada disponible ahí; `stretch` hace que `columnaDias` y `scrollHorizontal` (sus
+   dos hijos) reciban esa misma altura completa, para que ambos puedan repartir sus filas de
+   forma pareja (ver `.etiquetaDia`/`.filaCitas` más abajo) en vez de quedarse en su altura de
+   contenido natural (fija por fila, como antes). */
 .raiz {
   display: flex;
-  align-items: flex-start;
+  flex: 1;
 }
 
 /* Columna de días: fuera del contenedor con scroll horizontal, así que nunca se desplaza con
-   él (patrón de "columna congelada" sin necesidad de position: sticky). */
+   él (patrón de "columna congelada" sin necesidad de position: sticky). `display: flex` en
+   columna propia para que sus filas (`.etiquetaDia`) puedan repartirse la altura recibida por
+   stretch de `.raiz`. */
 .columnaDias {
   flex: 0 0 52px;
   width: 52px;
+  display: flex;
+  flex-direction: column;
 }
 
 .celdaEncabezadoDias {
-  height: 28px;
+  flex: 0 0 28px;
 }
 
+/* Antes tenía una altura fija (64px); ahora `flex: 1` reparte parejo el alto disponible entre
+   todas las filas de día, con un `min-height` de respaldo para que en viewports muy bajos las
+   filas no se aplasten por debajo de un alto legible — en ese caso el conjunto simplemente
+   crece más allá del espacio disponible y `.lista` (el contenedor ancestro) hace scroll
+   vertical, en vez de comprimir el contenido. */
 .etiquetaDia {
   width: 100%;
-  height: 64px;
+  flex: 1;
+  min-height: 60px;
   border: 0;
   border-bottom: 1px solid var(--grid);
   background: transparent;
@@ -54,14 +70,19 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* `flex: 1` (ancho, dentro de la fila `.raiz`) + `display: flex; flex-direction: column`
+   (propio, para que sus hijos — encabezado de horas + filas de día — se repartan la altura
+   recibida por stretch de `.raiz`, en espejo de `.columnaDias`). */
 .scrollHorizontal {
   flex: 1;
   min-width: 0;
   overflow-x: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .encabezadoHoras {
-  height: 28px;
+  flex: 0 0 28px;
   display: flex;
   border-bottom: 1px solid var(--grid);
 }
@@ -80,8 +101,13 @@
   font-family: var(--fuenteMono);
 }
 
+/* Antes tenía una altura fija (64px, vía inline style) — ahora `flex: 1` reparte parejo el
+   alto disponible entre las filas de día (mismo mecanismo y mismo min-height que
+   `.etiquetaDia`, para que ambas columnas terminen con las mismas alturas fila por fila). */
 .filaCitas {
   position: relative;
+  flex: 1;
+  min-height: 60px;
   border-bottom: 1px solid var(--grid);
   background-image: repeating-linear-gradient(to right, var(--grid) 0 1px, transparent 1px 150px);
 }

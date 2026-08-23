@@ -8,10 +8,11 @@ import styles from './GrillaSemanal.module.css'
 
 const PIXELES_POR_HORA = 150
 const ANCHO_MINIMO_BLOQUE = 64
-// La altura del encabezado de horas (28px) vive en GrillaSemanal.module.css (.celdaEncabezadoDias
-// / .encabezadoHoras) — ambas deben coincidir para que la columna de días y el área con scroll
-// horizontal queden alineadas fila por fila.
-const ALTURA_FILA = 64
+// La altura de fila (día) y del encabezado de horas se controlan enteramente por CSS
+// (GrillaSemanal.module.css: .celdaEncabezadoDias/.encabezadoHoras para el encabezado fijo de
+// 28px, .etiquetaDia/.filaCitas con flex:1 + el mismo min-height para las filas de día) — ambas
+// columnas usan las mismas reglas de flex, así que quedan alineadas fila por fila sin necesitar
+// un valor de altura fijo en JS.
 
 export interface DiaGrillaSemanal {
   fechaISO: string
@@ -27,11 +28,13 @@ export interface PropsGrillaSemanal {
 }
 
 /**
- * Grilla de Vista Semana: filas por día (LUN-DOM) × columnas por hora, con desplazamiento
- * horizontal (para ver más horas) y la columna de días fijada visualmente a la izquierda
- * (no forma parte del área con scroll horizontal, así que nunca se mueve con ella). El
- * desplazamiento vertical (para ver los 7 días) lo entrega el contenedor de la página
- * (`.lista` en VistaAgendaMovil), no un scroll anidado propio.
+ * Grilla de Vista Semana: filas por día (LUN-SÁB, sin Domingo — el usuario no atiende ese día;
+ * la cantidad real de filas la decide `dias`, que recibe el llamador) × columnas por hora, con
+ * desplazamiento horizontal (para ver más horas) y la columna de días fijada visualmente a la
+ * izquierda (no forma parte del área con scroll horizontal, así que nunca se mueve con ella).
+ * Las filas de día llenan por flex toda la altura disponible del contenedor de la página
+ * (`.lista`/`.listaSemana` en VistaAgendaMovil); el desplazamiento vertical solo aparece como
+ * respaldo si el contenido no cabe (min-height por fila), no es un scroll anidado propio.
  *
  * Reemplaza, solo para Semana, el uso de GrillaHoraria (que sigue vigente para Vista Día,
  * eje de tiempo vertical de una sola columna) — ver decisión de transposición del grid.
@@ -85,7 +88,7 @@ export function GrillaSemanal({ dias, rango, autorizaciones, onAbrirCita, onIrAD
             <div
               key={dia.fechaISO}
               className={cn(styles.filaCitas, esHoy && styles.hoy)}
-              style={{ width: anchoTotal, height: ALTURA_FILA }}
+              style={{ width: anchoTotal }}
             >
               {esHoy && minutosAhora >= 0 && minutosAhora <= minutosTotales && (
                 <div className={styles.lineaAhora} style={{ left: (minutosAhora / 60) * PIXELES_POR_HORA }}>

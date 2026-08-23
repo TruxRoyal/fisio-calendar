@@ -141,6 +141,17 @@
   animation: entrada-contenido .22s ease-out;
 }
 
+/* Solo para Semana: convierte a `.lista` en un contenedor flex-columna acotado (su propia
+   altura ya está acotada por `.contenedor`/`.cabecera` arriba en la cadena) para que
+   GrillaSemanal pueda crecer y llenar exactamente el espacio disponible en vez de quedarse en
+   su altura de contenido natural (fija por fila), dejando un hueco vacío antes del FAB. Día y
+   Mes NO usan esta clase — siguen con el flujo de documento normal + scroll natural de `.lista`
+   sin cambios. */
+.listaSemana {
+  display: flex;
+  flex-direction: column;
+}
+
 @keyframes entrada-contenido {
   from {
     opacity: 0;
