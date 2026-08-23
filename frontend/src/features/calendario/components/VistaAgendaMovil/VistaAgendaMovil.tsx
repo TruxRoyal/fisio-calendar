@@ -7,6 +7,7 @@ import { rangoHorarioDelDia } from '../../lib'
 import { citasApi, autorizacionesResumenApi } from '../../api'
 import { DrawerCita } from '../DrawerCita/DrawerCita'
 import { ALTURA_HORA } from '../GrillaHoraria/GrillaHoraria'
+import { PIXELES_POR_HORA as ANCHO_HORA_SEMANA } from '../GrillaSemanal/GrillaSemanal'
 import { Icono } from '../../../../shared/components/Icono/Icono'
 import { AlertaMensaje } from '../../../../shared/components/AlertaMensaje/AlertaMensaje'
 import { PaletaComandos } from '../../../../shared/components/PaletaComandos/PaletaComandos'
@@ -56,8 +57,9 @@ export function VistaAgendaMovil() {
   const [buscadorAbierto, setBuscadorAbierto] = useState(false)
   const [autorizaciones, setAutorizaciones] = useState<Record<number, AutorizacionResumen | null>>({})
   // Posición optimista de la cita que se está arrastrando (o recién soltada, mientras se
-  // confirma en el servidor) en Vista Día — ver useArrastreMovil. Vista Semana (2 ejes) queda
-  // fuera de este slice.
+  // confirma en el servidor) — compartida por Vista Día y Vista Semana (useArrastreMovil, 2
+  // instancias abajo). Solo una vista está visible a la vez, así que un único estado alcanza:
+  // no puede haber un arrastre de Día y uno de Semana simultáneos.
   const [citaArrastrada, setCitaArrastrada] = useState<PosicionArrastre | null>(null)
 
   // Solo se usa para el título del rango de la cabecera de Semana (Lun-Sáb, sin Domingo: el
@@ -112,10 +114,13 @@ export function VistaAgendaMovil() {
 
   const rangoDia = useMemo(() => rangoHorarioDelDia(citasDelDia), [citasDelDia])
 
-  // Arrastre táctil de Vista Día (eje único: solo cambia la hora, el día es fijo). La posición
-  // optimista (citaArrastrada) se fija de inmediato al armarse el gesto y en cada movimiento, y
-  // se mantiene tal cual al soltar mientras se confirma en el servidor — así la tarjeta nunca
+  // Arrastre táctil, compartido por Vista Día (eje único: solo cambia la hora) y Vista Semana
+  // (2 ejes: hora Y día, ver iniciarArrastreSemana más abajo). La posición optimista
+  // (citaArrastrada) se fija de inmediato al armarse el gesto y en cada movimiento, y se
+  // mantiene tal cual al soltar mientras se confirma en el servidor — así la tarjeta nunca
   // "regresa" a su posición vieja para luego saltar a la nueva (decisión: colocación optimista).
+  // `posicion.nuevoInicio`/`nuevoFin` ya traen la fecha correcta (día + hora combinados) sin
+  // importar de qué vista vino el arrastre, así que esta función sirve para ambas sin cambios.
   async function confirmarArrastre(posicion: PosicionArrastre) {
     const cita = citas.find((c) => c.id === posicion.citaId)
     if (!cita) {
@@ -130,13 +135,17 @@ export function VistaAgendaMovil() {
       setCitaArrastrada(null)
       return
     }
-    const conflicto = await verificar(posicion.nuevoInicio, posicion.nuevoFin, posicion.citaId)
-    if (conflicto) {
-      setCitaArrastrada(null)
-      setMensajeError('Esta cita choca con otra existente.')
-      return
-    }
+    // `verificar` también puede rechazar (fallo de red/timeout de verificar-choque, no solo un
+    // choque real): sin este try/catch envolviéndola también, esa excepción se escaparía de
+    // confirmarArrastre sin limpiar citaArrastrada ni mostrar mensajeError, dejando la tarjeta
+    // "pegada" en su posición optimista para siempre (hallazgo real de la revisión de gga).
     try {
+      const conflicto = await verificar(posicion.nuevoInicio, posicion.nuevoFin, posicion.citaId)
+      if (conflicto) {
+        setCitaArrastrada(null)
+        setMensajeError('Esta cita choca con otra existente.')
+        return
+      }
       await actualizarCita(posicion.citaId, {
         inicio: posicion.nuevoInicio,
         fin: posicion.nuevoFin,
@@ -150,7 +159,7 @@ export function VistaAgendaMovil() {
     }
   }
 
-  const { iniciarArrastre } = useArrastreMovil({
+  const { iniciarArrastre: iniciarArrastreDia } = useArrastreMovil({
     alturaHora: ALTURA_HORA,
     rango: rangoDia,
     onArrastreInicio: setCitaArrastrada,
@@ -178,6 +187,30 @@ export function VistaAgendaMovil() {
   // domingo (que ya no se muestra) no debe ensanchar el rango de horas de una grilla que nadie ve.
   const citasSemanaVisible = useMemo(() => diasSemana.flatMap((dia) => dia.citas), [diasSemana])
   const rangoSemana = useMemo(() => rangoHorarioDelDia(citasSemanaVisible), [citasSemanaVisible])
+
+  // Hit-test de posición para el eje de día del arrastre de Vista Semana: dado un punto de
+  // pantalla, busca el elemento visualmente debajo (elementFromPoint) y sube hasta encontrar la
+  // fila de día más cercana (data-fecha-iso, ver GrillaSemanal). Se resuelve por posición real
+  // en vez de por delta de píxeles porque las filas de GrillaSemanal miden alto variable (flex),
+  // así que un delta no se traduce de forma confiable a "cuántas filas" cruzó el puntero.
+  function obtenerDiaEnPuntoSemana(clientX: number, clientY: number): string | null {
+    const elemento = document.elementFromPoint(clientX, clientY)
+    return elemento?.closest<HTMLElement>('[data-fecha-iso]')?.dataset.fechaIso ?? null
+  }
+
+  const { iniciarArrastre: iniciarArrastreSemana } = useArrastreMovil({
+    eje: 'horizontal',
+    anchoHora: ANCHO_HORA_SEMANA,
+    rango: rangoSemana,
+    obtenerDiaEnPunto: obtenerDiaEnPuntoSemana,
+    onArrastreInicio: setCitaArrastrada,
+    onArrastrar: setCitaArrastrada,
+    onSoltar: (posicion) => {
+      setCitaArrastrada(posicion)
+      void confirmarArrastre(posicion)
+    },
+    onCancelar: () => setCitaArrastrada(null),
+  })
 
   let citasVisibles: Cita[]
   if (modoVista === 'dia') citasVisibles = citasDelDia
@@ -352,7 +385,7 @@ export function VistaAgendaMovil() {
             autorizaciones={autorizaciones}
             onAbrirCita={abrirCitaExistente}
             citaArrastrada={citaArrastrada}
-            onIniciarArrastre={iniciarArrastre}
+            onIniciarArrastre={iniciarArrastreDia}
           />
         )}
 
@@ -363,6 +396,8 @@ export function VistaAgendaMovil() {
             autorizaciones={autorizaciones}
             onIrADia={irADia}
             onAbrirCita={abrirCitaExistente}
+            citaArrastrada={citaArrastrada}
+            onIniciarArrastre={iniciarArrastreSemana}
           />
         )}
 

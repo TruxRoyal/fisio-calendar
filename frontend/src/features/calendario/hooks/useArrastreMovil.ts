@@ -26,9 +26,25 @@ export interface PosicionArrastre {
 }
 
 export interface OpcionesArrastreMovil {
-  /** Alto en píxeles de una hora completa en la grilla (ALTURA_HORA de GrillaHoraria). */
-  alturaHora: number
+  /**
+   * Eje del puntero que controla la HORA de la cita: 'vertical' (Vista Día, GrillaHoraria) usa
+   * el desplazamiento en Y contra `alturaHora`; 'horizontal' (Vista Semana, GrillaSemanal) usa
+   * el desplazamiento en X contra `anchoHora`, porque esa grilla tiene las horas como columnas.
+   * Por defecto 'vertical'.
+   */
+  eje?: 'vertical' | 'horizontal'
+  /** Alto en píxeles de una hora completa (ALTURA_HORA de GrillaHoraria). Requerido si eje='vertical'. */
+  alturaHora?: number
+  /** Ancho en píxeles de una hora completa (PIXELES_POR_HORA de GrillaSemanal). Requerido si eje='horizontal'. */
+  anchoHora?: number
   rango: RangoHorario
+  /**
+   * Solo Vista Semana (2 ejes): dado un punto de pantalla (clientX/clientY), retorna la
+   * fechaISO de la fila de día que está bajo el puntero en ese instante, o null si el puntero
+   * no está sobre ninguna fila (p. ej. se salió de la grilla). Si no se provee, el día de la
+   * cita permanece fijo — es el caso de Vista Día, que no tiene eje de día.
+   */
+  obtenerDiaEnPunto?: (clientX: number, clientY: number) => string | null
   /** Se dispara al armarse el long-press (antes de cualquier movimiento). */
   onArrastreInicio: (posicion: PosicionArrastre) => void
   /** Se dispara en cada movimiento, una vez armado el arrastre. */
@@ -40,10 +56,14 @@ export interface OpcionesArrastreMovil {
 }
 
 /**
- * Máquina de estados de Pointer Events para arrastrar una tarjeta de cita dentro de
- * GrillaHoraria y cambiar su hora de inicio. Eje único (vertical/hora): Vista Día siempre tiene
- * 1 sola columna, así que no hay eje de día que mover. El arrastre de 2 ejes de Vista Semana
- * (día + hora) es un slice separado, no implementado aquí.
+ * Máquina de estados de Pointer Events para arrastrar una tarjeta de cita y cambiar su horario.
+ * Comparte esta misma máquina de estados Vista Día (eje único, vertical/hora — GrillaHoraria
+ * siempre tiene 1 sola columna, no hay eje de día que mover) y Vista Semana (2 ejes: horizontal
+ * controla la hora vía `anchoHora`, vertical controla el día vía `obtenerDiaEnPunto`, ya que
+ * GrillaSemanal tiene los días como filas). El eje de día se resuelve por hit-test de posición
+ * (qué fila hay bajo el puntero) en vez de por delta, porque las filas de GrillaSemanal tienen
+ * alto variable (flex, no un píxel fijo por fila como ALTURA_HORA) — un delta en px no se podría
+ * traducir de forma confiable a "cuántas filas" se cruzaron.
  *
  * No mantiene estado de posición propio: delega el renderizado (posición optimista durante el
  * arrastre y tras soltar) a quien instancia el hook, para que ambas fases compartan el mismo
@@ -54,11 +74,19 @@ export function useArrastreMovil(opciones: OpcionesArrastreMovil) {
   opcionesRef.current = opciones
 
   const citaRef = useRef<Cita | null>(null)
+  const origenXRef = useRef(0)
   const origenYRef = useRef(0)
   const pointerIdRef = useRef<number | null>(null)
   const armadoRef = useRef(false)
   const temporizadorRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const bloqueoClicRef = useRef<((evento: Event) => void) | null>(null)
+  // Último día válido bajo el puntero durante un arrastre de Vista Semana (obtenerDiaEnPunto):
+  // se inicializa al día original de la cita y solo se actualiza cuando el hit-test encuentra
+  // una fila real bajo el puntero. Si el puntero se sale de la grilla (p. ej. arrastra más
+  // abajo del último día visible), el día simplemente se queda en el último válido — esto es lo
+  // que produce el "clamp" al Lun-Sáb sin lógica de rango aparte: nunca hay una fila fuera de
+  // ese rango con la que el hit-test pueda actualizar esta ref.
+  const fechaObjetivoRef = useRef<string | null>(null)
 
   // Todos los useCallback de este hook usan deps=[] a propósito: solo leen/escriben refs (nunca
   // props/estado directamente) y se llaman entre sí por closure, así que su identidad debe
@@ -74,19 +102,29 @@ export function useArrastreMovil(opciones: OpcionesArrastreMovil) {
     }
   }, [])
 
-  const calcularPosicion = useCallback((cita: Cita, clientY: number): PosicionArrastre => {
-    const { alturaHora, rango } = opcionesRef.current
+  const calcularPosicion = useCallback((cita: Cita, clientX: number, clientY: number): PosicionArrastre => {
+    const { eje, alturaHora, anchoHora, rango, obtenerDiaEnPunto } = opcionesRef.current
     // Se encaja el DESPLAZAMIENTO (delta), no el horario absoluto resultante — igual que
     // finalizarArrastre en VistaSemanal.tsx (desktop). Si se encajara el absoluto, una cita
     // cuyo horario original no cae en un múltiplo de 15 min (p. ej. 09:05) se movería sola con
     // delta=0 (long-press sin arrastre real) al redondear 09:05 a 09:00 o 09:15.
     const duracion = diferenciaMinutos(cita.inicio, cita.fin)
     const minutoDiaOriginal = minutosDesdeHoraBase(cita.inicio, 0)
-    const deltaMinutos = snap(((clientY - origenYRef.current) / alturaHora) * 60)
+    const deltaMinutos =
+      eje === 'horizontal'
+        ? snap(((clientX - origenXRef.current) / (anchoHora as number)) * 60)
+        : snap(((clientY - origenYRef.current) / (alturaHora as number)) * 60)
     const minPermitido = rango.horaInicio * 60
     const maxPermitido = rango.horaFin * 60 - duracion
     const minutoDiaPropuesto = Math.min(Math.max(minutoDiaOriginal + deltaMinutos, minPermitido), maxPermitido)
-    const fechaBaseISO = combinarFechaHora(cita.inicio.slice(0, 10), '00:00')
+
+    if (obtenerDiaEnPunto) {
+      const fechaBajoElPuntero = obtenerDiaEnPunto(clientX, clientY)
+      if (fechaBajoElPuntero) fechaObjetivoRef.current = fechaBajoElPuntero
+    }
+    const fechaISO = fechaObjetivoRef.current ?? cita.inicio.slice(0, 10)
+
+    const fechaBaseISO = combinarFechaHora(fechaISO, '00:00')
     const nuevoInicio = sumarMinutos(fechaBaseISO, minutoDiaPropuesto)
     const nuevoFin = sumarMinutos(nuevoInicio, duracion)
     return { citaId: cita.id, nuevoInicio, nuevoFin }
@@ -97,7 +135,14 @@ export function useArrastreMovil(opciones: OpcionesArrastreMovil) {
     const cita = citaRef.current
     if (!cita) return
     if (!armadoRef.current) {
-      if (Math.abs(evento.clientY - origenYRef.current) > UMBRAL_CANCELACION_PX) {
+      // Se compara el desplazamiento en AMBOS ejes (no solo Y): GrillaSemanal tiene scroll
+      // horizontal Y vertical, así que un tap que empieza a deslizar en cualquiera de las dos
+      // direcciones antes de que se arme el long-press debe interpretarse como scroll, igual
+      // que ya pasaba solo con Y para Vista Día (que no tiene scroll horizontal propio, por lo
+      // que este chequeo no le cambia el comportamiento).
+      const dx = Math.abs(evento.clientX - origenXRef.current)
+      const dy = Math.abs(evento.clientY - origenYRef.current)
+      if (dx > UMBRAL_CANCELACION_PX || dy > UMBRAL_CANCELACION_PX) {
         limpiarTemporizador()
         quitarListeners()
         citaRef.current = null
@@ -106,7 +151,7 @@ export function useArrastreMovil(opciones: OpcionesArrastreMovil) {
       return
     }
     evento.preventDefault()
-    opcionesRef.current.onArrastrar(calcularPosicion(cita, evento.clientY))
+    opcionesRef.current.onArrastrar(calcularPosicion(cita, evento.clientX, evento.clientY))
   }, [])
 
   const manejarUp = useCallback((evento: PointerEvent) => {
@@ -125,7 +170,7 @@ export function useArrastreMovil(opciones: OpcionesArrastreMovil) {
       // abriría el drawer de la cita como si hubiera sido un tap. Se intercepta ese único
       // click en fase de captura y se descarta.
       bloquearProximoClic()
-      opcionesRef.current.onSoltar(calcularPosicion(cita, evento.clientY))
+      opcionesRef.current.onSoltar(calcularPosicion(cita, evento.clientX, evento.clientY))
     }
   }, [])
 
@@ -171,7 +216,9 @@ export function useArrastreMovil(opciones: OpcionesArrastreMovil) {
       quitarListeners()
       limpiarTemporizador()
       citaRef.current = cita
+      origenXRef.current = evento.clientX
       origenYRef.current = evento.clientY
+      fechaObjetivoRef.current = cita.inicio.slice(0, 10)
       pointerIdRef.current = evento.pointerId
       armadoRef.current = false
       window.addEventListener('pointermove', manejarMove)
@@ -180,7 +227,7 @@ export function useArrastreMovil(opciones: OpcionesArrastreMovil) {
       temporizadorRef.current = setTimeout(() => {
         if (!citaRef.current) return
         armadoRef.current = true
-        opcionesRef.current.onArrastreInicio(calcularPosicion(citaRef.current, origenYRef.current))
+        opcionesRef.current.onArrastreInicio(calcularPosicion(citaRef.current, origenXRef.current, origenYRef.current))
       }, RETARDO_ARMADO_MS)
     },
     [],
