@@ -86,9 +86,14 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
   useEffect(() => {
     if (!pacienteIdActivo) return
     let vigente = true
-    autorizacionesResumenApi.obtenerActiva(pacienteIdActivo).then((resultado) => {
-      if (vigente) setAutorizacion(resultado)
-    })
+    autorizacionesResumenApi
+      .obtenerActiva(pacienteIdActivo)
+      .then((resultado) => {
+        if (vigente) setAutorizacion(resultado)
+      })
+      .catch(() => {
+        if (vigente) setAutorizacion(null)
+      })
     return () => {
       vigente = false
     }
@@ -97,9 +102,14 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
   useEffect(() => {
     if (esNueva || !cita.pacienteId) return
     let vigente = true
-    pacientesBusquedaApi.obtenerParaDrawer(cita.pacienteId).then((resultado) => {
-      if (vigente) setPacienteCompleto(resultado)
-    })
+    pacientesBusquedaApi
+      .obtenerParaDrawer(cita.pacienteId)
+      .then((resultado) => {
+        if (vigente) setPacienteCompleto(resultado)
+      })
+      .catch(() => {
+        if (vigente) setPacienteCompleto(null)
+      })
     return () => {
       vigente = false
     }
@@ -109,9 +119,14 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
   useEffect(() => {
     if (!esNueva || pacienteIdActivo) return
     let vigente = true
-    pacientesBusquedaApi.listar(busquedaPaciente).then((resultados) => {
-      if (vigente) setResultadosPaciente(resultados)
-    })
+    pacientesBusquedaApi
+      .listar(busquedaPaciente)
+      .then((resultados) => {
+        if (vigente) setResultadosPaciente(resultados)
+      })
+      .catch(() => {
+        if (vigente) setResultadosPaciente([])
+      })
     return () => {
       vigente = false
     }

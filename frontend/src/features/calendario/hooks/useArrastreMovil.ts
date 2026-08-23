@@ -38,6 +38,7 @@ export function useArrastreMovil(opciones: OpcionesArrastreMovil) {
   const armadoRef = useRef(false)
   const temporizadorRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const bloqueoClicRef = useRef<((evento: Event) => void) | null>(null)
+  const bloqueoClicTemporizadorRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const fechaObjetivoRef = useRef<string | null>(null)
 
   const limpiarTemporizador = useCallback(() => {
@@ -121,9 +122,18 @@ export function useArrastreMovil(opciones: OpcionesArrastreMovil) {
       evento.preventDefault()
       evento.stopPropagation()
       bloqueoClicRef.current = null
+      if (bloqueoClicTemporizadorRef.current) {
+        clearTimeout(bloqueoClicTemporizadorRef.current)
+        bloqueoClicTemporizadorRef.current = null
+      }
     }
     bloqueoClicRef.current = descartar
     window.addEventListener('click', descartar, { capture: true, once: true })
+    bloqueoClicTemporizadorRef.current = setTimeout(() => {
+      window.removeEventListener('click', descartar, { capture: true })
+      bloqueoClicRef.current = null
+      bloqueoClicTemporizadorRef.current = null
+    }, 1000)
   }, [])
 
   const quitarListeners = useCallback(() => {
@@ -163,6 +173,10 @@ export function useArrastreMovil(opciones: OpcionesArrastreMovil) {
       if (bloqueoClicRef.current) {
         window.removeEventListener('click', bloqueoClicRef.current, { capture: true })
         bloqueoClicRef.current = null
+      }
+      if (bloqueoClicTemporizadorRef.current) {
+        clearTimeout(bloqueoClicTemporizadorRef.current)
+        bloqueoClicTemporizadorRef.current = null
       }
     }
   }, [])

@@ -81,8 +81,8 @@ export function TarjetaCitaMovil({ cita, autorizacion, onAbrir, variante = 'list
               <div className={styles.filaBadges}>
                 {autorizacion && (
                   <span className={cn(styles.badgeSesiones, sesionesBajas && styles.urgente)}>
-                    {autorizacion.sesionesRestantes <= 1
-                      ? `${autorizacion.sesionesRestantes} sesión restante`
+                    {autorizacion.sesionesRestantes === 1
+                      ? '1 sesión restante'
                       : `${autorizacion.sesionesRestantes} sesiones`}
                   </span>
                 )}

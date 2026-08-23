@@ -33,7 +33,7 @@ import type { AutorizacionResumen, Cita, VistaCalendario } from '../../types'
 import styles from './VistaAgendaMovil.module.css'
 
 export function VistaAgendaMovil() {
-  const { citas, inicioSemanaActual, irSemana, irHoy } = useCitas()
+  const { citas, inicioSemanaActual, irSemana, irASemanaDe, irHoy } = useCitas()
   const {
     citaSeleccionada,
     abrirCitaExistente,
@@ -219,17 +219,9 @@ export function VistaAgendaMovil() {
   function irADia(fechaISO: string) {
     const [anio, mes, dia] = fechaISO.split('-').map(Number)
     const fecha = new Date(anio, mes - 1, dia)
-    const inicioSemanaFecha = inicioSemana(fecha)
-    const diferenciaSemanas = Math.round((inicioSemanaFecha.getTime() - inicioSemanaActual.getTime()) / (7 * 24 * 60 * 60 * 1000))
-    void irVariasSemanas(diferenciaSemanas)
+    if (inicioSemana(fecha).getTime() !== inicioSemanaActual.getTime()) void irASemanaDe(fecha)
     setDiaSeleccionado(fecha)
     setModoVista('dia')
-  }
-
-  async function irVariasSemanas(diferenciaSemanas: number) {
-    for (let i = 0; i < Math.abs(diferenciaSemanas); i++) {
-      await irSemana(diferenciaSemanas > 0 ? 1 : -1)
-    }
   }
 
   function irHoyCompleto() {

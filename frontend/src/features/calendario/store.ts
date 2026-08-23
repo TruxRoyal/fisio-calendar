@@ -9,6 +9,7 @@ interface EstadoCalendario {
   cargando: boolean
   cargarSemanaActual: () => Promise<void>
   irSemana: (direccion: -1 | 1) => Promise<void>
+  irASemanaDe: (fecha: Date) => Promise<void>
   irHoy: () => Promise<void>
   crearCita: (solicitud: SolicitudCrearCita) => Promise<Cita>
   actualizarCita: (id: number, solicitud: SolicitudActualizarCita) => Promise<Cita>
@@ -30,6 +31,11 @@ export const useCalendarioStore = create<EstadoCalendario>((set, get) => ({
 
   irSemana: async (direccion) => {
     set((estado) => ({ inicioSemanaActual: sumarDias(estado.inicioSemanaActual, direccion * 7) }))
+    await get().cargarSemanaActual()
+  },
+
+  irASemanaDe: async (fecha) => {
+    set({ inicioSemanaActual: inicioSemana(fecha) })
     await get().cargarSemanaActual()
   },
 

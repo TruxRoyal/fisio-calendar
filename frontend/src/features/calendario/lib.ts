@@ -47,9 +47,12 @@ export function rangoHorarioDelDia(citas: Cita[], opciones?: OpcionesRangoHorari
     if (minutosFin > maxMinutos) maxMinutos = minutosFin
   }
 
-  const horaInicio = Math.max(0, Math.floor(minMinutos / 60))
+  let horaInicio = Math.max(0, Math.floor(minMinutos / 60))
   let horaFin = Math.min(24, Math.ceil(maxMinutos / 60))
-  if (horaFin - horaInicio < spanMinimoHoras) horaFin = Math.min(24, horaInicio + spanMinimoHoras)
+  if (horaFin - horaInicio < spanMinimoHoras) {
+    horaFin = Math.min(24, horaInicio + spanMinimoHoras)
+    if (horaFin - horaInicio < spanMinimoHoras) horaInicio = Math.max(0, horaFin - spanMinimoHoras)
+  }
 
   return { horaInicio, horaFin }
 }
