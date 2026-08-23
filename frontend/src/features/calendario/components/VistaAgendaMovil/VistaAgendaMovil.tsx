@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useCitas } from '../../hooks/useCitas'
 import { useGestionCita } from '../../hooks/useGestionCita'
+import { useArrastreMovil } from '../../hooks/useArrastreMovil'
+import type { PosicionArrastre } from '../../hooks/useArrastreMovil'
 import { rangoHorarioDelDia } from '../../lib'
 import { citasApi, autorizacionesResumenApi } from '../../api'
 import { DrawerCita } from '../DrawerCita/DrawerCita'
+import { ALTURA_HORA } from '../GrillaHoraria/GrillaHoraria'
 import { Icono } from '../../../../shared/components/Icono/Icono'
 import { AlertaMensaje } from '../../../../shared/components/AlertaMensaje/AlertaMensaje'
 import { PaletaComandos } from '../../../../shared/components/PaletaComandos/PaletaComandos'
 import { ToggleGroup, ToggleGroupItem } from '../../../../shared/components/ui/toggle-group'
+import { ErrorPeticion } from '../../../../shared/api/cliente'
 import { VistaMesMovil } from '../VistaMesMovil/VistaMesMovil'
 import { VistaDiaMovil } from '../VistaDiaMovil/VistaDiaMovil'
 import { VistaSemanaMovil } from '../VistaSemanaMovil/VistaSemanaMovil'
@@ -40,6 +44,8 @@ export function VistaAgendaMovil() {
     onActualizarCopago,
     mensajeError,
     setMensajeError,
+    verificar,
+    actualizarCita,
   } = useGestionCita()
   const [diaSeleccionado, setDiaSeleccionado] = useState(() => new Date())
   const [modoVista, setModoVista] = useState<VistaCalendario>('dia')
@@ -49,6 +55,10 @@ export function VistaAgendaMovil() {
   const [errorMes, setErrorMes] = useState(false)
   const [buscadorAbierto, setBuscadorAbierto] = useState(false)
   const [autorizaciones, setAutorizaciones] = useState<Record<number, AutorizacionResumen | null>>({})
+  // Posición optimista de la cita que se está arrastrando (o recién soltada, mientras se
+  // confirma en el servidor) en Vista Día — ver useArrastreMovil. Vista Semana (2 ejes) queda
+  // fuera de este slice.
+  const [citaArrastrada, setCitaArrastrada] = useState<PosicionArrastre | null>(null)
 
   // Solo se usa para el título del rango de la cabecera de Semana (Lun-Sáb, sin Domingo: el
   // usuario no atiende ese día).
@@ -101,6 +111,56 @@ export function VistaAgendaMovil() {
   )
 
   const rangoDia = useMemo(() => rangoHorarioDelDia(citasDelDia), [citasDelDia])
+
+  // Arrastre táctil de Vista Día (eje único: solo cambia la hora, el día es fijo). La posición
+  // optimista (citaArrastrada) se fija de inmediato al armarse el gesto y en cada movimiento, y
+  // se mantiene tal cual al soltar mientras se confirma en el servidor — así la tarjeta nunca
+  // "regresa" a su posición vieja para luego saltar a la nueva (decisión: colocación optimista).
+  async function confirmarArrastre(posicion: PosicionArrastre) {
+    const cita = citas.find((c) => c.id === posicion.citaId)
+    if (!cita) {
+      setCitaArrastrada(null)
+      return
+    }
+    // Un long-press sin movimiento real (o uno que, tras encajar a 15 min, cae en el mismo
+    // horario) no debe disparar una petición de red ni pasar por verificar()/actualizarCita():
+    // sería un no-op para el servidor y, si la cita original no estaba alineada a 15 min,
+    // "reagendaría" la cita al horario encajado sin que el usuario haya arrastrado nada.
+    if (posicion.nuevoInicio === cita.inicio && posicion.nuevoFin === cita.fin) {
+      setCitaArrastrada(null)
+      return
+    }
+    const conflicto = await verificar(posicion.nuevoInicio, posicion.nuevoFin, posicion.citaId)
+    if (conflicto) {
+      setCitaArrastrada(null)
+      setMensajeError('Esta cita choca con otra existente.')
+      return
+    }
+    try {
+      await actualizarCita(posicion.citaId, {
+        inicio: posicion.nuevoInicio,
+        fin: posicion.nuevoFin,
+        autorizacionId: cita.autorizacionId,
+        notas: cita.notas,
+      })
+      setCitaArrastrada(null)
+    } catch (error) {
+      setCitaArrastrada(null)
+      setMensajeError(error instanceof ErrorPeticion ? error.message : 'No se pudo mover la cita.')
+    }
+  }
+
+  const { iniciarArrastre } = useArrastreMovil({
+    alturaHora: ALTURA_HORA,
+    rango: rangoDia,
+    onArrastreInicio: setCitaArrastrada,
+    onArrastrar: setCitaArrastrada,
+    onSoltar: (posicion) => {
+      setCitaArrastrada(posicion)
+      void confirmarArrastre(posicion)
+    },
+    onCancelar: () => setCitaArrastrada(null),
+  })
 
   // Lun-Sáb únicamente: el usuario no atiende los domingos, así que Vista Semana no lo muestra.
   const diasSemana = useMemo(
@@ -291,6 +351,8 @@ export function VistaAgendaMovil() {
             rango={rangoDia}
             autorizaciones={autorizaciones}
             onAbrirCita={abrirCitaExistente}
+            citaArrastrada={citaArrastrada}
+            onIniciarArrastre={iniciarArrastre}
           />
         )}
 

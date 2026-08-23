@@ -1,12 +1,14 @@
+import type { PointerEvent as EventoPunteroReact } from 'react'
 import { TarjetaCitaMovil } from '../TarjetaCitaMovil/TarjetaCitaMovil'
 import { minutosDesdeHoraBase } from '../../lib'
 import type { RangoHorario } from '../../lib'
-import { diferenciaMinutos, esMismoDia, hoyISO } from '../../../../shared/lib/fecha'
+import { diferenciaMinutos, esMismoDia, formatearHora, hoyISO } from '../../../../shared/lib/fecha'
 import { cn } from '../../../../shared/lib/clases'
 import type { AutorizacionResumen, Cita } from '../../types'
+import type { PosicionArrastre } from '../../hooks/useArrastreMovil'
 import styles from './GrillaHoraria.module.css'
 
-const ALTURA_HORA = 56
+export const ALTURA_HORA = 56
 const ALTURA_MINIMA_BLOQUE = 30
 // Por debajo de este alto, dirección/badges no caben sin recortarse (una cita de 30-45 min a
 // esta escala mide 28-42px; el nombre + el padding de la tarjeta ya ocupan buena parte de eso) —
@@ -24,15 +26,25 @@ export interface PropsGrillaHoraria {
   rango: RangoHorario
   autorizaciones: Record<number, AutorizacionResumen | null>
   onAbrirCita: (cita: Cita) => void
+  /**
+   * Posición optimista de la cita actualmente arrastrada (durante el gesto y mientras se
+   * confirma el drop en el servidor): reemplaza el horario real para calcular su top/height,
+   * para que la tarjeta no salte de "posición vieja" a "posición nueva" al soltar. Reservado
+   * para Vista Día (eje único); Vista Semana (2 ejes) es un slice separado.
+   */
+  citaArrastrada?: PosicionArrastre | null
+  /** Inicia el long-press que arma el arrastre de `cita` (ver useArrastreMovil). */
+  onIniciarArrastre?: (cita: Cita) => (evento: EventoPunteroReact<HTMLButtonElement>) => void
 }
 
 /**
  * Grilla horaria compartida por Vista Día (1 columna) y Vista Semana (7 columnas).
- * Presentacional pura: recibe las citas ya agrupadas por columna y el rango de horas
- * a mostrar (ver rangoHorarioDelDia en lib.ts). El posicionamiento por arrastre táctil
- * se agrega en S5; aquí las tarjetas se posicionan de forma estática según su horario.
+ * Presentacional pura: recibe las citas ya agrupadas por columna y el rango de horas a mostrar
+ * (ver rangoHorarioDelDia en lib.ts). El estado del arrastre táctil vive en useArrastreMovil,
+ * instanciado por el contenedor (VistaAgendaMovil) — esta grilla solo aplica la posición
+ * optimista recibida y reenvía el inicio del gesto por tarjeta.
  */
-export function GrillaHoraria({ columnas, rango, autorizaciones, onAbrirCita }: PropsGrillaHoraria) {
+export function GrillaHoraria({ columnas, rango, autorizaciones, onAbrirCita, citaArrastrada, onIniciarArrastre }: PropsGrillaHoraria) {
   const { horaInicio, horaFin } = rango
   const horas = Array.from({ length: horaFin - horaInicio }, (_, i) => horaInicio + i)
   const alturaTotal = (horaFin - horaInicio) * ALTURA_HORA
@@ -65,7 +77,11 @@ export function GrillaHoraria({ columnas, rango, autorizaciones, onAbrirCita }: 
               )}
 
               {columna.citas.map((cita) => {
-                const altura = Math.max((diferenciaMinutos(cita.inicio, cita.fin) / 60) * ALTURA_HORA, ALTURA_MINIMA_BLOQUE)
+                const arrastrandoEstaCita = citaArrastrada?.citaId === cita.id
+                const inicioEfectivo = arrastrandoEstaCita ? citaArrastrada.nuevoInicio : cita.inicio
+                const finEfectivo = arrastrandoEstaCita ? citaArrastrada.nuevoFin : cita.fin
+                const altura = Math.max((diferenciaMinutos(inicioEfectivo, finEfectivo) / 60) * ALTURA_HORA, ALTURA_MINIMA_BLOQUE)
+                const top = (minutosDesdeHoraBase(inicioEfectivo, horaInicio) / 60) * ALTURA_HORA
                 return (
                   <TarjetaCitaMovil
                     key={cita.id}
@@ -74,10 +90,21 @@ export function GrillaHoraria({ columnas, rango, autorizaciones, onAbrirCita }: 
                     onAbrir={() => onAbrirCita(cita)}
                     variante="grilla"
                     compacto={altura < ALTURA_COMPACTA}
-                    style={{ top: (minutosDesdeHoraBase(cita.inicio, horaInicio) / 60) * ALTURA_HORA, height: altura }}
+                    arrastrando={arrastrandoEstaCita}
+                    onPointerDown={onIniciarArrastre?.(cita)}
+                    style={{ top, height: altura }}
                   />
                 )
               })}
+
+              {citaArrastrada && columna.citas.some((cita) => cita.id === citaArrastrada.citaId) && (
+                <div
+                  className={styles.chipHora}
+                  style={{ top: (minutosDesdeHoraBase(citaArrastrada.nuevoInicio, horaInicio) / 60) * ALTURA_HORA - 26 }}
+                >
+                  {formatearHora(citaArrastrada.nuevoInicio)} – {formatearHora(citaArrastrada.nuevoFin)}
+                </div>
+              )}
             </div>
           )
         })}

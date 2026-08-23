@@ -67,3 +67,22 @@
   border-radius: 99px;
   background: var(--now);
 }
+
+/* Chip flotante con la hora propuesta mientras se arrastra una cita (feedback visual del
+   arrastre táctil, S5). Se posiciona por top como las tarjetas, pero por encima de ellas. */
+.chipHora {
+  position: absolute;
+  left: 0;
+  z-index: 20;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--fuenteMono);
+  font-variant-numeric: tabular-nums;
+  color: var(--acFg, #fff);
+  background: var(--ac);
+  padding: 3px 8px;
+  border-radius: 99px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgb(0 0 0 / .25);
+}

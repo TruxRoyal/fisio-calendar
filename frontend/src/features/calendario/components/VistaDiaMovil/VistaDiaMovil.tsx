@@ -1,7 +1,9 @@
+import type { PointerEvent as EventoPunteroReact } from 'react'
 import { Icono } from '../../../../shared/components/Icono/Icono'
 import { GrillaHoraria } from '../GrillaHoraria/GrillaHoraria'
 import type { RangoHorario } from '../../lib'
 import type { AutorizacionResumen, Cita } from '../../types'
+import type { PosicionArrastre } from '../../hooks/useArrastreMovil'
 import styles from './VistaDiaMovil.module.css'
 
 export interface PropsVistaDiaMovil {
@@ -10,9 +12,21 @@ export interface PropsVistaDiaMovil {
   rango: RangoHorario
   autorizaciones: Record<number, AutorizacionResumen | null>
   onAbrirCita: (cita: Cita) => void
+  /** Posición optimista de la cita arrastrada (ver PropsGrillaHoraria.citaArrastrada). */
+  citaArrastrada?: PosicionArrastre | null
+  /** Inicia el long-press que arma el arrastre de `cita` (ver useArrastreMovil). */
+  onIniciarArrastre?: (cita: Cita) => (evento: EventoPunteroReact<HTMLButtonElement>) => void
 }
 
-export function VistaDiaMovil({ fechaISO, citasDelDia, rango, autorizaciones, onAbrirCita }: PropsVistaDiaMovil) {
+export function VistaDiaMovil({
+  fechaISO,
+  citasDelDia,
+  rango,
+  autorizaciones,
+  onAbrirCita,
+  citaArrastrada,
+  onIniciarArrastre,
+}: PropsVistaDiaMovil) {
   return (
     <>
       <GrillaHoraria
@@ -20,6 +34,8 @@ export function VistaDiaMovil({ fechaISO, citasDelDia, rango, autorizaciones, on
         rango={rango}
         autorizaciones={autorizaciones}
         onAbrirCita={onAbrirCita}
+        citaArrastrada={citaArrastrada}
+        onIniciarArrastre={onIniciarArrastre}
       />
 
       {citasDelDia.length === 0 && (
