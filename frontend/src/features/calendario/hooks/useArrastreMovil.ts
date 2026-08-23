@@ -58,6 +58,7 @@ export function useArrastreMovil(opciones: OpcionesArrastreMovil) {
   const pointerIdRef = useRef<number | null>(null)
   const armadoRef = useRef(false)
   const temporizadorRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const bloqueoClicRef = useRef<((evento: Event) => void) | null>(null)
 
   // Todos los useCallback de este hook usan deps=[] a propósito: solo leen/escriben refs (nunca
   // props/estado directamente) y se llaman entre sí por closure, así que su identidad debe
@@ -143,7 +144,13 @@ export function useArrastreMovil(opciones: OpcionesArrastreMovil) {
     const descartar = (evento: Event) => {
       evento.preventDefault()
       evento.stopPropagation()
+      bloqueoClicRef.current = null
     }
+    // Se guarda la referencia para poder quitarla explícitamente en el cleanup de unmount: si
+    // el componente se desmonta (o cambia de vista) entre el pointerup y el click nativo que le
+    // sigue, `once: true` nunca llega a dispararse y el listener quedaría pegado en `window`
+    // interceptando el próximo click de CUALQUIER parte de la app, no solo de esta tarjeta.
+    bloqueoClicRef.current = descartar
     window.addEventListener('click', descartar, { capture: true, once: true })
   }, [])
 
@@ -156,6 +163,11 @@ export function useArrastreMovil(opciones: OpcionesArrastreMovil) {
   const iniciarArrastre = useCallback(
     (cita: Cita) => (evento: EventoPunteroReact<HTMLButtonElement>) => {
       if (cita.estado === 'cancelada') return
+      // Si ya hay un arrastre armado (long-press ya disparado) para OTRA tarjeta, ignorar este
+      // nuevo pointerdown en vez de reemplazarlo: quitarListeners() cortaría los listeners del
+      // primero sin que su onSoltar/onCancelar se dispare nunca, dejando su posición optimista
+      // pegada. Vista Día es de un solo dedo, así que esto es solo defensivo.
+      if (armadoRef.current) return
       quitarListeners()
       limpiarTemporizador()
       citaRef.current = cita
@@ -178,6 +190,10 @@ export function useArrastreMovil(opciones: OpcionesArrastreMovil) {
     return () => {
       limpiarTemporizador()
       quitarListeners()
+      if (bloqueoClicRef.current) {
+        window.removeEventListener('click', bloqueoClicRef.current, { capture: true })
+        bloqueoClicRef.current = null
+      }
     }
   }, [])
 
