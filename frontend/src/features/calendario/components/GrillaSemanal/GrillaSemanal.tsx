@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { TarjetaCitaMovil } from '../TarjetaCitaMovil/TarjetaCitaMovil'
 import { minutosDesdeHoraBase } from '../../lib'
 import type { RangoHorario } from '../../lib'
@@ -8,11 +9,12 @@ import styles from './GrillaSemanal.module.css'
 
 const PIXELES_POR_HORA = 150
 const ANCHO_MINIMO_BLOQUE = 64
-// La altura de fila (día) y del encabezado de horas se controlan enteramente por CSS
-// (GrillaSemanal.module.css: .celdaEncabezadoDias/.encabezadoHoras para el encabezado fijo de
-// 28px, .etiquetaDia/.filaCitas con flex:1 + el mismo min-height para las filas de día) — ambas
-// columnas usan las mismas reglas de flex, así que quedan alineadas fila por fila sin necesitar
-// un valor de altura fijo en JS.
+// La altura de fila (día) y del encabezado de horas se controlan enteramente por CSS, vía
+// grid-template-rows compartido entre .columnaDias y .scrollHorizontal (GrillaSemanal.module.css)
+// — la variable --filas, fijada más abajo desde `dias.length`, es la única pieza que necesita
+// venir de JS. Se usa grid en vez de flex a propósito: dos árboles flex independientes con
+// flex:1 pueden redondear cada fila de forma distinta y desalinearse fila a fila; grid con la
+// misma plantilla en ambos contenedores no.
 
 export interface DiaGrillaSemanal {
   fechaISO: string
@@ -52,7 +54,7 @@ export function GrillaSemanal({ dias, rango, autorizaciones, onAbrirCita, onIrAD
   const minutosAhora = (ahora.getHours() - horaInicio) * 60 + ahora.getMinutes()
 
   return (
-    <div className={styles.raiz}>
+    <div className={styles.raiz} style={{ '--filas': dias.length } as CSSProperties}>
       <div className={styles.columnaDias}>
         <div className={styles.celdaEncabezadoDias} />
         {dias.map((dia) => {

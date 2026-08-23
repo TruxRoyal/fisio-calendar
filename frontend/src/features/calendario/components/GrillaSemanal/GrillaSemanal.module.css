@@ -10,18 +10,21 @@
 }
 
 /* Columna de días: fuera del contenedor con scroll horizontal, así que nunca se desplaza con
-   él (patrón de "columna congelada" sin necesidad de position: sticky). `display: flex` en
-   columna propia para que sus filas (`.etiquetaDia`) puedan repartirse la altura recibida por
-   stretch de `.raiz`. */
+   él (patrón de "columna congelada" sin necesidad de position: sticky). `display: grid` con
+   grid-template-rows (vía --filas, ver GrillaSemanal.tsx) en vez de flex: dos árboles flex
+   independientes con flex:1 pueden redondear cada fila de forma distinta y desalinearse fila a
+   fila conforme baja la lista; grid con exactamente la misma plantilla de filas en ambos
+   contenedores (ver .scrollHorizontal) no tiene ese problema — el motor de grid resuelve el
+   mismo cálculo de pistas para ambos, dado el mismo alto de contenedor y la misma plantilla. */
 .columnaDias {
   flex: 0 0 52px;
   width: 52px;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: 28px repeat(var(--filas), minmax(60px, 1fr));
 }
 
 .celdaEncabezadoDias {
-  flex: 0 0 28px;
+  height: 28px;
 }
 
 /* Antes tenía una altura fija (64px); ahora `flex: 1` reparte parejo el alto disponible entre
@@ -31,8 +34,7 @@
    vertical, en vez de comprimir el contenido. */
 .etiquetaDia {
   width: 100%;
-  flex: 1;
-  min-height: 60px;
+  min-height: 0;
   border: 0;
   border-bottom: 1px solid var(--grid);
   background: transparent;
@@ -70,19 +72,21 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* `flex: 1` (ancho, dentro de la fila `.raiz`) + `display: flex; flex-direction: column`
-   (propio, para que sus hijos — encabezado de horas + filas de día — se repartan la altura
-   recibida por stretch de `.raiz`, en espejo de `.columnaDias`). */
+/* `flex: 1` (ancho, dentro de la fila `.raiz`) + el mismo `display: grid` con el mismo
+   grid-template-rows que `.columnaDias`, para que las filas de ambos lados midan exactamente
+   lo mismo (ver nota en `.columnaDias`). `overflow-x: auto` sigue funcionando igual con grid
+   que con flex: el contenido (ancho fijo vía `anchoTotal`) puede seguir siendo más ancho que el
+   contenedor y disparar el scroll horizontal. */
 .scrollHorizontal {
   flex: 1;
   min-width: 0;
   overflow-x: auto;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: 28px repeat(var(--filas), minmax(60px, 1fr));
 }
 
 .encabezadoHoras {
-  flex: 0 0 28px;
+  height: 28px;
   display: flex;
   border-bottom: 1px solid var(--grid);
 }
@@ -101,13 +105,11 @@
   font-family: var(--fuenteMono);
 }
 
-/* Antes tenía una altura fija (64px, vía inline style) — ahora `flex: 1` reparte parejo el
-   alto disponible entre las filas de día (mismo mecanismo y mismo min-height que
-   `.etiquetaDia`, para que ambas columnas terminen con las mismas alturas fila por fila). */
+/* La altura la fija la pista de grid compartida en `.scrollHorizontal` (misma plantilla que
+   `.columnaDias`), no una regla propia — así ambas columnas terminan con las mismas alturas
+   fila por fila sin depender de que dos flujos flex independientes redondeen igual. */
 .filaCitas {
   position: relative;
-  flex: 1;
-  min-height: 60px;
   border-bottom: 1px solid var(--grid);
   background-image: repeating-linear-gradient(to right, var(--grid) 0 1px, transparent 1px 150px);
 }
