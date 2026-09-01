@@ -5,6 +5,7 @@ import { Input, TextArea } from '../../../../shared/components/Input/Input'
 import { SelectorFecha } from '../../../../shared/components/SelectorFecha/SelectorFecha'
 import { Boton } from '../../../../shared/components/Boton/Boton'
 import { Icono } from '../../../../shared/components/Icono/Icono'
+import { ErrorPeticion } from '../../../../shared/api/cliente'
 import { COLORES_PACIENTE } from '../../../../shared/theme/paletas'
 import { cn } from '../../../../shared/lib/clases'
 import type { OrigenPaciente, Paciente, SolicitudPaciente } from '../../types'
@@ -61,21 +62,35 @@ export function FormularioPaciente({ abierto, pacienteInicial, onCerrar, onGuard
   )
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [erroresCampo, setErroresCampo] = useState<Record<string, string>>({})
 
   function actualizarCampo<K extends keyof SolicitudPaciente>(campo: K, valor: SolicitudPaciente[K]) {
     setSolicitud((actual) => ({ ...actual, [campo]: valor }))
+    if (erroresCampo[campo as string]) {
+      setErroresCampo((actual) => {
+        const { [campo as string]: _omitido, ...resto } = actual
+        return resto
+      })
+    }
   }
 
   async function alEnviar(evento: FormEvent) {
     evento.preventDefault()
     setGuardando(true)
     setError(null)
+    setErroresCampo({})
     try {
       await onGuardar(solicitud)
       setSolicitud(solicitudVacia())
       onCerrar()
-    } catch {
-      setError('No se pudo guardar el paciente. Verifica los datos.')
+    } catch (err) {
+      if (err instanceof ErrorPeticion && err.codigo === 'validacion' && err.detalles && typeof err.detalles === 'object') {
+        setErroresCampo(err.detalles as Record<string, string>)
+      } else if (err instanceof ErrorPeticion) {
+        setError(err.message)
+      } else {
+        setError('No se pudo guardar el paciente. Revisa tu conexión e intenta de nuevo.')
+      }
     } finally {
       setGuardando(false)
     }
@@ -84,7 +99,13 @@ export function FormularioPaciente({ abierto, pacienteInicial, onCerrar, onGuard
   return (
     <Modal abierto={abierto} titulo={pacienteInicial ? 'Editar paciente' : 'Nuevo paciente'} onCerrar={onCerrar} ancho="520px">
       <form onSubmit={alEnviar} className={styles.formulario}>
-        <Input etiqueta="Nombre completo" value={solicitud.nombre} onChange={(e) => actualizarCampo('nombre', e.target.value)} required />
+        <Input
+          etiqueta="Nombre completo"
+          value={solicitud.nombre}
+          onChange={(e) => actualizarCampo('nombre', e.target.value)}
+          error={erroresCampo.nombre}
+          required
+        />
         <div className={styles.filaCampos}>
           <SelectorFecha
             etiqueta="Fecha de nacimiento"
@@ -112,6 +133,12 @@ export function FormularioPaciente({ abierto, pacienteInicial, onCerrar, onGuard
               </button>
             ))}
           </div>
+          {erroresCampo.tipoTerapia && (
+            <span className={styles.mensajeError}>
+              <Icono nombre="alerta" tamano={13} grosor={2} />
+              {erroresCampo.tipoTerapia}
+            </span>
+          )}
         </div>
         <div className={styles.grupo}>
           <span className={styles.etiquetaGrupo}>Origen</span>
@@ -132,6 +159,12 @@ export function FormularioPaciente({ abierto, pacienteInicial, onCerrar, onGuard
               </button>
             ))}
           </div>
+          {erroresCampo.origen && (
+            <span className={styles.mensajeError}>
+              <Icono nombre="alerta" tamano={13} grosor={2} />
+              {erroresCampo.origen}
+            </span>
+          )}
           {solicitud.origen === 'extra' && (
             <Input
               etiqueta="Tarifa por sesión"
@@ -140,6 +173,7 @@ export function FormularioPaciente({ abierto, pacienteInicial, onCerrar, onGuard
               value={solicitud.tarifaSesion ?? ''}
               onChange={(e) => actualizarCampo('tarifaSesion', e.target.value ? Number(e.target.value) : null)}
               placeholder="Ej. 40000"
+              error={erroresCampo.tarifaSesion}
               required
             />
           )}
@@ -175,7 +209,12 @@ export function FormularioPaciente({ abierto, pacienteInicial, onCerrar, onGuard
           placeholder="Accesos, acompañante, condiciones especiales…"
         />
 
-        {error && <span className={styles.mensajeError}>{error}</span>}
+        {error && (
+          <div className={styles.bannerError}>
+            <Icono nombre="alerta" tamano={16} grosor={2} />
+            {error}
+          </div>
+        )}
 
         <div className={styles.filaAcciones}>
           <Boton type="button" variante="secundario" onClick={onCerrar}>
