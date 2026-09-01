@@ -14,6 +14,7 @@ export interface Cita {
   id: number
   pacienteId: number
   autorizacionId: number | null
+  tipoTerapia: TipoTerapia
   inicio: string
   fin: string
   estado: EstadoCita
@@ -23,11 +24,13 @@ export interface Cita {
   creadoEn: string
   actualizadoEn: string
   paciente: PacienteResumen
+  advertencias?: string[]
 }
 
 export interface SolicitudCrearCita {
   pacienteId: number
   autorizacionId?: number | null
+  tipoTerapia: TipoTerapia
   inicio: string
   fin: string
   notas?: string | null
@@ -35,6 +38,7 @@ export interface SolicitudCrearCita {
 
 export interface SolicitudActualizarCita {
   autorizacionId?: number | null
+  tipoTerapia: TipoTerapia
   inicio: string
   fin: string
   notas?: string | null
@@ -58,6 +62,7 @@ export interface RespuestaVerificarChoque {
 
 export interface AutorizacionActivaPaciente {
   id: number
+  tipoTerapia: TipoTerapia
   sesionesTotales: number
   sesionesUsadas: number
   sesionesRestantes: number
@@ -74,7 +79,8 @@ export interface PacienteBusqueda {
   tipoTerapia: TipoTerapia | null
   color: string | null
   origen: 'trabajo' | 'extra'
-  autorizacionActiva?: AutorizacionActivaPaciente | null
+  autorizacionesActivas: AutorizacionActivaPaciente[]
+  tiposTerapia: TipoTerapia[]
 }
 
 export interface PacienteParaDrawer {
@@ -86,6 +92,7 @@ export interface PacienteParaDrawer {
 }
 
 export interface AutorizacionResumen {
+  tipoTerapia: TipoTerapia
   copago: number
   sesionesTotales: number
   sesionesRestantes: number
@@ -97,6 +104,7 @@ export interface CitaBorrador {
   id: number
   pacienteId: number
   autorizacionId: number | null
+  tipoTerapia: TipoTerapia
   inicio: string
   fin: string
   estado: EstadoCita

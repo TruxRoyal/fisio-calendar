@@ -38,11 +38,11 @@ export const pacientesBusquedaApi = {
 }
 
 export const autorizacionesResumenApi = {
-  obtenerActiva: async (pacienteId: number): Promise<AutorizacionResumen | null> => {
+  listarActivas: async (pacienteId: number): Promise<AutorizacionResumen[]> => {
     const autorizaciones = await clienteApi.get<(AutorizacionResumen & { activa: boolean })[]>(
       `/autorizaciones?pacienteId=${pacienteId}`,
     )
-    return autorizaciones.find((a) => a.activa) ?? null
+    return autorizaciones.filter((a) => a.activa)
   },
 }
 
