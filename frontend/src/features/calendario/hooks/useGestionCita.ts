@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useCalendarioStore } from '../store'
 import { useDeteccionChoque } from './useDeteccionChoque'
 import { sumarMinutos } from '../../../shared/lib/fecha'
+import { ErrorPeticion } from '../../../shared/api/cliente'
 import type { Cita, CitaBorrador, EstadoCita, PacienteBusqueda } from '../types'
 
 const DURACION_DEFECTO = 30
@@ -72,8 +73,13 @@ export function useGestionCita() {
       setMensajeError('Esta cita choca con otra existente.')
       return false
     }
-    await crearCita(solicitud)
-    return true
+    try {
+      await crearCita(solicitud)
+      return true
+    } catch (error) {
+      if (error instanceof ErrorPeticion) setMensajeError(error.message)
+      return false
+    }
   }
 
   async function onGuardarCampos(id: number, cambios: { inicio: string; fin: string; notas: string | null }) {
@@ -82,28 +88,41 @@ export function useGestionCita() {
       setMensajeError('Esta cita choca con otra existente.')
       return false
     }
-    const actualizada = await actualizarCita(id, {
-      inicio: cambios.inicio,
-      fin: cambios.fin,
-      autorizacionId: citaSeleccionada?.autorizacionId ?? null,
-      notas: cambios.notas,
-    })
-    setCitaSeleccionada((actual) => (actual ? { ...actual, inicio: actualizada.inicio, fin: actualizada.fin, notas: actualizada.notas } : actual))
-    return true
+    try {
+      const actualizada = await actualizarCita(id, {
+        inicio: cambios.inicio,
+        fin: cambios.fin,
+        autorizacionId: citaSeleccionada?.autorizacionId ?? null,
+        notas: cambios.notas,
+      })
+      setCitaSeleccionada((actual) => (actual ? { ...actual, inicio: actualizada.inicio, fin: actualizada.fin, notas: actualizada.notas } : actual))
+      return true
+    } catch (error) {
+      if (error instanceof ErrorPeticion) setMensajeError(error.message)
+      return false
+    }
   }
 
   async function onCambiarEstado(estado: EstadoCita) {
     if (!citaSeleccionada) return
-    const actualizada = await cambiarEstadoCita(citaSeleccionada.id, { estado })
-    setCitaSeleccionada((actual) =>
-      actual ? { ...actual, estado: actualizada.estado, valorSesion: actualizada.valorSesion, copagoCobrado: actualizada.copagoCobrado } : actual,
-    )
+    try {
+      const actualizada = await cambiarEstadoCita(citaSeleccionada.id, { estado })
+      setCitaSeleccionada((actual) =>
+        actual ? { ...actual, estado: actualizada.estado, valorSesion: actualizada.valorSesion, copagoCobrado: actualizada.copagoCobrado } : actual,
+      )
+    } catch (error) {
+      if (error instanceof ErrorPeticion) setMensajeError(error.message)
+    }
   }
 
   async function onActualizarCopago(id: number, copago: number) {
     if (!citaSeleccionada) return
-    const actualizada = await cambiarEstadoCita(id, { estado: citaSeleccionada.estado, copagoCobrado: copago })
-    setCitaSeleccionada((actual) => (actual ? { ...actual, copagoCobrado: actualizada.copagoCobrado } : actual))
+    try {
+      const actualizada = await cambiarEstadoCita(id, { estado: citaSeleccionada.estado, copagoCobrado: copago })
+      setCitaSeleccionada((actual) => (actual ? { ...actual, copagoCobrado: actualizada.copagoCobrado } : actual))
+    } catch (error) {
+      if (error instanceof ErrorPeticion) setMensajeError(error.message)
+    }
   }
 
   return {

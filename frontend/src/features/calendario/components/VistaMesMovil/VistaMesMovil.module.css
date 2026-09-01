@@ -1,0 +1,180 @@
+.tarjetaMes {
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  border-radius: 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .03);
+  overflow: hidden;
+}
+
+.filaNombresGrilla {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 14px 12px 4px;
+}
+
+.nombreDiaGrilla {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  color: var(--t3);
+}
+
+.grillaMes {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  padding: 0 8px 14px;
+}
+
+.celdaMes {
+  position: relative;
+  aspect-ratio: 1;
+  border: 0;
+  background: transparent;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+}
+
+.numeroCelda {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--t1);
+  font-variant-numeric: tabular-nums;
+}
+
+.celdaMes.fueraDeMes .numeroCelda {
+  color: var(--t3);
+  opacity: .5;
+}
+
+.celdaMes.hoyCelda {
+  box-shadow: inset 0 0 0 1.5px var(--ac);
+}
+
+.celdaMes.hoyCelda .numeroCelda {
+  color: var(--acT);
+}
+
+.celdaMes.seleccionadaCelda {
+  background: var(--ac);
+}
+
+.celdaMes.seleccionadaCelda .numeroCelda {
+  color: var(--acFg);
+}
+
+.filaPuntos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 4px;
+}
+
+.puntoCategoria {
+  width: 4px;
+  height: 4px;
+  border-radius: 99px;
+}
+
+.celdaMes.seleccionadaCelda .puntoCategoria {
+  opacity: .9;
+  filter: brightness(1.5);
+}
+
+.insigniaConteo {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 3px;
+  border-radius: 99px;
+  background: var(--s3);
+  border: 1px solid var(--bd);
+  color: var(--t2);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 11px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.celdaMes.seleccionadaCelda .insigniaConteo {
+  background: var(--acFgSoft);
+  border-color: transparent;
+  color: var(--acFg);
+}
+
+.costura {
+  position: relative;
+  height: 1px;
+  margin: 0 14px;
+  background: var(--bd);
+}
+
+.pin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  background: var(--s2);
+  border-right: 1px solid var(--bd);
+  border-bottom: 1px solid var(--bd);
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.panelDia {
+  background: var(--s2);
+  padding: 12px 14px 14px;
+}
+
+.cabeceraPanel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 2px 2px 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.hoyPanel {
+  color: var(--acT);
+}
+
+.vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--t3);
+  padding: 28px 16px;
+  text-align: center;
+  font-size: 13.5px;
+}
+
+.botonReintentar {
+  height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--bd);
+  background: var(--s1);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t2);
+  cursor: pointer;
+}

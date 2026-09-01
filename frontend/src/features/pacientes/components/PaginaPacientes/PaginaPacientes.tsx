@@ -52,7 +52,6 @@ export function PaginaPacientes() {
   }, [parametros])
 
   function alSeleccionarPaciente(id: number) {
-    seleccionarPaciente(id)
     setParametros((actuales) => {
       const siguientes = new URLSearchParams(actuales)
       siguientes.set('paciente', String(id))
@@ -180,7 +179,15 @@ export function PaginaPacientes() {
 
       <FormularioPaciente
         abierto={formularioAbierto}
-        onCerrar={() => setFormularioAbierto(false)}
+        onCerrar={() => {
+          setFormularioAbierto(false)
+          setParametros((actuales) => {
+            if (!actuales.get('nuevo')) return actuales
+            const siguientes = new URLSearchParams(actuales)
+            siguientes.delete('nuevo')
+            return siguientes
+          })
+        }}
         onGuardar={async (solicitud) => {
           await crearPaciente(solicitud)
         }}

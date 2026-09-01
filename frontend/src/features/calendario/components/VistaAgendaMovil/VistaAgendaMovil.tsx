@@ -1,25 +1,28 @@
-import type { CSSProperties } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { useCitas } from '../../hooks/useCitas'
 import { useGestionCita } from '../../hooks/useGestionCita'
-import { contarVisitasPorDia } from '../../lib'
+import { useArrastreMovil } from '../../hooks/useArrastreMovil'
+import type { PosicionArrastre } from '../../hooks/useArrastreMovil'
+import { rangoHorarioDelDia } from '../../lib'
 import { citasApi, autorizacionesResumenApi } from '../../api'
 import { DrawerCita } from '../DrawerCita/DrawerCita'
+import { ALTURA_HORA } from '../GrillaHoraria/GrillaHoraria'
+import { PIXELES_POR_HORA as ANCHO_HORA_SEMANA } from '../GrillaSemanal/GrillaSemanal'
 import { Icono } from '../../../../shared/components/Icono/Icono'
 import { AlertaMensaje } from '../../../../shared/components/AlertaMensaje/AlertaMensaje'
 import { PaletaComandos } from '../../../../shared/components/PaletaComandos/PaletaComandos'
 import { ToggleGroup, ToggleGroupItem } from '../../../../shared/components/ui/toggle-group'
-import { TIPO_TERAPIA_COLOR } from '../../../../shared/theme/paletas'
+import { ErrorPeticion } from '../../../../shared/api/cliente'
+import { VistaMesMovil } from '../VistaMesMovil/VistaMesMovil'
+import { VistaDiaMovil } from '../VistaDiaMovil/VistaDiaMovil'
+import { VistaSemanaMovil } from '../VistaSemanaMovil/VistaSemanaMovil'
 import {
   combinarFechaHora,
-  esMismoDia,
   formatearDiaSemana,
   formatearFechaCorta,
   formatearFechaISO,
-  formatearHora,
   formatearMesAnio,
   hoy,
-  hoyISO,
   inicioMes,
   inicioSemana,
   sumarDias,
@@ -29,20 +32,8 @@ import { cn } from '../../../../shared/lib/clases'
 import type { AutorizacionResumen, Cita, VistaCalendario } from '../../types'
 import styles from './VistaAgendaMovil.module.css'
 
-function agruparPorDia(citas: Cita[]): { fechaISO: string; citas: Cita[] }[] {
-  const mapa = new Map<string, Cita[]>()
-  for (const cita of citas) {
-    const fechaISO = cita.inicio.slice(0, 10)
-    const lista = mapa.get(fechaISO) ?? []
-    lista.push(cita)
-    mapa.set(fechaISO, lista)
-  }
-  const entradas = Array.from(mapa.entries()).sort(([a], [b]) => a.localeCompare(b))
-  return entradas.map(([fechaISO, lista]) => ({ fechaISO, citas: lista.toSorted((a, b) => a.inicio.localeCompare(b.inicio)) }))
-}
-
 export function VistaAgendaMovil() {
-  const { citas, inicioSemanaActual, irSemana, irHoy } = useCitas()
+  const { citas, inicioSemanaActual, irSemana, irASemanaDe, irHoy } = useCitas()
   const {
     citaSeleccionada,
     abrirCitaExistente,
@@ -54,6 +45,8 @@ export function VistaAgendaMovil() {
     onActualizarCopago,
     mensajeError,
     setMensajeError,
+    verificar,
+    actualizarCita,
   } = useGestionCita()
   const [diaSeleccionado, setDiaSeleccionado] = useState(() => new Date())
   const [modoVista, setModoVista] = useState<VistaCalendario>('dia')
@@ -63,12 +56,10 @@ export function VistaAgendaMovil() {
   const [errorMes, setErrorMes] = useState(false)
   const [buscadorAbierto, setBuscadorAbierto] = useState(false)
   const [autorizaciones, setAutorizaciones] = useState<Record<number, AutorizacionResumen | null>>({})
+  const [citaArrastrada, setCitaArrastrada] = useState<PosicionArrastre | null>(null)
 
-  const dias = Array.from({ length: 7 }, (_, i) => sumarDias(inicioSemanaActual, i))
+  const dias = Array.from({ length: 6 }, (_, i) => sumarDias(inicioSemanaActual, i))
   const diaSeleccionadoISO = formatearFechaISO(diaSeleccionado)
-  const esHoySeleccionado = esMismoDia(diaSeleccionadoISO, hoyISO())
-  const ahora = new Date()
-  const horaAhora = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`
 
   const diasGrillaMes = useMemo(() => {
     const inicioGrilla = inicioSemana(inicioMes(mesReferencia))
@@ -80,6 +71,7 @@ export function VistaAgendaMovil() {
     let vigente = true
     setCargandoMes(true)
     setErrorMes(false)
+    setCitasMes([])
     const desde = formatearFechaISO(diasGrillaMes[0])
     const hasta = formatearFechaISO(diasGrillaMes[41])
     citasApi
@@ -93,11 +85,12 @@ export function VistaAgendaMovil() {
         if (!vigente) return
         setErrorMes(true)
         setCargandoMes(false)
+        setCitasMes([])
       })
     return () => {
       vigente = false
     }
-  }, [modoVista, diasGrillaMes])
+  }, [modoVista, diasGrillaMes, citas])
 
   const citasDelDia = useMemo(
     () => citas.filter((cita) => cita.inicio.startsWith(diaSeleccionadoISO)).sort((a, b) => a.inicio.localeCompare(b.inicio)),
@@ -109,17 +102,91 @@ export function VistaAgendaMovil() {
     [citasMes, diaSeleccionadoISO],
   )
 
-  const gruposSemana = useMemo(() => agruparPorDia(citas.filter((c) => c.estado !== 'cancelada')), [citas])
+  const rangoDia = useMemo(() => rangoHorarioDelDia(citasDelDia), [citasDelDia])
+
+  async function confirmarArrastre(posicion: PosicionArrastre) {
+    const cita = citas.find((c) => c.id === posicion.citaId)
+    if (!cita) {
+      setCitaArrastrada(null)
+      return
+    }
+    if (posicion.nuevoInicio === cita.inicio && posicion.nuevoFin === cita.fin) {
+      setCitaArrastrada(null)
+      return
+    }
+    try {
+      const conflicto = await verificar(posicion.nuevoInicio, posicion.nuevoFin, posicion.citaId)
+      if (conflicto) {
+        setCitaArrastrada(null)
+        setMensajeError('Esta cita choca con otra existente.')
+        return
+      }
+      await actualizarCita(posicion.citaId, {
+        inicio: posicion.nuevoInicio,
+        fin: posicion.nuevoFin,
+        autorizacionId: cita.autorizacionId,
+        notas: cita.notas,
+      })
+      setCitaArrastrada(null)
+    } catch (error) {
+      setCitaArrastrada(null)
+      setMensajeError(error instanceof ErrorPeticion ? error.message : 'No se pudo mover la cita.')
+    }
+  }
+
+  const { iniciarArrastre: iniciarArrastreDia } = useArrastreMovil({
+    alturaHora: ALTURA_HORA,
+    rango: rangoDia,
+    onArrastreInicio: setCitaArrastrada,
+    onArrastrar: setCitaArrastrada,
+    onSoltar: (posicion) => {
+      setCitaArrastrada(posicion)
+      void confirmarArrastre(posicion)
+    },
+    onCancelar: () => setCitaArrastrada(null),
+  })
+
+  const diasSemana = useMemo(
+    () =>
+      Array.from({ length: 6 }, (_, i) => sumarDias(inicioSemanaActual, i)).map((dia) => {
+        const fechaISO = formatearFechaISO(dia)
+        return {
+          fechaISO,
+          citas: citas.filter((cita) => cita.inicio.startsWith(fechaISO)).sort((a, b) => a.inicio.localeCompare(b.inicio)),
+        }
+      }),
+    [citas, inicioSemanaActual],
+  )
+  const citasSemanaVisible = useMemo(() => diasSemana.flatMap((dia) => dia.citas), [diasSemana])
+  const rangoSemana = useMemo(() => rangoHorarioDelDia(citasSemanaVisible), [citasSemanaVisible])
+
+  function obtenerDiaEnPuntoSemana(clientX: number, clientY: number): string | null {
+    const elemento = document.elementFromPoint(clientX, clientY)
+    return elemento?.closest<HTMLElement>('[data-fecha-iso]')?.dataset.fechaIso ?? null
+  }
+
+  const { iniciarArrastre: iniciarArrastreSemana } = useArrastreMovil({
+    eje: 'horizontal',
+    anchoHora: ANCHO_HORA_SEMANA,
+    rango: rangoSemana,
+    obtenerDiaEnPunto: obtenerDiaEnPuntoSemana,
+    onArrastreInicio: setCitaArrastrada,
+    onArrastrar: setCitaArrastrada,
+    onSoltar: (posicion) => {
+      setCitaArrastrada(posicion)
+      void confirmarArrastre(posicion)
+    },
+    onCancelar: () => setCitaArrastrada(null),
+  })
 
   let citasVisibles: Cita[]
   if (modoVista === 'dia') citasVisibles = citasDelDia
-  else if (modoVista === 'semana') citasVisibles = gruposSemana.flatMap((g) => g.citas)
+  else if (modoVista === 'semana') citasVisibles = citasSemanaVisible
   else citasVisibles = citasDelDiaMes
 
-  const hechas = citasDelDia.filter((c) => c.estado === 'atendida')
+  const citasDelDiaSinCancelar = citasDelDia.filter((c) => c.estado !== 'cancelada')
+  const hechas = citasDelDiaSinCancelar.filter((c) => c.estado === 'atendida')
   const recaudo = hechas.reduce((total, c) => total + c.copagoCobrado, 0)
-
-  const indiceAhora = esHoySeleccionado ? citasDelDia.findIndex((c) => c.inicio.slice(11, 16) > horaAhora) : -1
 
   const idsPacientesClave = useMemo(
     () => Array.from(new Set(citasVisibles.map((c) => c.pacienteId))).sort((a, b) => a - b).join(','),
@@ -130,20 +197,17 @@ export function VistaAgendaMovil() {
     if (!idsPacientesClave) return
     let vigente = true
     const ids = idsPacientesClave.split(',').map(Number)
-    Promise.all(ids.map((id) => autorizacionesResumenApi.obtenerActiva(id).then((a) => [id, a] as const))).then((entradas) => {
+    Promise.allSettled(ids.map((id) => autorizacionesResumenApi.obtenerActiva(id).then((a) => [id, a] as const))).then((resultados) => {
       if (!vigente) return
+      const entradas = resultados
+        .filter((r): r is PromiseFulfilledResult<readonly [number, AutorizacionResumen | null]> => r.status === 'fulfilled')
+        .map((r) => r.value)
       setAutorizaciones((actual) => ({ ...actual, ...Object.fromEntries(entradas) }))
     })
     return () => {
       vigente = false
     }
   }, [idsPacientesClave])
-
-  function alSeleccionarDia(dia: Date) {
-    setDiaSeleccionado(dia)
-    if (dia < inicioSemanaActual) irSemana(-1)
-    if (dia > sumarDias(inicioSemanaActual, 6)) irSemana(1)
-  }
 
   function alSeleccionarDiaMes(dia: Date) {
     setDiaSeleccionado(dia)
@@ -154,7 +218,9 @@ export function VistaAgendaMovil() {
 
   function irADia(fechaISO: string) {
     const [anio, mes, dia] = fechaISO.split('-').map(Number)
-    setDiaSeleccionado(new Date(anio, mes - 1, dia))
+    const fecha = new Date(anio, mes - 1, dia)
+    if (inicioSemana(fecha).getTime() !== inicioSemanaActual.getTime()) void irASemanaDe(fecha)
+    setDiaSeleccionado(fecha)
     setModoVista('dia')
   }
 
@@ -171,7 +237,7 @@ export function VistaAgendaMovil() {
     tituloCabecera = formatearFechaTitulo(diaSeleccionado)
   } else if (modoVista === 'semana') {
     etiquetaCabecera = 'Semana'
-    tituloCabecera = `${formatearFechaCorta(combinarFechaHora(formatearFechaISO(dias[0]), '00:00'))} – ${formatearFechaCorta(combinarFechaHora(formatearFechaISO(dias[6]), '00:00'))}`
+    tituloCabecera = `${formatearFechaCorta(combinarFechaHora(formatearFechaISO(dias[0]), '00:00'))} – ${formatearFechaCorta(combinarFechaHora(formatearFechaISO(dias[5]), '00:00'))}`
   } else {
     etiquetaCabecera = 'Mes'
     tituloCabecera = formatearMesAnio(mesReferencia.getFullYear(), mesReferencia.getMonth() + 1)
@@ -216,41 +282,18 @@ export function VistaAgendaMovil() {
         </ToggleGroup>
 
         {modoVista === 'dia' && (
-          <>
-            <div className={styles.tiraDias}>
-              {dias.map((dia) => {
-                const iso = formatearFechaISO(dia)
-                const seleccionado = iso === diaSeleccionadoISO
-                const esHoy = esMismoDia(iso, hoyISO())
-                const tieneVisitas = contarVisitasPorDia(citas, dia) > 0
-                return (
-                  <button
-                    key={iso}
-                    type="button"
-                    onClick={() => alSeleccionarDia(dia)}
-                    className={cn(styles.chipDia, seleccionado && styles.seleccionado, !seleccionado && esHoy && styles.hoy)}
-                  >
-                    <span className={styles.nombreChip}>{formatearDiaSemana(iso)}</span>
-                    <span className={styles.numeroChip}>{dia.getDate()}</span>
-                    <span className={cn(styles.puntoChip, tieneVisitas && styles.visible)} />
-                  </button>
-                )
-              })}
+          <div className={styles.filaStats}>
+            <div className={styles.stat}>
+              <span className={styles.valorStat}>
+                {hechas.length}/{citasDelDiaSinCancelar.length}
+              </span>
+              <span className={styles.etiquetaStat}>hechas</span>
             </div>
-
-            <div className={styles.filaStats}>
-              <div className={styles.stat}>
-                <span className={styles.valorStat}>
-                  {hechas.length}/{citasDelDia.length}
-                </span>
-                <span className={styles.etiquetaStat}>hechas</span>
-              </div>
-              <div className={styles.stat}>
-                <span className={cn(styles.valorStat, styles.acento)}>{formatearCOP(recaudo)}</span>
-                <span className={styles.etiquetaStat}>recaudo</span>
-              </div>
+            <div className={styles.stat}>
+              <span className={cn(styles.valorStat, styles.acento)}>{formatearCOP(recaudo)}</span>
+              <span className={styles.etiquetaStat}>recaudo</span>
             </div>
-          </>
+          </div>
         )}
 
         {modoVista === 'semana' && (
@@ -265,141 +308,67 @@ export function VistaAgendaMovil() {
         )}
 
         {modoVista === 'mes' && (
-          <>
-            <div className={styles.filaNavRango}>
-              <button
-                type="button"
-                onClick={() => setMesReferencia((f) => new Date(f.getFullYear(), f.getMonth() - 1, 1))}
-                aria-label="Mes anterior"
-                className={styles.botonNavRango}
-              >
-                <Icono nombre="chevronIzquierda" tamano={16} grosor={2} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setMesReferencia((f) => new Date(f.getFullYear(), f.getMonth() + 1, 1))}
-                aria-label="Mes siguiente"
-                className={styles.botonNavRango}
-              >
-                <Icono nombre="chevronDerecha" tamano={16} grosor={2} />
-              </button>
-            </div>
-
-            <div className={styles.filaNombresGrilla}>
-              {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((n, i) => (
-                <div key={`${n}-${i}`} className={styles.nombreDiaGrilla}>
-                  {n}
-                </div>
-              ))}
-            </div>
-
-            <div className={styles.grillaMes}>
-              {diasGrillaMes.map((dia) => {
-                const iso = formatearFechaISO(dia)
-                const enMes = dia.getMonth() === mesReferencia.getMonth()
-                const esHoy = esMismoDia(iso, hoyISO())
-                const seleccionado = iso === diaSeleccionadoISO
-                const tieneVisitas = contarVisitasPorDia(citasMes, dia) > 0
-                return (
-                  <button
-                    key={iso}
-                    type="button"
-                    onClick={() => alSeleccionarDiaMes(dia)}
-                    className={cn(
-                      styles.celdaMes,
-                      !enMes && styles.fueraDeMes,
-                      esHoy && styles.hoyCelda,
-                      seleccionado && styles.seleccionadaCelda,
-                    )}
-                  >
-                    <span className={styles.numeroCelda}>{dia.getDate()}</span>
-                    <span className={cn(styles.puntoCelda, tieneVisitas && styles.visible)} />
-                  </button>
-                )
-              })}
-            </div>
-          </>
+          <div className={styles.filaNavRango}>
+            <button
+              type="button"
+              onClick={() => setMesReferencia((f) => new Date(f.getFullYear(), f.getMonth() - 1, 1))}
+              aria-label="Mes anterior"
+              className={styles.botonNavRango}
+            >
+              <Icono nombre="chevronIzquierda" tamano={16} grosor={2} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setMesReferencia((f) => new Date(f.getFullYear(), f.getMonth() + 1, 1))}
+              aria-label="Mes siguiente"
+              className={styles.botonNavRango}
+            >
+              <Icono nombre="chevronDerecha" tamano={16} grosor={2} />
+            </button>
+          </div>
         )}
       </div>
 
-      <div className={styles.lista} key={modoVista}>
-        {modoVista === 'dia' &&
-          citasDelDia.map((cita, indice) => (
-            <div key={cita.id}>
-              {indice === indiceAhora && (
-                <div className={styles.divisorAhora}>
-                  <span className={styles.puntoAhora} />
-                  <span className={styles.textoAhora}>AHORA</span>
-                  <span className={styles.lineaAhora} />
-                </div>
-              )}
-              <TarjetaCitaMovil cita={cita} autorizacion={autorizaciones[cita.pacienteId]} onAbrir={() => abrirCitaExistente(cita)} />
-            </div>
-          ))}
-
-        {modoVista === 'dia' && citasDelDia.length === 0 && (
-          <div className={styles.vacio}>
-            <Icono nombre="calendario" tamano={22} grosor={1.6} />
-            <p>No hay citas agendadas para este día.</p>
-          </div>
+      <div className={cn(styles.lista, modoVista === 'semana' && styles.listaSemana)} key={modoVista}>
+        {modoVista === 'dia' && (
+          <VistaDiaMovil
+            fechaISO={diaSeleccionadoISO}
+            citasDelDia={citasDelDia}
+            rango={rangoDia}
+            autorizaciones={autorizaciones}
+            onAbrirCita={abrirCitaExistente}
+            citaArrastrada={citaArrastrada}
+            onIniciarArrastre={iniciarArrastreDia}
+          />
         )}
 
-        {modoVista === 'semana' &&
-          gruposSemana.map((grupo) => (
-            <div key={grupo.fechaISO}>
-              <button type="button" onClick={() => irADia(grupo.fechaISO)} className={styles.cabeceraGrupo}>
-                <span className={cn(esMismoDia(grupo.fechaISO, hoyISO()) && styles.hoyGrupo)}>
-                  {formatearDiaSemana(grupo.fechaISO, false)} {formatearFechaCorta(combinarFechaHora(grupo.fechaISO, '00:00'))}
-                </span>
-                <Icono nombre="chevronDerecha" tamano={14} grosor={2} />
-              </button>
-              {grupo.citas.map((cita) => (
-                <TarjetaCitaMovil key={cita.id} cita={cita} autorizacion={autorizaciones[cita.pacienteId]} onAbrir={() => abrirCitaExistente(cita)} />
-              ))}
-            </div>
-          ))}
-
-        {modoVista === 'semana' && gruposSemana.length === 0 && (
-          <div className={styles.vacio}>
-            <Icono nombre="calendario" tamano={22} grosor={1.6} />
-            <p>No hay citas agendadas en este rango.</p>
-          </div>
+        {modoVista === 'semana' && (
+          <VistaSemanaMovil
+            dias={diasSemana}
+            rango={rangoSemana}
+            autorizaciones={autorizaciones}
+            onIrADia={irADia}
+            onAbrirCita={abrirCitaExistente}
+            citaArrastrada={citaArrastrada}
+            onIniciarArrastre={iniciarArrastreSemana}
+          />
         )}
 
-        {modoVista === 'mes' && cargandoMes && (
-          <div className={styles.vacio}>
-            <p>Cargando…</p>
-          </div>
-        )}
-
-        {modoVista === 'mes' && !cargandoMes && errorMes && (
-          <div className={styles.vacio}>
-            <Icono nombre="alerta" tamano={22} grosor={1.6} />
-            <p>No se pudo cargar el mes.</p>
-            <button type="button" onClick={() => setMesReferencia((f) => new Date(f))} className={styles.botonReintentar}>
-              Reintentar
-            </button>
-          </div>
-        )}
-
-        {modoVista === 'mes' && !cargandoMes && !errorMes && (
-          <>
-            <button type="button" onClick={() => irADia(diaSeleccionadoISO)} className={styles.cabeceraGrupo}>
-              <span className={cn(esHoySeleccionado && styles.hoyGrupo)}>
-                {formatearDiaSemana(diaSeleccionadoISO, false)} {formatearFechaCorta(combinarFechaHora(diaSeleccionadoISO, '00:00'))}
-              </span>
-              <Icono nombre="chevronDerecha" tamano={14} grosor={2} />
-            </button>
-            {citasDelDiaMes.map((cita) => (
-              <TarjetaCitaMovil key={cita.id} cita={cita} autorizacion={autorizaciones[cita.pacienteId]} onAbrir={() => abrirCitaExistente(cita)} />
-            ))}
-            {citasDelDiaMes.length === 0 && (
-              <div className={styles.vacio}>
-                <Icono nombre="calendario" tamano={22} grosor={1.6} />
-                <p>No hay citas agendadas este día.</p>
-              </div>
-            )}
-          </>
+        {modoVista === 'mes' && (
+          <VistaMesMovil
+            diasGrilla={diasGrillaMes}
+            mesReferencia={mesReferencia}
+            diaSeleccionadoISO={diaSeleccionadoISO}
+            citasMes={citasMes}
+            citasDelDiaSeleccionado={citasDelDiaMes}
+            autorizaciones={autorizaciones}
+            cargando={cargandoMes}
+            error={errorMes}
+            onSeleccionarDia={alSeleccionarDiaMes}
+            onReintentar={() => setMesReferencia((f) => new Date(f))}
+            onIrADia={irADia}
+            onAbrirCita={abrirCitaExistente}
+          />
         )}
       </div>
 
@@ -435,51 +404,4 @@ function formatearFechaTitulo(fecha: Date): string {
     'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
   ]
   return `${fecha.getDate()} de ${meses[fecha.getMonth()]}`
-}
-
-function TarjetaCitaMovil({ cita, autorizacion, onAbrir }: { cita: Cita; autorizacion?: AutorizacionResumen | null; onAbrir: () => void }) {
-  const estado = cita.estado
-  const colorTipo = cita.paciente.tipoTerapia ? TIPO_TERAPIA_COLOR[cita.paciente.tipoTerapia] : null
-  const colorBorde = cita.paciente.color ?? colorTipo?.fg ?? 'var(--ac)'
-  const sesionesBajas = !!autorizacion && (autorizacion.sesionesRestantes <= 1 || autorizacion.alertaVencimiento)
-
-  return (
-    <button type="button" onClick={onAbrir} className={styles.filaCita}>
-      <div className={styles.columnaHora}>
-        <span className={cn(styles.hora, styles[estado])}>{formatearHora(cita.inicio)}</span>
-      </div>
-      <div className={cn(styles.tarjeta, styles[estado])} style={{ '--color-borde': colorBorde } as CSSProperties}>
-        <div className={styles.filaNombre}>
-          <span className={styles.nombre}>{cita.paciente.nombre}</span>
-          {cita.paciente.tipoTerapia && (
-            <Icono
-              nombre={cita.paciente.tipoTerapia === 'respiratoria' ? 'pulmon' : 'pulso'}
-              tamano={13}
-              grosor={1.9}
-              className={styles.iconoTipo}
-            />
-          )}
-          {estado === 'atendida' && <Icono nombre="check" tamano={14} grosor={2.6} className={styles.iconoCheck} />}
-        </div>
-        {cita.paciente.direccion && (
-          <div className={styles.filaDireccion}>
-            <Icono nombre="ubicacion" tamano={12} grosor={1.9} />
-            <span>{cita.paciente.direccion}</span>
-          </div>
-        )}
-        {(autorizacion || cita.copagoCobrado > 0) && (
-          <div className={styles.filaBadges}>
-            {autorizacion && (
-              <span className={cn(styles.badgeSesiones, sesionesBajas && styles.urgente)}>
-                {autorizacion.sesionesRestantes <= 1
-                  ? `${autorizacion.sesionesRestantes} sesión restante`
-                  : `${autorizacion.sesionesRestantes} sesiones`}
-              </span>
-            )}
-            {cita.copagoCobrado > 0 && <span className={styles.badgeCopago}>Copago {formatearCOP(cita.copagoCobrado)}</span>}
-          </div>
-        )}
-      </div>
-    </button>
-  )
 }

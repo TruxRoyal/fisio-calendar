@@ -1,0 +1,86 @@
+.cuerpo {
+  display: flex;
+}
+
+.columnaHoras {
+  width: 44px;
+  flex: 0 0 44px;
+}
+
+.espaciadorHoras {
+  height: 4px;
+}
+
+.filaHora {
+  height: 56px;
+  text-align: right;
+  padding-right: 8px;
+}
+
+.textoHora {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--t3);
+  font-family: var(--fuenteMono);
+  position: relative;
+  top: -6px;
+}
+
+.columnas {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+
+.columnas.multiple {
+  gap: 1px;
+}
+
+.columna {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  border-left: 1px solid var(--grid);
+  background-image: repeating-linear-gradient(to bottom, var(--grid) 0 1px, transparent 1px 56px);
+}
+
+.columna.hoy {
+  background-color: var(--acS);
+}
+
+.lineaAhora {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1.5px solid var(--now);
+  z-index: 12;
+  pointer-events: none;
+}
+
+.puntoAhora {
+  position: absolute;
+  left: -4px;
+  top: -4.5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--now);
+}
+
+.chipHora {
+  position: absolute;
+  left: 0;
+  z-index: 20;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--fuenteMono);
+  font-variant-numeric: tabular-nums;
+  color: var(--acFg, #fff);
+  background: var(--ac);
+  padding: 3px 8px;
+  border-radius: 99px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgb(0 0 0 / .25);
+}
