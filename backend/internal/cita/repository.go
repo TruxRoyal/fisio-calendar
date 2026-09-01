@@ -16,7 +16,7 @@ func NuevoRepository(db *sql.DB) *Repository {
 
 const consultaBase = `
 	SELECT
-		c.id, c.paciente_id, c.autorizacion_id, c.inicio, c.fin, c.estado,
+		c.id, c.paciente_id, c.autorizacion_id, c.tipo_terapia, c.inicio, c.fin, c.estado,
 		c.valor_sesion, c.copago_cobrado, c.notas, c.creado_en, c.actualizado_en,
 		p.id, p.nombre, p.direccion, p.tipo_terapia, p.color
 	FROM cita c
@@ -112,13 +112,35 @@ func (r *Repository) ObtenerOrigenPaciente(ctx context.Context, pacienteID int64
 	return origen, tarifaSesion, nil
 }
 
-func (r *Repository) Crear(ctx context.Context, solicitud SolicitudCrearCita) (*Cita, error) {
+// ResolverAutorizacionActiva busca la autorizacion activa del paciente cuyo
+// tipoTerapia coincide con el de la cita. Devuelve nil (sin error) si no
+// existe ninguna autorizacion activa de ese tipo para el paciente.
+func (r *Repository) ResolverAutorizacionActiva(ctx context.Context, pacienteID int64, tipoTerapia string) (*int64, error) {
 	consulta := `
-		INSERT INTO cita (paciente_id, autorizacion_id, inicio, fin, notas)
-		VALUES (?, ?, ?, ?, ?)
+		SELECT id FROM autorizacion
+		WHERE paciente_id = ? AND tipo_terapia = ? AND activa = 1
+		LIMIT 1
 	`
 
-	resultado, err := r.db.ExecContext(ctx, consulta, solicitud.PacienteID, solicitud.AutorizacionID, solicitud.Inicio, solicitud.Fin, solicitud.Notas)
+	var id int64
+	err := r.db.QueryRowContext(ctx, consulta, pacienteID, tipoTerapia).Scan(&id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("resolver autorizacion activa: %w", err)
+	}
+
+	return &id, nil
+}
+
+func (r *Repository) Crear(ctx context.Context, solicitud SolicitudCrearCita) (*Cita, error) {
+	consulta := `
+		INSERT INTO cita (paciente_id, autorizacion_id, tipo_terapia, inicio, fin, notas)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`
+
+	resultado, err := r.db.ExecContext(ctx, consulta, solicitud.PacienteID, solicitud.AutorizacionID, solicitud.TipoTerapia, solicitud.Inicio, solicitud.Fin, solicitud.Notas)
 	if err != nil {
 		return nil, fmt.Errorf("crear cita: %w", err)
 	}
@@ -134,11 +156,11 @@ func (r *Repository) Crear(ctx context.Context, solicitud SolicitudCrearCita) (*
 func (r *Repository) Actualizar(ctx context.Context, id int64, solicitud SolicitudActualizarCita) (*Cita, error) {
 	consulta := `
 		UPDATE cita
-		SET autorizacion_id = ?, inicio = ?, fin = ?, notas = ?, actualizado_en = datetime('now')
+		SET autorizacion_id = ?, tipo_terapia = ?, inicio = ?, fin = ?, notas = ?, actualizado_en = datetime('now')
 		WHERE id = ?
 	`
 
-	_, err := r.db.ExecContext(ctx, consulta, solicitud.AutorizacionID, solicitud.Inicio, solicitud.Fin, solicitud.Notas, id)
+	_, err := r.db.ExecContext(ctx, consulta, solicitud.AutorizacionID, solicitud.TipoTerapia, solicitud.Inicio, solicitud.Fin, solicitud.Notas, id)
 	if err != nil {
 		return nil, fmt.Errorf("actualizar cita: %w", err)
 	}
@@ -178,7 +200,7 @@ type escaneable interface {
 func escanearCita(fila escaneable, c *Cita) error {
 	c.Paciente = &PacienteResumen{}
 	return fila.Scan(
-		&c.ID, &c.PacienteID, &c.AutorizacionID, &c.Inicio, &c.Fin, &c.Estado,
+		&c.ID, &c.PacienteID, &c.AutorizacionID, &c.TipoTerapia, &c.Inicio, &c.Fin, &c.Estado,
 		&c.ValorSesion, &c.CopagoCobrado, &c.Notas, &c.CreadoEn, &c.ActualizadoEn,
 		&c.Paciente.ID, &c.Paciente.Nombre, &c.Paciente.Direccion, &c.Paciente.TipoTerapia, &c.Paciente.Color,
 	)

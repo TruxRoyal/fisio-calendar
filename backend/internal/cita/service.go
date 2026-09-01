@@ -3,6 +3,7 @@ package cita
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"fisio-backend/internal/shared/validate"
@@ -41,6 +42,7 @@ func (s *Service) VerificarChoque(ctx context.Context, solicitud SolicitudVerifi
 func (s *Service) Crear(ctx context.Context, solicitud SolicitudCrearCita) (*Cita, *Conflicto, validate.Errores, error) {
 	errores := validarHorario(solicitud.Inicio, solicitud.Fin)
 	validate.EnteroPositivo(int(solicitud.PacienteID), "pacienteId", errores)
+	validate.Enum(solicitud.TipoTerapia, TiposTerapiaValidos, "tipoTerapia", errores)
 	if errores.TieneErrores() {
 		return nil, nil, errores, nil
 	}
@@ -53,6 +55,11 @@ func (s *Service) Crear(ctx context.Context, solicitud SolicitudCrearCita) (*Cit
 		return nil, conflicto, nil, nil
 	}
 
+	advertencias, err := s.resolverAutorizacionSiFalta(ctx, solicitud.PacienteID, solicitud.TipoTerapia, &solicitud.AutorizacionID)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	creada, err := s.repo.Crear(ctx, solicitud)
 	if err != nil {
 		if esErrorReferenciaInexistente(err) {
@@ -60,12 +67,14 @@ func (s *Service) Crear(ctx context.Context, solicitud SolicitudCrearCita) (*Cit
 		}
 		return nil, nil, nil, err
 	}
+	creada.Advertencias = advertencias
 
 	return creada, nil, nil, nil
 }
 
 func (s *Service) Actualizar(ctx context.Context, id int64, solicitud SolicitudActualizarCita) (*Cita, *Conflicto, validate.Errores, error) {
 	errores := validarHorario(solicitud.Inicio, solicitud.Fin)
+	validate.Enum(solicitud.TipoTerapia, TiposTerapiaValidos, "tipoTerapia", errores)
 	if errores.TieneErrores() {
 		return nil, nil, errores, nil
 	}
@@ -78,6 +87,11 @@ func (s *Service) Actualizar(ctx context.Context, id int64, solicitud SolicitudA
 		return nil, nil, nil, ErrNoEncontrado
 	}
 
+	if existente.Estado == "atendida" && solicitud.TipoTerapia != existente.TipoTerapia {
+		errores.Agregar("tipoTerapia", "no se puede cambiar el tipo de terapia de una cita atendida")
+		return nil, nil, errores, nil
+	}
+
 	conflicto, err := s.repo.ExisteChoque(ctx, solicitud.Inicio, solicitud.Fin, &id)
 	if err != nil {
 		return nil, nil, nil, err
@@ -86,12 +100,41 @@ func (s *Service) Actualizar(ctx context.Context, id int64, solicitud SolicitudA
 		return nil, conflicto, nil, nil
 	}
 
-	actualizada, err := s.repo.Actualizar(ctx, id, solicitud)
+	advertencias, err := s.resolverAutorizacionSiFalta(ctx, existente.PacienteID, solicitud.TipoTerapia, &solicitud.AutorizacionID)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
+	actualizada, err := s.repo.Actualizar(ctx, id, solicitud)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	actualizada.Advertencias = advertencias
+
 	return actualizada, nil, nil, nil
+}
+
+// resolverAutorizacionSiFalta resuelve el id de la autorizacion activa que
+// coincide con el tipoTerapia de la cita cuando el llamador no especifico
+// una autorizacion explicitamente. Devuelve una advertencia no bloqueante
+// cuando el paciente no tiene una autorizacion activa de ese tipo.
+func (s *Service) resolverAutorizacionSiFalta(ctx context.Context, pacienteID int64, tipoTerapia string, autorizacionID **int64) ([]string, error) {
+	if *autorizacionID != nil {
+		return nil, nil
+	}
+
+	resuelta, err := s.repo.ResolverAutorizacionActiva(ctx, pacienteID, tipoTerapia)
+	if err != nil {
+		return nil, err
+	}
+
+	*autorizacionID = resuelta
+
+	if resuelta == nil {
+		return []string{fmt.Sprintf("El paciente no tiene una autorizacion activa de tipo %s", tipoTerapia)}, nil
+	}
+
+	return nil, nil
 }
 
 func (s *Service) CambiarEstado(ctx context.Context, id int64, solicitud SolicitudCambiarEstado) (*Cita, validate.Errores, error) {
