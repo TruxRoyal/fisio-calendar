@@ -1,4 +1,4 @@
-export type IdTema = 'rojo' | 'azul' | 'menta' | 'lavanda' | 'beige' | 'rosa' | 'durazno' | 'cielo'
+export type IdTema = 'rojo' | 'azul' | 'menta' | 'lavanda' | 'beige' | 'rosa' | 'durazno' | 'cielo' | 'salmon'
 
 interface AccentOscuro {
   acT: string
@@ -118,6 +118,16 @@ export const TEMAS: Record<IdTema, Accent> = {
     acL: '#D3E3E9',
     acD: '#BFDEE8',
     oscuro: { acT: '#B9D6DF', acS: '#233034', acS2: '#2C3A3F', acL: '#3A4A50' },
+  },
+  salmon: {
+    nombre: 'Salmón',
+    ac: '#93393E',
+    acT: '#7A292D',
+    acS: '#F8F1F1',
+    acS2: '#F4E6E7',
+    acL: '#E9D3D4',
+    acD: '#E8A9AC',
+    oscuro: { acT: '#DFB9BB', acS: '#342324', acS2: '#3F2C2D', acL: '#503A3B' },
   },
 }
 

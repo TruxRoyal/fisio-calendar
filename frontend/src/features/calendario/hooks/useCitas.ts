@@ -7,12 +7,13 @@ export function useCitas() {
   const inicioSemanaActual = useCalendarioStore((estado) => estado.inicioSemanaActual)
   const cargarSemanaActual = useCalendarioStore((estado) => estado.cargarSemanaActual)
   const irSemana = useCalendarioStore((estado) => estado.irSemana)
+  const irASemanaDe = useCalendarioStore((estado) => estado.irASemanaDe)
   const irHoy = useCalendarioStore((estado) => estado.irHoy)
 
   useEffect(() => {
     cargarSemanaActual()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inicioSemanaActual])
+  }, [])
 
-  return { citas, cargando, inicioSemanaActual, irSemana, irHoy }
+  return { citas, cargando, inicioSemanaActual, irSemana, irASemanaDe, irHoy }
 }

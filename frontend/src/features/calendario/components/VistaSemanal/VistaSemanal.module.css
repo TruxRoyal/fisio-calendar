@@ -190,7 +190,6 @@
 }
 
 .filaHora {
-  height: 56px;
   text-align: right;
   padding-right: 10px;
 }
@@ -215,7 +214,6 @@
   position: relative;
   border-left: 1px solid var(--grid);
   background-color: transparent;
-  background-image: repeating-linear-gradient(to bottom, var(--grid) 0 1px, transparent 1px 56px);
 }
 
 .columnaDia.hoy {

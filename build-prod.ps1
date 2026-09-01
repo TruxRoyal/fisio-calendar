@@ -51,15 +51,19 @@ New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
 Push-Location $backendDir
 try {
+    $prevGOOS = $env:GOOS
+    $prevGOARCH = $env:GOARCH
+    $prevCGO = $env:CGO_ENABLED
+
     $env:GOOS = "linux"
     $env:GOARCH = "arm64"
     $env:CGO_ENABLED = "0"
     go build -trimpath -ldflags "-s -w" -o $binPath ./cmd/server
     if ($LASTEXITCODE -ne 0) { throw "go build fallo con codigo $LASTEXITCODE" }
 } finally {
-    Remove-Item Env:\GOOS -ErrorAction SilentlyContinue
-    Remove-Item Env:\GOARCH -ErrorAction SilentlyContinue
-    Remove-Item Env:\CGO_ENABLED -ErrorAction SilentlyContinue
+    if ($null -eq $prevGOOS) { Remove-Item Env:\GOOS -ErrorAction SilentlyContinue } else { $env:GOOS = $prevGOOS }
+    if ($null -eq $prevGOARCH) { Remove-Item Env:\GOARCH -ErrorAction SilentlyContinue } else { $env:GOARCH = $prevGOARCH }
+    if ($null -eq $prevCGO) { Remove-Item Env:\CGO_ENABLED -ErrorAction SilentlyContinue } else { $env:CGO_ENABLED = $prevCGO }
     Pop-Location
 }
 

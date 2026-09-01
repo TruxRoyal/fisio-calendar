@@ -30,6 +30,8 @@
   --sbH: #CDC7D2;
   --acFg: #FFFFFF;
   --radius: 0.75rem;
+  /* Altura renderizada de .barra en BarraTabsMovil.module.css (8px + 50px + 6px + 1px de borde) */
+  --altura-barra-movil: 65px;
 
   --chart1: #1BAF7A;
   --chart2: #4A3AA7;

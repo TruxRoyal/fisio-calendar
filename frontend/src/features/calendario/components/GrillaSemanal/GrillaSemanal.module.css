@@ -1,0 +1,130 @@
+.raiz {
+  display: flex;
+  flex: 1;
+}
+
+.columnaDias {
+  flex: 0 0 52px;
+  width: 52px;
+  display: grid;
+  grid-template-rows: 28px repeat(var(--filas), minmax(60px, 1fr));
+}
+
+.celdaEncabezadoDias {
+  height: 28px;
+}
+
+.etiquetaDia {
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  border-bottom: 1px solid var(--grid);
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.etiquetaDia.hoy {
+  background-color: var(--acS);
+}
+
+.nombreDia {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.numeroDia {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--t1);
+  font-variant-numeric: tabular-nums;
+}
+
+.conteoDia {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--acT);
+  font-variant-numeric: tabular-nums;
+}
+
+.scrollHorizontal {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  display: grid;
+  grid-template-rows: 28px repeat(var(--filas), minmax(60px, 1fr));
+}
+
+.encabezadoHoras {
+  height: 28px;
+  display: flex;
+  border-bottom: 1px solid var(--grid);
+}
+
+.celdaHora {
+  flex: 0 0 auto;
+  padding-left: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.textoHora {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--t3);
+  font-family: var(--fuenteMono);
+}
+
+.filaCitas {
+  position: relative;
+  border-bottom: 1px solid var(--grid);
+  background-image: repeating-linear-gradient(to right, var(--grid) 0 1px, transparent 1px 150px);
+}
+
+.filaCitas.hoy {
+  background-color: var(--acS);
+}
+
+.lineaAhora {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1.5px solid var(--now);
+  z-index: 12;
+  pointer-events: none;
+}
+
+.puntoAhora {
+  position: absolute;
+  top: -4px;
+  left: -4.5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--now);
+}
+
+.chipHora {
+  position: absolute;
+  top: -20px;
+  z-index: 20;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--fuenteMono);
+  font-variant-numeric: tabular-nums;
+  color: var(--acFg, #fff);
+  background: var(--ac);
+  padding: 3px 8px;
+  border-radius: 99px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgb(0 0 0 / .25);
+}

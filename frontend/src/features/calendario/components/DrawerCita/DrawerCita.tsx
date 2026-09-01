@@ -61,6 +61,22 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
 
   const listo = useRef(false)
   const listoCopago = useRef(false)
+  const guardarCamposPendiente = useRef<(() => void) | null>(null)
+  const guardarCopagoPendiente = useRef<(() => void) | null>(null)
+
+  useEffect(() => {
+    return () => {
+      listo.current = false
+      listoCopago.current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      guardarCamposPendiente.current?.()
+      guardarCopagoPendiente.current?.()
+    }
+  }, [])
 
   const pacienteInfo = !cita.pacienteId && pacienteElegido
     ? { id: pacienteElegido.id, nombre: pacienteElegido.nombre, tipoTerapia: pacienteElegido.tipoTerapia, direccion: pacienteElegido.direccion, color: pacienteElegido.color }
@@ -68,24 +84,61 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
   const pacienteIdActivo = cita.pacienteId || pacienteElegido?.id || 0
 
   useEffect(() => {
-    if (pacienteIdActivo) autorizacionesResumenApi.obtenerActiva(pacienteIdActivo).then(setAutorizacion)
+    if (!pacienteIdActivo) return
+    let vigente = true
+    autorizacionesResumenApi
+      .obtenerActiva(pacienteIdActivo)
+      .then((resultado) => {
+        if (vigente) setAutorizacion(resultado)
+      })
+      .catch(() => {
+        if (vigente) setAutorizacion(null)
+      })
+    return () => {
+      vigente = false
+    }
   }, [pacienteIdActivo])
 
   useEffect(() => {
-    if (!esNueva && cita.pacienteId) pacientesBusquedaApi.obtenerParaDrawer(cita.pacienteId).then(setPacienteCompleto)
+    if (esNueva || !cita.pacienteId) return
+    let vigente = true
+    pacientesBusquedaApi
+      .obtenerParaDrawer(cita.pacienteId)
+      .then((resultado) => {
+        if (vigente) setPacienteCompleto(resultado)
+      })
+      .catch(() => {
+        if (vigente) setPacienteCompleto(null)
+      })
+    return () => {
+      vigente = false
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cita.id])
 
   useEffect(() => {
     if (!esNueva || pacienteIdActivo) return
     let vigente = true
-    pacientesBusquedaApi.listar(busquedaPaciente).then((resultados) => {
-      if (vigente) setResultadosPaciente(resultados)
-    })
+    pacientesBusquedaApi
+      .listar(busquedaPaciente)
+      .then((resultados) => {
+        if (vigente) setResultadosPaciente(resultados)
+      })
+      .catch(() => {
+        if (vigente) setResultadosPaciente([])
+      })
     return () => {
       vigente = false
     }
   }, [esNueva, pacienteIdActivo, busquedaPaciente])
+
+  const temporizadorCierre = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (temporizadorCierre.current) clearTimeout(temporizadorCierre.current)
+    }
+  }, [])
 
   function mostrarGuardado() {
     setGuardadoVisible(true)
@@ -93,23 +146,26 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
   }
 
   function cerrar() {
+    if (temporizadorCierre.current) return
     setSaliendo(true)
-    setTimeout(onCerrar, DURACION_SALIDA_MS)
+    temporizadorCierre.current = setTimeout(onCerrar, DURACION_SALIDA_MS)
   }
 
   useEffect(() => {
     if (esNueva) return
     if (!listo.current) {
       listo.current = true
-      return () => {
-        listo.current = false
-      }
+      return
     }
     const inicioActual = combinarFechaHora(fecha, horaInicio)
-    const temporizador = setTimeout(async () => {
-      const guardado = await onGuardarCampos(cita.id, { inicio: inicioActual, fin: sumarMinutos(inicioActual, duracion), notas: notas || null })
-      if (guardado) mostrarGuardado()
-    }, 700)
+    const ejecutar = () => {
+      guardarCamposPendiente.current = null
+      onGuardarCampos(cita.id, { inicio: inicioActual, fin: sumarMinutos(inicioActual, duracion), notas: notas || null }).then((guardado) => {
+        if (guardado) mostrarGuardado()
+      })
+    }
+    guardarCamposPendiente.current = ejecutar
+    const temporizador = setTimeout(ejecutar, 700)
     return () => clearTimeout(temporizador)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duracion, notas, fecha, horaInicio])
@@ -118,14 +174,14 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
     if (esNueva) return
     if (!listoCopago.current) {
       listoCopago.current = true
-      return () => {
-        listoCopago.current = false
-      }
+      return
     }
-    const temporizador = setTimeout(async () => {
-      await onActualizarCopago(cita.id, copago)
-      mostrarGuardado()
-    }, 700)
+    const ejecutar = () => {
+      guardarCopagoPendiente.current = null
+      onActualizarCopago(cita.id, copago).then(() => mostrarGuardado())
+    }
+    guardarCopagoPendiente.current = ejecutar
+    const temporizador = setTimeout(ejecutar, 700)
     return () => clearTimeout(temporizador)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [copago])
