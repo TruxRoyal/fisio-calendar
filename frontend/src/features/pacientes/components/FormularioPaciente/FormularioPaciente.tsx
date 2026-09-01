@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Modal } from '../../../../shared/components/Modal/Modal'
 import { Input, TextArea } from '../../../../shared/components/Input/Input'
@@ -63,6 +63,14 @@ export function FormularioPaciente({ abierto, pacienteInicial, onCerrar, onGuard
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [erroresCampo, setErroresCampo] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (!abierto) return
+    setSolicitud(pacienteInicial ? solicitudDesdePaciente(pacienteInicial) : solicitudVacia())
+    setError(null)
+    setErroresCampo({})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abierto])
 
   function actualizarCampo<K extends keyof SolicitudPaciente>(campo: K, valor: SolicitudPaciente[K]) {
     setSolicitud((actual) => ({ ...actual, [campo]: valor }))
