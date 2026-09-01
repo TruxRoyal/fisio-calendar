@@ -357,10 +357,22 @@
   background: var(--s1);
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 1100px) {
+  .panelLateral {
+    min-width: 240px;
+  }
+
+  .seccionPanel {
+    padding: 16px;
+  }
 }
 
 .seccionPanel {
+  flex: 0 0 auto;
   padding: 20px 22px;
   border-bottom: 1px solid var(--bd);
 }

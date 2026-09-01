@@ -159,7 +159,7 @@ export function PaginaPacientes() {
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
-            <FichaPaciente paciente={seleccionado} />
+            <FichaPaciente key={seleccionado.id} paciente={seleccionado} />
           </>
         ) : (
           <AtmosferaFondo intensidad="suave" origen="inferior-derecha" className={styles.vacioFondo}>
