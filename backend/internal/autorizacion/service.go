@@ -11,6 +11,7 @@ import (
 
 var ErrNoEncontrado = errors.New("autorizacion no encontrada")
 var ErrPacienteNoEncontrado = errors.New("paciente no encontrado")
+var ErrAutorizacionActivaDuplicada = errors.New("ya existe una autorizacion activa de ese tipo para el paciente")
 
 type Service struct {
 	repo *Repository
@@ -44,13 +45,16 @@ func (s *Service) ObtenerPorID(ctx context.Context, id int64) (*Autorizacion, er
 }
 
 func (s *Service) Crear(ctx context.Context, solicitud SolicitudCrearAutorizacion) (*Autorizacion, validate.Errores, error) {
-	errores := validarSolicitud(solicitud.SesionesTotales, solicitud.Copago)
+	errores := validarSolicitud(solicitud.TipoTerapia, solicitud.SesionesTotales, solicitud.Copago)
 	if errores.TieneErrores() {
 		return nil, errores, nil
 	}
 
 	creada, err := s.repo.Crear(ctx, solicitud)
 	if err != nil {
+		if esErrorAutorizacionActivaDuplicada(err) {
+			return nil, nil, ErrAutorizacionActivaDuplicada
+		}
 		if esErrorPacienteInexistente(err) {
 			return nil, nil, ErrPacienteNoEncontrado
 		}
@@ -62,7 +66,7 @@ func (s *Service) Crear(ctx context.Context, solicitud SolicitudCrearAutorizacio
 }
 
 func (s *Service) Actualizar(ctx context.Context, id int64, solicitud SolicitudActualizarAutorizacion) (*Autorizacion, validate.Errores, error) {
-	errores := validarSolicitud(solicitud.SesionesTotales, solicitud.Copago)
+	errores := validarSolicitud(solicitud.TipoTerapia, solicitud.SesionesTotales, solicitud.Copago)
 	if errores.TieneErrores() {
 		return nil, errores, nil
 	}
@@ -77,6 +81,9 @@ func (s *Service) Actualizar(ctx context.Context, id int64, solicitud SolicitudA
 
 	actualizada, err := s.repo.Actualizar(ctx, id, solicitud)
 	if err != nil {
+		if esErrorAutorizacionActivaDuplicada(err) {
+			return nil, nil, ErrAutorizacionActivaDuplicada
+		}
 		return nil, nil, err
 	}
 
@@ -125,8 +132,9 @@ func ahoraBogota() time.Time {
 	return time.Now().In(ubicacion)
 }
 
-func validarSolicitud(sesionesTotales, copago int) validate.Errores {
+func validarSolicitud(tipoTerapia string, sesionesTotales, copago int) validate.Errores {
 	errores := validate.Nuevo()
+	validate.Enum(tipoTerapia, TiposTerapiaValidos, "tipoTerapia", errores)
 	validate.EnteroPositivo(sesionesTotales, "sesionesTotales", errores)
 	validate.EnteroNoNegativo(copago, "copago", errores)
 	return errores
@@ -134,4 +142,14 @@ func validarSolicitud(sesionesTotales, copago int) validate.Errores {
 
 func esErrorPacienteInexistente(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "FOREIGN KEY constraint failed")
+}
+
+// esErrorAutorizacionActivaDuplicada detecta la violacion del indice unico
+// parcial idx_autoriz_activa_por_tipo (backend/migrations/0006_tipo_terapia_autorizacion.sql),
+// que permite a lo sumo una autorizacion activa por (paciente_id, tipo_terapia).
+// Sigue el mismo idioma de deteccion de "UNIQUE constraint failed" que
+// paciente/service.go's esErrorDocumentoDuplicado contra el mismo driver
+// modernc.org/sqlite.
+func esErrorAutorizacionActivaDuplicada(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "UNIQUE constraint failed")
 }

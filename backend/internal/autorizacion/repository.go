@@ -16,7 +16,7 @@ func NuevoRepository(db *sql.DB) *Repository {
 
 const consultaBase = `
 	SELECT
-		a.id, a.paciente_id, a.numero, a.copago, a.sesiones_totales, a.fecha_vencimiento, a.activa, a.creado_en,
+		a.id, a.paciente_id, a.numero, a.tipo_terapia, a.copago, a.sesiones_totales, a.fecha_vencimiento, a.activa, a.creado_en,
 		(SELECT COUNT(*) FROM cita c WHERE c.autorizacion_id = a.id AND c.estado = 'atendida') AS sesiones_usadas
 	FROM autorizacion a
 `
@@ -34,7 +34,7 @@ func (r *Repository) ListarPorPaciente(ctx context.Context, pacienteID int64) ([
 	for filas.Next() {
 		var a Autorizacion
 		var activa int
-		if err := filas.Scan(&a.ID, &a.PacienteID, &a.Numero, &a.Copago, &a.SesionesTotales, &a.FechaVencimiento, &activa, &a.CreadoEn, &a.SesionesUsadas); err != nil {
+		if err := filas.Scan(&a.ID, &a.PacienteID, &a.Numero, &a.TipoTerapia, &a.Copago, &a.SesionesTotales, &a.FechaVencimiento, &activa, &a.CreadoEn, &a.SesionesUsadas); err != nil {
 			return nil, fmt.Errorf("escanear autorizacion: %w", err)
 		}
 		a.Activa = activa == 1
@@ -50,7 +50,7 @@ func (r *Repository) ObtenerPorID(ctx context.Context, id int64) (*Autorizacion,
 	var a Autorizacion
 	var activa int
 	err := r.db.QueryRowContext(ctx, consulta, id).Scan(
-		&a.ID, &a.PacienteID, &a.Numero, &a.Copago, &a.SesionesTotales, &a.FechaVencimiento, &activa, &a.CreadoEn, &a.SesionesUsadas,
+		&a.ID, &a.PacienteID, &a.Numero, &a.TipoTerapia, &a.Copago, &a.SesionesTotales, &a.FechaVencimiento, &activa, &a.CreadoEn, &a.SesionesUsadas,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -65,12 +65,12 @@ func (r *Repository) ObtenerPorID(ctx context.Context, id int64) (*Autorizacion,
 
 func (r *Repository) Crear(ctx context.Context, solicitud SolicitudCrearAutorizacion) (*Autorizacion, error) {
 	consulta := `
-		INSERT INTO autorizacion (paciente_id, numero, copago, sesiones_totales, fecha_vencimiento)
-		VALUES (?, ?, ?, ?, ?)
+		INSERT INTO autorizacion (paciente_id, numero, tipo_terapia, copago, sesiones_totales, fecha_vencimiento)
+		VALUES (?, ?, ?, ?, ?, ?)
 	`
 
 	resultado, err := r.db.ExecContext(ctx, consulta,
-		solicitud.PacienteID, solicitud.Numero, solicitud.Copago, solicitud.SesionesTotales, solicitud.FechaVencimiento,
+		solicitud.PacienteID, solicitud.Numero, solicitud.TipoTerapia, solicitud.Copago, solicitud.SesionesTotales, solicitud.FechaVencimiento,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("crear autorizacion: %w", err)
@@ -87,7 +87,7 @@ func (r *Repository) Crear(ctx context.Context, solicitud SolicitudCrearAutoriza
 func (r *Repository) Actualizar(ctx context.Context, id int64, solicitud SolicitudActualizarAutorizacion) (*Autorizacion, error) {
 	consulta := `
 		UPDATE autorizacion
-		SET numero = ?, copago = ?, sesiones_totales = ?, fecha_vencimiento = ?, activa = ?
+		SET numero = ?, tipo_terapia = ?, copago = ?, sesiones_totales = ?, fecha_vencimiento = ?, activa = ?
 		WHERE id = ?
 	`
 
@@ -97,7 +97,7 @@ func (r *Repository) Actualizar(ctx context.Context, id int64, solicitud Solicit
 	}
 
 	_, err := r.db.ExecContext(ctx, consulta,
-		solicitud.Numero, solicitud.Copago, solicitud.SesionesTotales, solicitud.FechaVencimiento, activa, id,
+		solicitud.Numero, solicitud.TipoTerapia, solicitud.Copago, solicitud.SesionesTotales, solicitud.FechaVencimiento, activa, id,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("actualizar autorizacion: %w", err)
