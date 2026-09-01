@@ -20,18 +20,24 @@ const columnasPaciente = `id, nombre, direccion, documento, telefono, diagnostic
 
 const columnasPacientePrefijadas = `p.id, p.nombre, p.direccion, p.documento, p.telefono, p.diagnostico, p.eps, p.tipo_terapia, p.lat, p.lng, p.fecha_nacimiento, p.observaciones, p.color, p.origen, p.tarifa_sesion, p.creado_en, p.actualizado_en`
 
+// Listar consulta pacientes en dos pasadas en vez de un unico LEFT JOIN.
+//
+// Antes de esta unidad, un paciente solo podia tener a lo sumo una
+// autorizacion activa (global), asi que un LEFT JOIN correlacionado + SELECT
+// DISTINCT bastaba: una fila de autorizacion por paciente. Desde que la
+// migracion 0006 permite hasta una autorizacion activa POR tipoTerapia, ese
+// mismo JOIN emitiria una fila por cada autorizacion activa del paciente
+// (columnas de paciente repetidas, columnas de autorizacion distintas), lo
+// que SELECT DISTINCT ya no puede colapsar correctamente. Ver design.md,
+// decision "Listar per-tipo auths".
+//
+// La solucion: una consulta trae los pacientes (con DISTINCT solo para
+// absorber el JOIN opcional con cita cuando se filtra por mes), y una
+// segunda consulta trae TODAS las autorizaciones activas de esos pacientes
+// de una vez (WHERE paciente_id IN (...) AND activa = 1); ambas se combinan
+// en Go por paciente_id.
 func (r *Repository) Listar(ctx context.Context, busqueda, mes string) ([]PacienteDetalle, error) {
-	consulta := fmt.Sprintf(`
-		SELECT DISTINCT %s,
-			a.id, a.sesiones_totales, a.fecha_vencimiento, a.creado_en,
-			(SELECT COUNT(*) FROM cita c3 WHERE c3.autorizacion_id = a.id AND c3.estado = 'atendida')
-		FROM paciente p
-		LEFT JOIN autorizacion a ON a.id = (
-			SELECT a2.id FROM autorizacion a2
-			WHERE a2.paciente_id = p.id AND a2.activa = 1
-			ORDER BY a2.creado_en DESC LIMIT 1
-		)
-	`, columnasPacientePrefijadas)
+	consulta := fmt.Sprintf(`SELECT DISTINCT %s FROM paciente p`, columnasPacientePrefijadas)
 	condiciones := []string{}
 	argumentos := []any{}
 
@@ -66,41 +72,36 @@ func (r *Repository) Listar(ctx context.Context, busqueda, mes string) ([]Pacien
 	defer filas.Close()
 
 	pacientes := []PacienteDetalle{}
+	ids := []int64{}
 	for filas.Next() {
 		var d PacienteDetalle
-		var autorizacionID *int64
-		var sesionesTotales *int
-		var fechaVencimiento *string
-		var autorizacionCreadoEn *string
-		var sesionesUsadas int
-
-		if err := filas.Scan(
-			&d.ID, &d.Nombre, &d.Direccion, &d.Documento, &d.Telefono,
-			&d.Diagnostico, &d.EPS, &d.TipoTerapia, &d.Lat, &d.Lng,
-			&d.FechaNacimiento, &d.Observaciones, &d.Color,
-			&d.Origen, &d.TarifaSesion,
-			&d.CreadoEn, &d.ActualizadoEn,
-			&autorizacionID, &sesionesTotales, &fechaVencimiento, &autorizacionCreadoEn, &sesionesUsadas,
-		); err != nil {
+		if err := escanearPaciente(filas, &d.Paciente); err != nil {
 			return nil, fmt.Errorf("escanear paciente: %w", err)
 		}
-
-		if autorizacionID != nil {
-			d.AutorizacionActiva = &AutorizacionResumen{
-				ID:                *autorizacionID,
-				SesionesTotales:   *sesionesTotales,
-				SesionesUsadas:    sesionesUsadas,
-				SesionesRestantes: *sesionesTotales - sesionesUsadas,
-				FechaVencimiento:  fechaVencimiento,
-				CreadoEn:          *autorizacionCreadoEn,
-				Activa:            true,
-			}
-		}
-
+		d.AutorizacionesActivas = []AutorizacionResumen{}
 		pacientes = append(pacientes, d)
+		ids = append(ids, d.ID)
+	}
+	if err := filas.Err(); err != nil {
+		return nil, err
 	}
 
-	return pacientes, filas.Err()
+	if len(ids) == 0 {
+		return pacientes, nil
+	}
+
+	activasPorPaciente, err := r.listarAutorizacionesActivasPorPacientes(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range pacientes {
+		activas := activasPorPaciente[pacientes[i].ID]
+		pacientes[i].AutorizacionesActivas = activas
+		pacientes[i].TiposTerapia = calcularTiposTerapia(activas, pacientes[i].TipoTerapia)
+	}
+
+	return pacientes, nil
 }
 
 func (r *Repository) ObtenerPorID(ctx context.Context, id int64) (*Paciente, error) {
@@ -118,31 +119,94 @@ func (r *Repository) ObtenerPorID(ctx context.Context, id int64) (*Paciente, err
 	return &p, nil
 }
 
-func (r *Repository) ObtenerAutorizacionActiva(ctx context.Context, pacienteID int64) (*AutorizacionResumen, error) {
-	consulta := `
-		SELECT a.id, a.sesiones_totales, a.fecha_vencimiento, a.activa,
-			(SELECT COUNT(*) FROM cita c WHERE c.autorizacion_id = a.id AND c.estado = 'atendida') AS sesiones_usadas
-		FROM autorizacion a
-		WHERE a.paciente_id = ? AND a.activa = 1
-		ORDER BY a.creado_en DESC
-		LIMIT 1
-	`
-
-	fila := r.db.QueryRowContext(ctx, consulta, pacienteID)
-
-	var resumen AutorizacionResumen
-	var activa int
-	if err := fila.Scan(&resumen.ID, &resumen.SesionesTotales, &resumen.FechaVencimiento, &activa, &resumen.SesionesUsadas); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("obtener autorizacion activa: %w", err)
+// ListarAutorizacionesActivas devuelve TODAS las autorizaciones activas del
+// paciente (una por cada tipoTerapia que tenga una autorizacion vigente),
+// reemplazando al antiguo ObtenerAutorizacionActiva (singular). El indice
+// unico parcial idx_autoriz_activa_por_tipo (migracion 0006) garantiza que
+// hay a lo sumo una fila activa por (paciente_id, tipo_terapia), asi que a
+// diferencia del metodo anterior ya no hace falta un ORDER BY ... LIMIT 1
+// para desempatar duplicados.
+func (r *Repository) ListarAutorizacionesActivas(ctx context.Context, pacienteID int64) ([]AutorizacionResumen, error) {
+	activasPorPaciente, err := r.listarAutorizacionesActivasPorPacientes(ctx, []int64{pacienteID})
+	if err != nil {
+		return nil, err
 	}
 
-	resumen.Activa = activa == 1
-	resumen.SesionesRestantes = resumen.SesionesTotales - resumen.SesionesUsadas
+	activas := activasPorPaciente[pacienteID]
+	if activas == nil {
+		activas = []AutorizacionResumen{}
+	}
+	return activas, nil
+}
 
-	return &resumen, nil
+// listarAutorizacionesActivasPorPacientes trae de una sola consulta todas
+// las autorizaciones activas de un conjunto de pacientes, agrupadas por
+// paciente_id. Usada tanto por Listar (varios pacientes) como por
+// ListarAutorizacionesActivas (un solo paciente).
+func (r *Repository) listarAutorizacionesActivasPorPacientes(ctx context.Context, pacienteIDs []int64) (map[int64][]AutorizacionResumen, error) {
+	marcadores := make([]string, len(pacienteIDs))
+	argumentos := make([]any, len(pacienteIDs))
+	for i, id := range pacienteIDs {
+		marcadores[i] = "?"
+		argumentos[i] = id
+	}
+
+	consulta := fmt.Sprintf(`
+		SELECT a.paciente_id, a.id, a.tipo_terapia, a.sesiones_totales, a.fecha_vencimiento, a.creado_en,
+			(SELECT COUNT(*) FROM cita c WHERE c.autorizacion_id = a.id AND c.estado = 'atendida') AS sesiones_usadas
+		FROM autorizacion a
+		WHERE a.activa = 1 AND a.paciente_id IN (%s)
+		ORDER BY a.paciente_id ASC, a.tipo_terapia ASC
+	`, strings.Join(marcadores, ", "))
+
+	filas, err := r.db.QueryContext(ctx, consulta, argumentos...)
+	if err != nil {
+		return nil, fmt.Errorf("listar autorizaciones activas: %w", err)
+	}
+	defer filas.Close()
+
+	resultado := make(map[int64][]AutorizacionResumen)
+	for filas.Next() {
+		var pacienteID int64
+		var resumen AutorizacionResumen
+		if err := filas.Scan(
+			&pacienteID, &resumen.ID, &resumen.TipoTerapia, &resumen.SesionesTotales,
+			&resumen.FechaVencimiento, &resumen.CreadoEn, &resumen.SesionesUsadas,
+		); err != nil {
+			return nil, fmt.Errorf("escanear autorizacion activa: %w", err)
+		}
+		resumen.SesionesRestantes = resumen.SesionesTotales - resumen.SesionesUsadas
+		resumen.Activa = true
+		resultado[pacienteID] = append(resultado[pacienteID], resumen)
+	}
+
+	return resultado, filas.Err()
+}
+
+// calcularTiposTerapia deriva el conjunto (sin duplicados, orden alfabetico)
+// de tipos de terapia de un paciente: la union de los tipos de sus
+// autorizaciones activas con su tipo preferido (ver spec "Derived
+// tiposTerapia set for filtering/display").
+func calcularTiposTerapia(activas []AutorizacionResumen, tipoPreferido *string) []string {
+	vistos := map[string]bool{}
+	tipos := []string{}
+	agregar := func(tipo string) {
+		if tipo == "" || vistos[tipo] {
+			return
+		}
+		vistos[tipo] = true
+		tipos = append(tipos, tipo)
+	}
+
+	for _, a := range activas {
+		agregar(a.TipoTerapia)
+	}
+	if tipoPreferido != nil {
+		agregar(*tipoPreferido)
+	}
+
+	sort.Strings(tipos)
+	return tipos
 }
 
 func (r *Repository) Crear(ctx context.Context, solicitud SolicitudCrearPaciente) (*Paciente, error) {
@@ -289,19 +353,40 @@ func (r *Repository) eventosDeAutorizaciones(ctx context.Context, pacienteID int
 	return eventos, filas.Err()
 }
 
-func (r *Repository) ObtenerResumenFinanciero(ctx context.Context, pacienteID int64, anioMes string) (facturado, copagosRecibidos int, err error) {
+// ObtenerResumenFinanciero agrupa por tipo_terapia (columna propia de cita
+// desde la migracion 0005, ya no derivada de paciente) y suma los totales en
+// Go, de forma que un mismo mes puede reportar el desglose por tipo ademas
+// del total sin duplicar la consulta.
+func (r *Repository) ObtenerResumenFinanciero(ctx context.Context, pacienteID int64, anioMes string) (facturado, copagosRecibidos int, porTipo []FinancieroTipo, err error) {
 	consulta := `
-		SELECT COALESCE(SUM(valor_sesion), 0), COALESCE(SUM(copago_cobrado), 0)
+		SELECT tipo_terapia, COALESCE(SUM(valor_sesion), 0), COALESCE(SUM(copago_cobrado), 0)
 		FROM cita
 		WHERE paciente_id = ? AND estado = 'atendida' AND strftime('%Y-%m', inicio) = ?
+		GROUP BY tipo_terapia
+		ORDER BY tipo_terapia ASC
 	`
 
-	err = r.db.QueryRowContext(ctx, consulta, pacienteID, anioMes).Scan(&facturado, &copagosRecibidos)
+	filas, err := r.db.QueryContext(ctx, consulta, pacienteID, anioMes)
 	if err != nil {
-		return 0, 0, fmt.Errorf("obtener resumen financiero del paciente: %w", err)
+		return 0, 0, nil, fmt.Errorf("obtener resumen financiero del paciente: %w", err)
+	}
+	defer filas.Close()
+
+	porTipo = []FinancieroTipo{}
+	for filas.Next() {
+		var fila FinancieroTipo
+		if err := filas.Scan(&fila.TipoTerapia, &fila.Facturado, &fila.CopagosRecibidos); err != nil {
+			return 0, 0, nil, fmt.Errorf("escanear resumen financiero por tipo: %w", err)
+		}
+		facturado += fila.Facturado
+		copagosRecibidos += fila.CopagosRecibidos
+		porTipo = append(porTipo, fila)
+	}
+	if err := filas.Err(); err != nil {
+		return 0, 0, nil, err
 	}
 
-	return facturado, copagosRecibidos, nil
+	return facturado, copagosRecibidos, porTipo, nil
 }
 
 type escaneable interface {
