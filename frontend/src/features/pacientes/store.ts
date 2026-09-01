@@ -16,6 +16,8 @@ interface EstadoPacientes {
   eliminarPaciente: (id: number) => Promise<void>
 }
 
+let tokenSeleccion = 0
+
 export const usePacientesStore = create<EstadoPacientes>((set, get) => ({
   pacientes: [],
   seleccionado: null,
@@ -34,7 +36,9 @@ export const usePacientesStore = create<EstadoPacientes>((set, get) => ({
   },
 
   seleccionarPaciente: async (id) => {
+    const token = ++tokenSeleccion
     const detalle = await pacientesApi.obtener(id)
+    if (token !== tokenSeleccion) return
     set({ seleccionado: detalle })
   },
 
