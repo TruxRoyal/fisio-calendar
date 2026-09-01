@@ -23,10 +23,12 @@ export function SeccionAutorizacion({ pacienteId, autorizacionActiva, onActualiz
   const [editando, setEditando] = useState(!autorizacionActiva)
   const [solicitud, setSolicitud] = useState<SolicitudCrearAutorizacion>(solicitudVacia(pacienteId))
   const [guardando, setGuardando] = useState(false)
+  const [errorFechaVencimiento, setErrorFechaVencimiento] = useState(false)
 
   useEffect(() => {
     setEditando(!autorizacionActiva)
     setSolicitud(solicitudVacia(pacienteId))
+    setErrorFechaVencimiento(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pacienteId])
 
@@ -36,6 +38,11 @@ export function SeccionAutorizacion({ pacienteId, autorizacionActiva, onActualiz
 
   async function alEnviar(evento: FormEvent) {
     evento.preventDefault()
+    if (!solicitud.fechaVencimiento) {
+      setErrorFechaVencimiento(true)
+      return
+    }
+    setErrorFechaVencimiento(false)
     setGuardando(true)
     try {
       await autorizacionesApi.crear(solicitud)
@@ -73,10 +80,16 @@ export function SeccionAutorizacion({ pacienteId, autorizacionActiva, onActualiz
           />
         </div>
         <SelectorFecha
-          etiqueta="Fecha de vencimiento"
+          etiqueta="Fecha de vencimiento *"
           value={solicitud.fechaVencimiento ?? ''}
-          onChange={(valor) => actualizarCampo('fechaVencimiento', valor)}
+          onChange={(valor) => {
+            actualizarCampo('fechaVencimiento', valor)
+            if (valor) setErrorFechaVencimiento(false)
+          }}
         />
+        {errorFechaVencimiento && (
+          <p className={styles.errorCampo}>La fecha de vencimiento es obligatoria</p>
+        )}
         <div className={styles.filaAcciones}>
           <Boton type="button" tamano="sm" variante="secundario" onClick={() => setEditando(false)}>
             Cancelar

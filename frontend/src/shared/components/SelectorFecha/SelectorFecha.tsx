@@ -40,6 +40,7 @@ export function SelectorFecha({ etiqueta, value, onChange, id, placeholder = 'Se
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar
             mode="single"
+            captionLayout="dropdown"
             locale={es}
             selected={fecha}
             defaultMonth={fecha}

@@ -199,12 +199,6 @@ function VistaSemanalEscritorio() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // La cabecera de días vive fuera de .cuerpoSemana (para quedar fija mientras
-  // la grilla hace scroll vertical), así que no pierde ancho automáticamente
-  // cuando aparece la barra de scroll del navegador. Medimos ese ancho, y
-  // también el alto disponible, con un ResizeObserver: así la altura de cada
-  // hora se estira para llenar el contenedor en vez de dejar espacio muerto
-  // cuando la grilla (14h fijas) es más baja que el viewport.
   const refCuerpoSemanaCallback = useCallback((nodo: HTMLDivElement | null) => {
     refCuerpoSemana.current = nodo
     observadorCuerpoSemanaRef.current?.disconnect()
