@@ -16,8 +16,8 @@ interface PropiedadesBloqueCita {
 }
 
 export function BloqueCita({ cita, top, altura, onAbrir, onIniciarArrastre, onIniciarRedimension }: PropiedadesBloqueCita) {
-  const colorTipo = cita.paciente.tipoTerapia ? TIPO_TERAPIA_COLOR[cita.paciente.tipoTerapia] : null
-  const colorBorde = cita.paciente.color ?? colorTipo?.fg ?? 'var(--ac)'
+  const colorTipo = TIPO_TERAPIA_COLOR[cita.tipoTerapia]
+  const colorBorde = cita.paciente.color ?? colorTipo.fg ?? 'var(--ac)'
   const compacto = altura < 40
 
   return (
@@ -31,9 +31,7 @@ export function BloqueCita({ cita, top, altura, onAbrir, onIniciarArrastre, onIn
     >
       <div className={styles.filaSuperior}>
         <span className={styles.hora}>{formatearHora(cita.inicio)}</span>
-        {cita.paciente.tipoTerapia && (
-          <Icono nombre={cita.paciente.tipoTerapia === 'respiratoria' ? 'pulmon' : 'pulso'} tamano={11} grosor={2.2} />
-        )}
+        <Icono nombre={cita.tipoTerapia === 'respiratoria' ? 'pulmon' : 'pulso'} tamano={11} grosor={2.2} />
         <div className={styles.espaciador} />
         {cita.estado === 'atendida' && <Icono nombre="check" tamano={12} grosor={2.6} className={styles.iconoCheck} />}
       </div>

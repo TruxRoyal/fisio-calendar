@@ -20,8 +20,8 @@ export interface PropsTarjetaCitaMovil {
 
 export function TarjetaCitaMovil({ cita, autorizacion, onAbrir, variante = 'lista', compacto, arrastrando, onPointerDown, style }: PropsTarjetaCitaMovil) {
   const estado = cita.estado
-  const colorTipo = cita.paciente.tipoTerapia ? TIPO_TERAPIA_COLOR[cita.paciente.tipoTerapia] : null
-  const colorBorde = cita.paciente.color ?? colorTipo?.fg ?? 'var(--ac)'
+  const colorTipo = TIPO_TERAPIA_COLOR[cita.tipoTerapia]
+  const colorBorde = cita.paciente.color ?? colorTipo.fg ?? 'var(--ac)'
   const sesionesBajas = !!autorizacion && (autorizacion.sesionesRestantes <= 1 || autorizacion.alertaVencimiento)
 
   return (
@@ -61,14 +61,12 @@ export function TarjetaCitaMovil({ cita, autorizacion, onAbrir, variante = 'list
           <>
             <div className={styles.filaNombre}>
               <span className={styles.nombre}>{cita.paciente.nombre}</span>
-              {cita.paciente.tipoTerapia && (
-                <Icono
-                  nombre={cita.paciente.tipoTerapia === 'respiratoria' ? 'pulmon' : 'pulso'}
-                  tamano={13}
-                  grosor={1.9}
-                  className={styles.iconoTipo}
-                />
-              )}
+              <Icono
+                nombre={cita.tipoTerapia === 'respiratoria' ? 'pulmon' : 'pulso'}
+                tamano={13}
+                grosor={1.9}
+                className={styles.iconoTipo}
+              />
               {estado === 'atendida' && <Icono nombre="check" tamano={14} grosor={2.6} className={styles.iconoCheck} />}
             </div>
             {!compacto && cita.paciente.direccion && (

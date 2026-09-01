@@ -103,16 +103,19 @@ export function PanelPacientes({ onSeleccionarPaciente, onIniciarArrastrePacient
       setAutorizacionProxima(null)
       return
     }
-    autorizacionesResumenApi.obtenerActiva(proximaVisita.pacienteId).then(setAutorizacionProxima)
+    autorizacionesResumenApi
+      .listarActivas(proximaVisita.pacienteId)
+      .then((activas) => setAutorizacionProxima(activas.find((a) => a.tipoTerapia === proximaVisita.tipoTerapia) ?? null))
   }, [proximaVisita])
 
   const pacientesFiltrados = pacientes.filter((p) => {
     if (filtro === 'todos') return true
     if (filtro === 'porVencer') {
-      const vencimiento = p.autorizacionActiva?.fechaVencimiento
-      if (vencimiento == null) return false
-      const dias = diasHasta(vencimiento)
-      return dias >= 0 && dias <= DIAS_ALERTA_VENCIMIENTO
+      return p.autorizacionesActivas.some((a) => {
+        if (!a.fechaVencimiento) return false
+        const dias = diasHasta(a.fechaVencimiento)
+        return dias >= 0 && dias <= DIAS_ALERTA_VENCIMIENTO
+      })
     }
     return p.tipoTerapia === filtro
   })
@@ -218,8 +221,7 @@ export function PanelPacientes({ onSeleccionarPaciente, onIniciarArrastrePacient
           const color = paciente.tipoTerapia ? TIPO_TERAPIA_COLOR[paciente.tipoTerapia] : null
           const avatarBg = paciente.color ? `${paciente.color}22` : (color?.bg ?? 'var(--s3)')
           const avatarFg = paciente.color ?? color?.fg ?? 'var(--t3)'
-          const autorizacion = paciente.autorizacionActiva
-          const ritmo = autorizacion ? calcularRitmo(autorizacion) : null
+          const autorizaciones = paciente.autorizacionesActivas
           return (
             <button
               type="button"
@@ -249,10 +251,20 @@ export function PanelPacientes({ onSeleccionarPaciente, onIniciarArrastrePacient
                   {paciente.origen === 'extra' && <Badge variant="accent">Extra</Badge>}
                 </div>
                 <div className={styles.subtituloPaciente}>{paciente.eps ?? 'Particular'}</div>
-                {autorizacion && (
-                  <div className={cn(styles.filaSesiones, ritmo && styles[`ritmo${ritmo.charAt(0).toUpperCase()}${ritmo.slice(1)}`])}>
-                    <span className={styles.puntoRitmo} />
-                    {autorizacion.sesionesUsadas}/{autorizacion.sesionesTotales} sesiones
+                {autorizaciones.length > 0 && (
+                  <div className={styles.listaSesiones}>
+                    {autorizaciones.map((autorizacion) => {
+                      const ritmo = calcularRitmo(autorizacion)
+                      return (
+                        <div
+                          key={autorizacion.tipoTerapia}
+                          className={cn(styles.filaSesiones, ritmo && styles[`ritmo${ritmo.charAt(0).toUpperCase()}${ritmo.slice(1)}`])}
+                        >
+                          <span className={styles.puntoRitmo} />
+                          {ETIQUETA_TIPO_TERAPIA[autorizacion.tipoTerapia]} · {autorizacion.sesionesUsadas}/{autorizacion.sesionesTotales} sesiones
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>

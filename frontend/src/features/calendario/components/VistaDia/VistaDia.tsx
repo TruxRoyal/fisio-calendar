@@ -73,7 +73,7 @@ interface PropiedadesVistaDia {
 
 export function VistaDia({ fecha, onCambiarFecha, onAbrirCita, onCrearCita, abrirCitaParaPaciente }: PropiedadesVistaDia) {
   const [citas, setCitas] = useState<Cita[]>([])
-  const [autorizaciones, setAutorizaciones] = useState<Record<number, AutorizacionResumen | null>>({})
+  const [autorizaciones, setAutorizaciones] = useState<Record<number, AutorizacionResumen[]>>({})
   const [capacidad, setCapacidad] = useState<CapacidadMensual | null>(null)
   const [busqueda, setBusqueda] = useState('')
   const [filtro, setFiltro] = useState<'todos' | 'respiratoria' | 'fisica' | 'porVencer'>('todos')
@@ -104,10 +104,10 @@ export function VistaDia({ fecha, onCambiarFecha, onAbrirCita, onCrearCita, abri
     }
     let vigente = true
     const ids = idsPacientesClave.split(',').map(Number)
-    Promise.allSettled(ids.map((id) => autorizacionesResumenApi.obtenerActiva(id).then((a) => [id, a] as const))).then((resultados) => {
+    Promise.allSettled(ids.map((id) => autorizacionesResumenApi.listarActivas(id).then((a) => [id, a] as const))).then((resultados) => {
       if (!vigente) return
       const entradas = resultados
-        .filter((r): r is PromiseFulfilledResult<readonly [number, AutorizacionResumen | null]> => r.status === 'fulfilled')
+        .filter((r): r is PromiseFulfilledResult<readonly [number, AutorizacionResumen[]]> => r.status === 'fulfilled')
         .map((r) => r.value)
       setAutorizaciones(Object.fromEntries(entradas))
     })
@@ -173,24 +173,22 @@ export function VistaDia({ fecha, onCambiarFecha, onAbrirCita, onCrearCita, abri
 
   const primerEspacioLibreMin = useMemo(() => segmentos.find((s): s is SegmentoLibre => s.tipo === 'libre' && !s.finDeJornada)?.inicioMin, [segmentos])
 
+  function tienePacienteAutorizacionPorVencer(p: PacienteBusqueda): boolean {
+    return p.autorizacionesActivas.some((a) => {
+      if (!a.fechaVencimiento) return false
+      const dias = diasHasta(a.fechaVencimiento)
+      return dias >= 0 && dias <= DIAS_ALERTA_VENCIMIENTO
+    })
+  }
+
   const pacientesFiltrados = pacientes.filter((p) => {
     if (filtro === 'todos') return true
-    if (filtro === 'porVencer') {
-      const vencimiento = p.autorizacionActiva?.fechaVencimiento
-      if (vencimiento == null) return false
-      const dias = diasHasta(vencimiento)
-      return dias >= 0 && dias <= DIAS_ALERTA_VENCIMIENTO
-    }
+    if (filtro === 'porVencer') return tienePacienteAutorizacionPorVencer(p)
     return p.tipoTerapia === filtro
   })
 
   const pacientesPorVencerNombres = pacientes
-    .filter((p) => {
-      const vencimiento = p.autorizacionActiva?.fechaVencimiento
-      if (vencimiento == null) return false
-      const dias = diasHasta(vencimiento)
-      return dias >= 0 && dias <= DIAS_ALERTA_VENCIMIENTO
-    })
+    .filter(tienePacienteAutorizacionPorVencer)
     .slice(0, 2)
     .map((p) => p.nombre.split(' ')[0])
 
@@ -234,7 +232,7 @@ export function VistaDia({ fecha, onCambiarFecha, onAbrirCita, onCrearCita, abri
                   cita={seg.cita}
                   esProxima={seg.cita.id === proximaCita?.id}
                   esHoy={esHoy}
-                  autorizacion={autorizaciones[seg.cita.pacienteId] ?? null}
+                  autorizacion={autorizaciones[seg.cita.pacienteId]?.find((a) => a.tipoTerapia === seg.cita.tipoTerapia) ?? null}
                   onAbrir={onAbrirCita}
                 />
               )
@@ -346,7 +344,8 @@ export function VistaDia({ fecha, onCambiarFecha, onAbrirCita, onCrearCita, abri
               const color = paciente.tipoTerapia ? TIPO_TERAPIA_COLOR[paciente.tipoTerapia] : null
               const avatarBg = paciente.color ? `${paciente.color}22` : (color?.bg ?? 'var(--s3)')
               const avatarFg = paciente.color ?? color?.fg ?? 'var(--t3)'
-              const autorizacion = paciente.autorizacionActiva
+              const autorizacion =
+                paciente.autorizacionesActivas.find((a) => a.tipoTerapia === paciente.tipoTerapia) ?? paciente.autorizacionesActivas[0] ?? null
               const vence = autorizacion?.fechaVencimiento ? diasHasta(autorizacion.fechaVencimiento) : null
               return (
                 <button type="button" key={paciente.id} onClick={() => alAgendarPaciente(paciente)} className={styles.filaPacienteAgendar}>
@@ -438,8 +437,8 @@ function TarjetaCitaDia({
   autorizacion: AutorizacionResumen | null
   onAbrir: (cita: Cita) => void
 }) {
-  const colorTipo = cita.paciente.tipoTerapia ? TIPO_TERAPIA_COLOR[cita.paciente.tipoTerapia] : null
-  const colorBorde = cita.paciente.color ?? colorTipo?.fg ?? 'var(--ac)'
+  const colorTipo = TIPO_TERAPIA_COLOR[cita.tipoTerapia]
+  const colorBorde = cita.paciente.color ?? colorTipo.fg ?? 'var(--ac)'
   const duracion = diferenciaMinutos(cita.inicio, cita.fin)
   const sesionesUsadas = autorizacion ? autorizacion.sesionesTotales - autorizacion.sesionesRestantes : null
 
@@ -456,7 +455,7 @@ function TarjetaCitaDia({
       </div>
 
       <div className={styles.tarjetaCitaInfo}>
-        <div className={styles.avatarCita} style={{ background: colorTipo?.bg ?? 'var(--s3)', color: colorBorde } as CSSProperties}>
+        <div className={styles.avatarCita} style={{ background: colorTipo.bg, color: colorBorde } as CSSProperties}>
           {iniciales(cita.paciente.nombre)}
         </div>
         <div className={styles.tarjetaCitaTexto}>
@@ -467,7 +466,7 @@ function TarjetaCitaDia({
           <div className={styles.filaTipoDetalle}>
             <span className={styles.puntoTipo} style={{ background: colorBorde }} />
             <span>
-              {cita.paciente.tipoTerapia ? ETIQUETA_TIPO_TERAPIA[cita.paciente.tipoTerapia] : 'Cita'}
+              {ETIQUETA_TIPO_TERAPIA[cita.tipoTerapia]}
               {esProxima && cita.paciente.direccion && ` · ${cita.paciente.direccion}`}
               {!esProxima && cita.notas && ` · ${cita.notas}`}
             </span>
