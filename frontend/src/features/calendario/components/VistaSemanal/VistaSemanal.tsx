@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react'
 import { useCitas } from '../../hooks/useCitas'
 import { useGestionCita } from '../../hooks/useGestionCita'
@@ -34,7 +34,7 @@ import styles from './VistaSemanal.module.css'
 
 const HORA_INICIO = 6
 const HORA_FIN = 20
-const ALTURA_HORA = 56
+const ALTURA_HORA_MINIMA = 56
 const DURACION_DEFECTO = 30
 
 export function VistaSemanal() {
@@ -84,6 +84,9 @@ function VistaSemanalEscritorio() {
   const refGrilla = useRef<HTMLDivElement>(null)
   const refCuerpoSemana = useRef<HTMLDivElement>(null)
   const [anchoScrollbar, setAnchoScrollbar] = useState(0)
+  const [alturaHora, setAlturaHora] = useState(ALTURA_HORA_MINIMA)
+  const alturaHoraRef = useRef(ALTURA_HORA_MINIMA)
+  const observadorCuerpoSemanaRef = useRef<ResizeObserver | null>(null)
   const refCandidato = useRef<{ cita: Cita; diaIndice: number; modo: 'mover' | 'redimensionar'; pageX: number; pageY: number } | null>(null)
   const [arrastre, setArrastre] = useState<ArrastreActivo | null>(null)
   const refCandidatoPaciente = useRef<{ paciente: PacienteBusqueda; clientX: number; clientY: number } | null>(null)
@@ -91,7 +94,7 @@ function VistaSemanalEscritorio() {
 
   const dias = Array.from({ length: 7 }, (_, i) => sumarDias(inicioSemanaActual, i))
   const horas = Array.from({ length: HORA_FIN - HORA_INICIO }, (_, i) => HORA_INICIO + i)
-  const alturaTotal = (HORA_FIN - HORA_INICIO) * ALTURA_HORA
+  const alturaTotal = (HORA_FIN - HORA_INICIO) * alturaHora
   const UMBRAL_ARRASTRE = 4
 
   const refCitas = useRef(citas)
@@ -108,7 +111,7 @@ function VistaSemanalEscritorio() {
       const rect = refGrilla.current.getBoundingClientRect()
       const anchoColumna = rect.width / 7
       const deltaY = evento.pageY - actual.pageYInicial
-      const deltaMinutos = snap((deltaY / ALTURA_HORA) * 60)
+      const deltaMinutos = snap((deltaY / alturaHoraRef.current) * 60)
 
       if (actual.modo === 'redimensionar') {
         const duracionOriginal = diferenciaMinutos(actual.inicioOrigen, actual.finOrigen)
@@ -198,18 +201,27 @@ function VistaSemanalEscritorio() {
 
   // La cabecera de días vive fuera de .cuerpoSemana (para quedar fija mientras
   // la grilla hace scroll vertical), así que no pierde ancho automáticamente
-  // cuando aparece la barra de scroll del navegador. Medimos ese ancho una
-  // vez y lo reservamos también en la cabecera para que las columnas sigan
-  // alineadas con las de la grilla.
-  useEffect(() => {
-    function medirScrollbar() {
-      const el = refCuerpoSemana.current
-      if (el) setAnchoScrollbar(el.offsetWidth - el.clientWidth)
-    }
-    medirScrollbar()
-    window.addEventListener('resize', medirScrollbar)
-    return () => window.removeEventListener('resize', medirScrollbar)
+  // cuando aparece la barra de scroll del navegador. Medimos ese ancho, y
+  // también el alto disponible, con un ResizeObserver: así la altura de cada
+  // hora se estira para llenar el contenedor en vez de dejar espacio muerto
+  // cuando la grilla (14h fijas) es más baja que el viewport.
+  const refCuerpoSemanaCallback = useCallback((nodo: HTMLDivElement | null) => {
+    refCuerpoSemana.current = nodo
+    observadorCuerpoSemanaRef.current?.disconnect()
+    observadorCuerpoSemanaRef.current = null
+    if (!nodo) return
+    const observador = new ResizeObserver(([entrada]) => {
+      if (!entrada) return
+      setAnchoScrollbar(nodo.offsetWidth - nodo.clientWidth)
+      const nuevaAltura = Math.max(ALTURA_HORA_MINIMA, entrada.contentRect.height / (HORA_FIN - HORA_INICIO))
+      alturaHoraRef.current = nuevaAltura
+      setAlturaHora(nuevaAltura)
+    })
+    observador.observe(nodo)
+    observadorCuerpoSemanaRef.current = observador
   }, [])
+
+  useEffect(() => () => observadorCuerpoSemanaRef.current?.disconnect(), [])
 
   async function finalizarArrastre(actual: ArrastreActivo) {
     if (actual.inicioPropuesto === actual.inicioOrigen && actual.finPropuesto === actual.finOrigen) return
@@ -252,7 +264,7 @@ function VistaSemanalEscritorio() {
     const diaIndice = Math.min(6, Math.max(0, Math.floor((clientX - rect.left) / anchoColumna)))
     const minutosDelDia = Math.min(
       (HORA_FIN - HORA_INICIO) * 60 - MINUTOS_SNAP,
-      Math.max(0, snap(((clientY - rect.top) / ALTURA_HORA) * 60)),
+      Math.max(0, snap(((clientY - rect.top) / alturaHora) * 60)),
     )
     const horaCalculada = HORA_INICIO + Math.floor(minutosDelDia / 60)
     const minutos = minutosDelDia % 60
@@ -275,7 +287,7 @@ function VistaSemanalEscritorio() {
   function alDobleClicEnColumna(dia: Date, evento: ReactMouseEvent<HTMLDivElement>) {
     if (evento.target !== evento.currentTarget) return
     const rect = evento.currentTarget.getBoundingClientRect()
-    const minutosDelDia = snap(((evento.clientY - rect.top) / ALTURA_HORA) * 60)
+    const minutosDelDia = snap(((evento.clientY - rect.top) / alturaHora) * 60)
     const horaCalculada = HORA_INICIO + Math.floor(minutosDelDia / 60)
     const minutos = minutosDelDia % 60
     const inicio = combinarFechaHora(
@@ -307,11 +319,11 @@ function VistaSemanalEscritorio() {
               onHoy={irHoy}
             />
 
-            <div ref={refCuerpoSemana} className={styles.cuerpoSemana}>
+            <div ref={refCuerpoSemanaCallback} className={styles.cuerpoSemana}>
               <div className={styles.columnaHoras}>
                 <div className={styles.espaciadorHoras} />
                 {horas.map((hora) => (
-                  <div key={hora} className={styles.filaHora}>
+                  <div key={hora} className={styles.filaHora} style={{ height: alturaHora }}>
                     <span className={styles.textoHora}>{String(hora).padStart(2, '0')}:00</span>
                   </div>
                 ))}
@@ -326,10 +338,13 @@ function VistaSemanalEscritorio() {
                       key={dia.toISOString()}
                       onDoubleClick={(evento) => alDobleClicEnColumna(dia, evento)}
                       className={cn(styles.columnaDia, esHoy && styles.hoy)}
-                      style={{ height: alturaTotal }}
+                      style={{
+                        height: alturaTotal,
+                        backgroundImage: `repeating-linear-gradient(to bottom, var(--grid) 0 1px, transparent 1px ${alturaHora}px)`,
+                      }}
                     >
                       {esHoy && minutosAhora >= 0 && minutosAhora <= (HORA_FIN - HORA_INICIO) * 60 && (
-                        <div className={styles.lineaAhora} style={{ top: (minutosAhora / 60) * ALTURA_HORA }}>
+                        <div className={styles.lineaAhora} style={{ top: (minutosAhora / 60) * alturaHora }}>
                           <span className={styles.puntoAhora} />
                         </div>
                       )}
@@ -341,8 +356,8 @@ function VistaSemanalEscritorio() {
                           <BloqueCita
                             key={cita.id}
                             cita={cita}
-                            top={(minutosDesdeHoraBase(cita.inicio, HORA_INICIO) / 60) * ALTURA_HORA}
-                            altura={(diferenciaMinutos(cita.inicio, cita.fin) / 60) * ALTURA_HORA}
+                            top={(minutosDesdeHoraBase(cita.inicio, HORA_INICIO) / 60) * alturaHora}
+                            altura={(diferenciaMinutos(cita.inicio, cita.fin) / 60) * alturaHora}
                             onAbrir={() => abrirCitaExistente(cita)}
                             onIniciarArrastre={(evento) => iniciarArrastre(cita, indiceDia, 'mover', evento)}
                             onIniciarRedimension={(evento) => iniciarArrastre(cita, indiceDia, 'redimensionar', evento)}
@@ -353,8 +368,8 @@ function VistaSemanalEscritorio() {
                         <BloqueCitaFantasma
                           inicio={arrastre.inicioPropuesto}
                           fin={arrastre.finPropuesto}
-                          top={(minutosDesdeHoraBase(arrastre.inicioPropuesto, HORA_INICIO) / 60) * ALTURA_HORA}
-                          altura={(diferenciaMinutos(arrastre.inicioPropuesto, arrastre.finPropuesto) / 60) * ALTURA_HORA}
+                          top={(minutosDesdeHoraBase(arrastre.inicioPropuesto, HORA_INICIO) / 60) * alturaHora}
+                          altura={(diferenciaMinutos(arrastre.inicioPropuesto, arrastre.finPropuesto) / 60) * alturaHora}
                         />
                       )}
 
@@ -362,8 +377,8 @@ function VistaSemanalEscritorio() {
                         <BloqueCitaFantasma
                           inicio={destinoPaciente.inicio}
                           fin={sumarMinutos(destinoPaciente.inicio, DURACION_DEFECTO)}
-                          top={(minutosDesdeHoraBase(destinoPaciente.inicio, HORA_INICIO) / 60) * ALTURA_HORA}
-                          altura={(DURACION_DEFECTO / 60) * ALTURA_HORA}
+                          top={(minutosDesdeHoraBase(destinoPaciente.inicio, HORA_INICIO) / 60) * alturaHora}
+                          altura={(DURACION_DEFECTO / 60) * alturaHora}
                         />
                       )}
                     </div>
@@ -380,6 +395,7 @@ function VistaSemanalEscritorio() {
             onCambiarFecha={setFechaDia}
             onAbrirCita={abrirCitaExistente}
             onCrearCita={abrirCitaNueva}
+            abrirCitaParaPaciente={abrirCitaParaPaciente}
           />
         )}
 
@@ -394,10 +410,12 @@ function VistaSemanalEscritorio() {
         )}
       </div>
 
-      <PanelPacientes
-        onSeleccionarPaciente={(paciente: PacienteBusqueda) => abrirCitaParaPaciente(combinarFechaHora(hoyISO(), '08:00'), paciente)}
-        onIniciarArrastrePaciente={iniciarArrastrePaciente}
-      />
+      {vista !== 'dia' && (
+        <PanelPacientes
+          onSeleccionarPaciente={(paciente: PacienteBusqueda) => abrirCitaParaPaciente(combinarFechaHora(hoyISO(), '08:00'), paciente)}
+          onIniciarArrastrePaciente={iniciarArrastrePaciente}
+        />
+      )}
 
       {arrastrePaciente && (
         <div

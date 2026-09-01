@@ -34,9 +34,11 @@ dist-server/
 frontend/node_modules/
 frontend/dist/
 
-# Skills (Claude Code)
+# Skills (Claude Code / Codex)
 frontend/.agents/
 frontend/.claude/
+.agents/
+.codex/
 
 # Editores / SO
 .vscode/

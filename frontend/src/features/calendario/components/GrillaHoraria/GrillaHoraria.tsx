@@ -24,12 +24,22 @@ export interface PropsGrillaHoraria {
   onAbrirCita: (cita: Cita) => void
   citaArrastrada?: PosicionArrastre | null
   onIniciarArrastre?: (cita: Cita) => (evento: EventoPunteroReact<HTMLButtonElement>) => void
+  alturaHora?: number
 }
 
-export function GrillaHoraria({ columnas, rango, autorizaciones, onAbrirCita, citaArrastrada, onIniciarArrastre }: PropsGrillaHoraria) {
+export function GrillaHoraria({
+  columnas,
+  rango,
+  autorizaciones,
+  onAbrirCita,
+  citaArrastrada,
+  onIniciarArrastre,
+  alturaHora,
+}: PropsGrillaHoraria) {
+  const altura = alturaHora ?? ALTURA_HORA
   const { horaInicio, horaFin } = rango
   const horas = Array.from({ length: horaFin - horaInicio }, (_, i) => horaInicio + i)
-  const alturaTotal = (horaFin - horaInicio) * ALTURA_HORA
+  const alturaTotal = (horaFin - horaInicio) * altura
   const minutosTotales = (horaFin - horaInicio) * 60
   const hoyIso = hoyISO()
   const ahora = new Date()
@@ -41,7 +51,7 @@ export function GrillaHoraria({ columnas, rango, autorizaciones, onAbrirCita, ci
       <div className={styles.columnaHoras}>
         <div className={styles.espaciadorHoras} />
         {horas.map((hora) => (
-          <div key={hora} className={styles.filaHora}>
+          <div key={hora} className={styles.filaHora} style={{ height: altura }}>
             <span className={styles.textoHora}>{String(hora).padStart(2, '0')}:00</span>
           </div>
         ))}
@@ -51,9 +61,16 @@ export function GrillaHoraria({ columnas, rango, autorizaciones, onAbrirCita, ci
         {columnas.map((columna) => {
           const esHoy = esMismoDia(columna.fechaISO, hoyIso)
           return (
-            <div key={columna.fechaISO} className={cn(styles.columna, esHoy && styles.hoy)} style={{ height: alturaTotal }}>
+            <div
+              key={columna.fechaISO}
+              className={cn(styles.columna, esHoy && styles.hoy)}
+              style={{
+                height: alturaTotal,
+                backgroundImage: `repeating-linear-gradient(to bottom, var(--grid) 0 1px, transparent 1px ${altura}px)`,
+              }}
+            >
               {esHoy && minutosAhora >= 0 && minutosAhora <= minutosTotales && (
-                <div className={styles.lineaAhora} style={{ top: (minutosAhora / 60) * ALTURA_HORA }}>
+                <div className={styles.lineaAhora} style={{ top: (minutosAhora / 60) * altura }}>
                   <span className={styles.puntoAhora} />
                 </div>
               )}
@@ -62,8 +79,8 @@ export function GrillaHoraria({ columnas, rango, autorizaciones, onAbrirCita, ci
                 const arrastrandoEstaCita = citaArrastrada?.citaId === cita.id
                 const inicioEfectivo = arrastrandoEstaCita ? citaArrastrada.nuevoInicio : cita.inicio
                 const finEfectivo = arrastrandoEstaCita ? citaArrastrada.nuevoFin : cita.fin
-                const altura = Math.max((diferenciaMinutos(inicioEfectivo, finEfectivo) / 60) * ALTURA_HORA, ALTURA_MINIMA_BLOQUE)
-                const top = (minutosDesdeHoraBase(inicioEfectivo, horaInicio) / 60) * ALTURA_HORA
+                const alturaBloque = Math.max((diferenciaMinutos(inicioEfectivo, finEfectivo) / 60) * altura, ALTURA_MINIMA_BLOQUE)
+                const top = (minutosDesdeHoraBase(inicioEfectivo, horaInicio) / 60) * altura
                 return (
                   <TarjetaCitaMovil
                     key={cita.id}
@@ -71,10 +88,10 @@ export function GrillaHoraria({ columnas, rango, autorizaciones, onAbrirCita, ci
                     autorizacion={autorizaciones[cita.pacienteId]}
                     onAbrir={() => onAbrirCita(cita)}
                     variante="grilla"
-                    compacto={altura < ALTURA_COMPACTA}
+                    compacto={alturaBloque < ALTURA_COMPACTA}
                     arrastrando={arrastrandoEstaCita}
                     onPointerDown={onIniciarArrastre?.(cita)}
-                    style={{ top, height: altura }}
+                    style={{ top, height: alturaBloque }}
                   />
                 )
               })}
@@ -82,7 +99,7 @@ export function GrillaHoraria({ columnas, rango, autorizaciones, onAbrirCita, ci
               {citaArrastrada && columna.citas.some((cita) => cita.id === citaArrastrada.citaId) && (
                 <div
                   className={styles.chipHora}
-                  style={{ top: (minutosDesdeHoraBase(citaArrastrada.nuevoInicio, horaInicio) / 60) * ALTURA_HORA - 26 }}
+                  style={{ top: (minutosDesdeHoraBase(citaArrastrada.nuevoInicio, horaInicio) / 60) * altura - 26 }}
                 >
                   {formatearHora(citaArrastrada.nuevoInicio)} – {formatearHora(citaArrastrada.nuevoFin)}
                 </div>

@@ -10,6 +10,7 @@ export interface PropsVistaDiaMovil {
   fechaISO: string
   citasDelDia: Cita[]
   rango: RangoHorario
+  alturaHora?: number
   autorizaciones: Record<number, AutorizacionResumen | null>
   onAbrirCita: (cita: Cita) => void
   citaArrastrada?: PosicionArrastre | null
@@ -20,6 +21,7 @@ export function VistaDiaMovil({
   fechaISO,
   citasDelDia,
   rango,
+  alturaHora,
   autorizaciones,
   onAbrirCita,
   citaArrastrada,
@@ -30,6 +32,7 @@ export function VistaDiaMovil({
       <GrillaHoraria
         columnas={[{ fechaISO, citas: citasDelDia }]}
         rango={rango}
+        alturaHora={alturaHora}
         autorizaciones={autorizaciones}
         onAbrirCita={onAbrirCita}
         citaArrastrada={citaArrastrada}

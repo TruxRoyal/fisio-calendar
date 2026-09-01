@@ -1,0 +1,68 @@
+
+name: Deploy a producción
+
+on:
+  push:
+    branches: [prod]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Configurar Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'backend/go.mod'
+
+      - name: Build del frontend
+        working-directory: frontend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Copiar frontend a backend/web
+        run: |
+          find backend/web -mindepth 1 -not -name '.gitkeep' -not -name 'embed.go' -delete
+          cp -r frontend/dist/* backend/web/
+
+      - name: Compilar binario Go ARM64
+        working-directory: backend
+        env:
+          GOOS: linux
+          GOARCH: arm64
+          CGO_ENABLED: '0'
+        run: go build -trimpath -ldflags "-s -w" -o ../dist-server/server ./cmd/server
+
+      - name: Configurar clave SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Subir binario a la VM
+        run: |
+          scp -i ~/.ssh/deploy_key dist-server/server ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:/home/ubuntu/server.new
+
+      - name: Reemplazar y reiniciar servicio
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} '
+            cp /home/ubuntu/server /home/ubuntu/server.bak 2>/dev/null || true
+            chmod +x /home/ubuntu/server.new
+            mv /home/ubuntu/server.new /home/ubuntu/server
+            sudo systemctl restart fisio-calendar
+          '

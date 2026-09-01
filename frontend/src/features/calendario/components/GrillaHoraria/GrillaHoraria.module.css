@@ -41,7 +41,6 @@
   min-width: 0;
   position: relative;
   border-left: 1px solid var(--grid);
-  background-image: repeating-linear-gradient(to bottom, var(--grid) 0 1px, transparent 1px 56px);
 }
 
 .columna.hoy {

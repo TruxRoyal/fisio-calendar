@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useCitas } from '../../hooks/useCitas'
 import { useGestionCita } from '../../hooks/useGestionCita'
 import { useArrastreMovil } from '../../hooks/useArrastreMovil'
@@ -57,9 +57,24 @@ export function VistaAgendaMovil() {
   const [buscadorAbierto, setBuscadorAbierto] = useState(false)
   const [autorizaciones, setAutorizaciones] = useState<Record<number, AutorizacionResumen | null>>({})
   const [citaArrastrada, setCitaArrastrada] = useState<PosicionArrastre | null>(null)
+  const observadorListaRef = useRef<ResizeObserver | null>(null)
+  const [alturaListaDisponible, setAlturaListaDisponible] = useState(0)
 
   const dias = Array.from({ length: 6 }, (_, i) => sumarDias(inicioSemanaActual, i))
   const diaSeleccionadoISO = formatearFechaISO(diaSeleccionado)
+
+  const listaRef = useCallback((nodo: HTMLDivElement | null) => {
+    observadorListaRef.current?.disconnect()
+    observadorListaRef.current = null
+    if (!nodo) return
+    const observador = new ResizeObserver(([entrada]) => {
+      if (entrada) setAlturaListaDisponible(entrada.contentRect.height)
+    })
+    observador.observe(nodo)
+    observadorListaRef.current = observador
+  }, [])
+
+  useEffect(() => () => observadorListaRef.current?.disconnect(), [])
 
   const diasGrillaMes = useMemo(() => {
     const inicioGrilla = inicioSemana(inicioMes(mesReferencia))
@@ -103,6 +118,11 @@ export function VistaAgendaMovil() {
   )
 
   const rangoDia = useMemo(() => rangoHorarioDelDia(citasDelDia), [citasDelDia])
+  const alturaHoraDia = useMemo(() => {
+    const horasRango = rangoDia.horaFin - rangoDia.horaInicio
+    if (horasRango <= 0) return ALTURA_HORA
+    return Math.max(ALTURA_HORA, alturaListaDisponible / horasRango)
+  }, [rangoDia, alturaListaDisponible])
 
   async function confirmarArrastre(posicion: PosicionArrastre) {
     const cita = citas.find((c) => c.id === posicion.citaId)
@@ -135,7 +155,7 @@ export function VistaAgendaMovil() {
   }
 
   const { iniciarArrastre: iniciarArrastreDia } = useArrastreMovil({
-    alturaHora: ALTURA_HORA,
+    alturaHora: alturaHoraDia,
     rango: rangoDia,
     onArrastreInicio: setCitaArrastrada,
     onArrastrar: setCitaArrastrada,
@@ -329,12 +349,13 @@ export function VistaAgendaMovil() {
         )}
       </div>
 
-      <div className={cn(styles.lista, modoVista === 'semana' && styles.listaSemana)} key={modoVista}>
+      <div ref={listaRef} className={cn(styles.lista, modoVista === 'semana' && styles.listaSemana)} key={modoVista}>
         {modoVista === 'dia' && (
           <VistaDiaMovil
             fechaISO={diaSeleccionadoISO}
             citasDelDia={citasDelDia}
             rango={rangoDia}
+            alturaHora={alturaHoraDia}
             autorizaciones={autorizaciones}
             onAbrirCita={abrirCitaExistente}
             citaArrastrada={citaArrastrada}
