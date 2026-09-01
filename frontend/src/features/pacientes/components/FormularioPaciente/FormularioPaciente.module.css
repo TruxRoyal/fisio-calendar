@@ -80,8 +80,30 @@
 }
 
 .mensajeError {
-  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 500;
   color: var(--dgFg);
+}
+
+.bannerError {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--dgBd);
+  background: var(--dgBg);
+  color: var(--dgFg);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.bannerError svg {
+  margin-top: 1px;
 }
 
 .filaAcciones {

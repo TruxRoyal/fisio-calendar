@@ -1,6 +1,7 @@
 import type { InputHTMLAttributes, TextareaHTMLAttributes } from 'react'
 import { useId } from 'react'
 import { cn } from '../../lib/clases'
+import { Icono } from '../Icono/Icono'
 import styles from './Input.module.css'
 
 interface PropiedadesInput extends InputHTMLAttributes<HTMLInputElement> {
@@ -20,7 +21,12 @@ export function Input({ etiqueta, error, id, className, ...resto }: PropiedadesI
         </label>
       )}
       <input id={idCampo} {...resto} className={cn(styles.campo, error && styles.error, className)} />
-      {error && <span className={styles.mensajeError}>{error}</span>}
+      {error && (
+        <span className={styles.mensajeError}>
+          <Icono nombre="alerta" tamano={13} grosor={2} />
+          {error}
+        </span>
+      )}
     </div>
   )
 }
