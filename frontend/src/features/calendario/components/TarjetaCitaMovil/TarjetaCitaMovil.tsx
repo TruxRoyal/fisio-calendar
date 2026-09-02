@@ -57,6 +57,11 @@ export function TarjetaCitaMovil({
         )}
         style={{ '--color-borde': colorBorde } as CSSProperties}
       >
+        {autorizacion && (
+          <span className={cn(styles.chipSesiones, sesionesBajas && styles.urgente)}>
+            {autorizacion.sesionesTotales - autorizacion.sesionesRestantes}/{autorizacion.sesionesTotales}
+          </span>
+        )}
         {variante === 'grillaHorizontal' ? (
           <>
             <div className={styles.filaNombre}>
