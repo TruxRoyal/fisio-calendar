@@ -13,12 +13,23 @@ export interface PropsTarjetaCitaMovil {
   onAbrir: () => void
   variante?: 'lista' | 'grilla' | 'grillaHorizontal'
   compacto?: boolean
+  ocultarBadges?: boolean
   arrastrando?: boolean
   onPointerDown?: PointerEventHandler<HTMLButtonElement>
   style?: CSSProperties
 }
 
-export function TarjetaCitaMovil({ cita, autorizacion, onAbrir, variante = 'lista', compacto, arrastrando, onPointerDown, style }: PropsTarjetaCitaMovil) {
+export function TarjetaCitaMovil({
+  cita,
+  autorizacion,
+  onAbrir,
+  variante = 'lista',
+  compacto,
+  ocultarBadges,
+  arrastrando,
+  onPointerDown,
+  style,
+}: PropsTarjetaCitaMovil) {
   const estado = cita.estado
   const colorTipo = TIPO_TERAPIA_COLOR[cita.tipoTerapia]
   const colorBorde = cita.paciente.color ?? colorTipo.fg ?? 'var(--ac)'
@@ -75,7 +86,7 @@ export function TarjetaCitaMovil({ cita, autorizacion, onAbrir, variante = 'list
                 <span>{cita.paciente.direccion}</span>
               </div>
             )}
-            {!compacto && (autorizacion || cita.copagoCobrado > 0) && (
+            {!compacto && !ocultarBadges && (autorizacion || cita.copagoCobrado > 0) && (
               <div className={styles.filaBadges}>
                 {autorizacion && (
                   <span className={cn(styles.badgeSesiones, sesionesBajas && styles.urgente)}>
