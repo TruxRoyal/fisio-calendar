@@ -55,13 +55,17 @@ export function FichaPaciente({ paciente }: PropiedadesFichaPaciente) {
   const [eventos, setEventos] = useState<EventoCronologia[]>([])
   const [financiero, setFinanciero] = useState<ResumenFinancieroPaciente | null>(null)
 
+  async function refrescarAutorizaciones() {
+    const lista = await autorizacionesApi.listarPorPaciente(paciente.id)
+    setAutorizaciones(lista.filter((a) => a.activa))
+  }
+
   useEffect(() => {
-    autorizacionesApi.listarPorPaciente(paciente.id).then((lista) => {
-      setAutorizaciones(lista.filter((a) => a.activa))
-    })
+    refrescarAutorizaciones()
     pacientesApi.obtenerCronologia(paciente.id).then(setEventos)
     const ahora = new Date()
     pacientesApi.obtenerResumenFinanciero(paciente.id, ahora.getFullYear(), ahora.getMonth() + 1).then(setFinanciero)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paciente.id])
 
   async function confirmarEliminacion() {
@@ -220,7 +224,10 @@ export function FichaPaciente({ paciente }: PropiedadesFichaPaciente) {
       <SeccionAutorizacion
         pacienteId={paciente.id}
         autorizacionesActivas={autorizaciones}
-        onActualizado={() => seleccionarPaciente(paciente.id)}
+        onActualizado={async () => {
+          await refrescarAutorizaciones()
+          await seleccionarPaciente(paciente.id)
+        }}
       />
 
       <div className={styles.gridDetalle}>
