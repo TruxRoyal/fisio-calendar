@@ -1,4 +1,3 @@
-
 name: Deploy a producción
 
 on:
@@ -58,6 +57,10 @@ jobs:
       - name: Subir binario a la VM
         run: |
           scp -i ~/.ssh/deploy_key dist-server/server ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:/home/ubuntu/server.new
+
+      - name: Respaldo antes de desplegar
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} '/home/ubuntu/backup.sh'
 
       - name: Reemplazar y reiniciar servicio
         run: |
