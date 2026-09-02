@@ -128,7 +128,7 @@ export function FormularioPaciente({ abierto, pacienteInicial, onCerrar, onGuard
           <Input etiqueta="EPS" value={solicitud.eps ?? ''} onChange={(e) => actualizarCampo('eps', e.target.value)} />
         </div>
         <div className={styles.grupo}>
-          <span className={styles.etiquetaGrupo}>Tipo de terapia</span>
+          <span className={styles.etiquetaGrupo}>Tipo de terapia preferido</span>
           <div className={styles.filaChips}>
             {(['respiratoria', 'fisica'] as TipoTerapia[]).map((tipo) => (
               <button
@@ -141,6 +141,9 @@ export function FormularioPaciente({ abierto, pacienteInicial, onCerrar, onGuard
               </button>
             ))}
           </div>
+          <span className={styles.textoAyuda}>
+            Se usa como valor por defecto al agendar una cita; no limita las terapias que puede recibir el paciente.
+          </span>
           {erroresCampo.tipoTerapia && (
             <span className={styles.mensajeError}>
               <Icono nombre="alerta" tamano={13} grosor={2} />

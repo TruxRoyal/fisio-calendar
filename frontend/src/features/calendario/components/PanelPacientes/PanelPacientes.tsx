@@ -117,7 +117,7 @@ export function PanelPacientes({ onSeleccionarPaciente, onIniciarArrastrePacient
         return dias >= 0 && dias <= DIAS_ALERTA_VENCIMIENTO
       })
     }
-    return p.tipoTerapia === filtro
+    return p.tiposTerapia.includes(filtro)
   })
 
   return (
@@ -240,14 +240,15 @@ export function PanelPacientes({ onSeleccionarPaciente, onIniciarArrastrePacient
               <div className={styles.infoPaciente}>
                 <div className={styles.filaNombrePaciente}>
                   <span className={styles.nombrePaciente}>{paciente.nombre}</span>
-                  {paciente.tipoTerapia && (
+                  {paciente.tiposTerapia.map((tipo) => (
                     <Icono
-                      nombre={paciente.tipoTerapia === 'respiratoria' ? 'pulmon' : 'pulso'}
+                      key={tipo}
+                      nombre={tipo === 'respiratoria' ? 'pulmon' : 'pulso'}
                       tamano={13}
                       grosor={1.9}
                       className={styles.iconoTipoPaciente}
                     />
-                  )}
+                  ))}
                   {paciente.origen === 'extra' && <Badge variant="accent">Extra</Badge>}
                 </div>
                 <div className={styles.subtituloPaciente}>{paciente.eps ?? 'Particular'}</div>

@@ -59,7 +59,9 @@ export function PaginaPacientes() {
     })
   }
 
-  const pacientesFiltrados = pacientes.filter((paciente) => filtroTipo === 'todos' || paciente.tipoTerapia === filtroTipo)
+  const pacientesFiltrados = pacientes.filter(
+    (paciente) => filtroTipo === 'todos' || paciente.tiposTerapia.includes(filtroTipo),
+  )
 
   return (
     <div className={styles.pagina}>

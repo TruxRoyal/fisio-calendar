@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Boton } from '../../../../shared/components/Boton/Boton'
@@ -14,12 +14,17 @@ import { SeccionAutorizacion } from '../SeccionAutorizacion/SeccionAutorizacion'
 import { formatearCOP } from '../../../../shared/lib/moneda'
 import { calcularEdad, diasHasta, formatearFechaCorta, formatearMesAnio } from '../../../../shared/lib/fecha'
 import { cn } from '../../../../shared/lib/clases'
-import { ETIQUETA_TIPO_TERAPIA } from '../../../../shared/types/comun'
+import type { TipoTerapia } from '../../../../shared/types/comun'
 import type { Autorizacion, EventoCronologia, PacienteDetalle, ResumenFinancieroPaciente } from '../../types'
 import styles from './FichaPaciente.module.css'
 
 interface PropiedadesFichaPaciente {
   paciente: PacienteDetalle
+}
+
+const ETIQUETA_CORTA_TIPO_TERAPIA: Record<TipoTerapia, string> = {
+  respiratoria: 'Respiratoria',
+  fisica: 'Física',
 }
 
 function iniciales(nombre: string): string {
@@ -46,13 +51,13 @@ export function FichaPaciente({ paciente }: PropiedadesFichaPaciente) {
   const eliminarPaciente = usePacientesStore((estado) => estado.eliminarPaciente)
   const seleccionarPaciente = usePacientesStore((estado) => estado.seleccionarPaciente)
 
-  const [autorizacionCompleta, setAutorizacionCompleta] = useState<Autorizacion | null>(null)
+  const [autorizaciones, setAutorizaciones] = useState<Autorizacion[]>([])
   const [eventos, setEventos] = useState<EventoCronologia[]>([])
   const [financiero, setFinanciero] = useState<ResumenFinancieroPaciente | null>(null)
 
   useEffect(() => {
     autorizacionesApi.listarPorPaciente(paciente.id).then((lista) => {
-      setAutorizacionCompleta(lista.find((a) => a.activa) ?? null)
+      setAutorizaciones(lista.filter((a) => a.activa))
     })
     pacientesApi.obtenerCronologia(paciente.id).then(setEventos)
     const ahora = new Date()
@@ -64,7 +69,15 @@ export function FichaPaciente({ paciente }: PropiedadesFichaPaciente) {
   }
 
   const ultimaSesion = eventos.find((e) => e.tipo === 'sesion_atendida')
-  const diasParaVencer = autorizacionCompleta?.fechaVencimiento ? diasHasta(autorizacionCompleta.fechaVencimiento) : null
+
+  const autorizacionesConVencimiento = autorizaciones.map((autorizacion) => ({
+    autorizacion,
+    diasParaVencer: autorizacion.fechaVencimiento ? diasHasta(autorizacion.fechaVencimiento) : null,
+  }))
+  const alertasVencimiento = autorizacionesConVencimiento.filter(
+    (item): item is { autorizacion: Autorizacion; diasParaVencer: number } =>
+      item.diasParaVencer !== null && item.diasParaVencer <= 7,
+  )
 
   return (
     <div className={styles.ficha}>
@@ -127,55 +140,78 @@ export function FichaPaciente({ paciente }: PropiedadesFichaPaciente) {
         </button>
       </div>
 
-      {autorizacionCompleta && diasParaVencer !== null && diasParaVencer <= 7 && (
-        <div className={styles.alertaVencimiento}>
+      {alertasVencimiento.map(({ autorizacion, diasParaVencer }) => (
+        <div key={autorizacion.id} className={styles.alertaVencimiento}>
           <Icono nombre="alerta" tamano={18} grosor={2} className={styles.iconoAlerta} />
           <div className={styles.contenidoAlerta}>
             <div className={styles.tituloAlerta}>
-              {describirVencimiento(diasParaVencer)}
-              {autorizacionCompleta.sesionesRestantes <= 2 && ` y quedan ${autorizacionCompleta.sesionesRestantes} sesión(es)`}
+              {ETIQUETA_CORTA_TIPO_TERAPIA[autorizacion.tipoTerapia]}: {describirVencimiento(diasParaVencer)}
+              {autorizacion.sesionesRestantes <= 2 && ` y quedan ${autorizacion.sesionesRestantes} sesión(es)`}
             </div>
             <div className={styles.subAlerta}>Conviene tramitar la renovación con {paciente.eps ?? 'la EPS'} pronto.</div>
           </div>
         </div>
-      )}
+      ))}
 
       <div className={styles.gridStats}>
-        <TarjetaStat
-          icono="calendario"
-          etiqueta="Sesiones"
-          valorGrande={autorizacionCompleta ? `${autorizacionCompleta.sesionesRestantes}` : '—'}
-          valorChico={autorizacionCompleta ? ` de ${autorizacionCompleta.sesionesTotales}` : undefined}
-          barraPct={autorizacionCompleta ? (autorizacionCompleta.sesionesUsadas / Math.max(1, autorizacionCompleta.sesionesTotales)) * 100 : undefined}
-          nota={ultimaSesion ? `${autorizacionCompleta?.sesionesUsadas ?? 0} usadas · última el ${formatearFechaCorta(ultimaSesion.fecha)}` : 'Sin sesiones registradas'}
-        />
-        <TarjetaStat
-          icono="reloj"
-          etiqueta="Vencimiento"
-          alerta={diasParaVencer !== null && diasParaVencer <= 7}
-          valorGrande={diasParaVencer !== null ? String(diasParaVencer) : '—'}
-          valorChico={diasParaVencer !== null ? ' días' : undefined}
-          nota={autorizacionCompleta?.fechaVencimiento ? formatearFechaCorta(autorizacionCompleta.fechaVencimiento) : 'Sin autorización activa'}
-        />
-        {paciente.origen === 'extra' ? (
+        {autorizaciones.length > 0 ? (
+          autorizaciones.map((autorizacion) => {
+            const diasParaVencer = autorizacion.fechaVencimiento ? diasHasta(autorizacion.fechaVencimiento) : null
+            const etiquetaTipo = ETIQUETA_CORTA_TIPO_TERAPIA[autorizacion.tipoTerapia]
+            return (
+              <Fragment key={autorizacion.id}>
+                <TarjetaStat
+                  icono="calendario"
+                  etiqueta={`Sesiones · ${etiquetaTipo}`}
+                  valorGrande={`${autorizacion.sesionesRestantes}`}
+                  valorChico={` de ${autorizacion.sesionesTotales}`}
+                  barraPct={(autorizacion.sesionesUsadas / Math.max(1, autorizacion.sesionesTotales)) * 100}
+                  nota={
+                    ultimaSesion
+                      ? `${autorizacion.sesionesUsadas} usadas · última el ${formatearFechaCorta(ultimaSesion.fecha)}`
+                      : `${autorizacion.sesionesUsadas} usadas`
+                  }
+                />
+                <TarjetaStat
+                  icono="reloj"
+                  etiqueta={`Vencimiento · ${etiquetaTipo}`}
+                  alerta={diasParaVencer !== null && diasParaVencer <= 7}
+                  valorGrande={diasParaVencer !== null ? String(diasParaVencer) : '—'}
+                  valorChico={diasParaVencer !== null ? ' días' : undefined}
+                  nota={autorizacion.fechaVencimiento ? formatearFechaCorta(autorizacion.fechaVencimiento) : 'Sin vencimiento'}
+                />
+                {paciente.origen !== 'extra' && (
+                  <TarjetaStat
+                    icono="ingresos"
+                    etiqueta={`Copago · ${etiquetaTipo}`}
+                    valorGrande={formatearCOP(autorizacion.copago)}
+                    nota="Por sesión, en efectivo"
+                  />
+                )}
+              </Fragment>
+            )
+          })
+        ) : (
+          <>
+            <TarjetaStat icono="calendario" etiqueta="Sesiones" valorGrande="—" nota="Sin autorización activa" />
+            <TarjetaStat icono="reloj" etiqueta="Vencimiento" valorGrande="—" nota="Sin autorización activa" />
+            {paciente.origen !== 'extra' && (
+              <TarjetaStat icono="ingresos" etiqueta="Copago" valorGrande="—" nota="Sin autorización activa" />
+            )}
+          </>
+        )}
+        {paciente.origen === 'extra' && (
           <TarjetaStat
             icono="ingresos"
             etiqueta="Tarifa"
             valorGrande={paciente.tarifaSesion !== null ? formatearCOP(paciente.tarifaSesion) : '—'}
             nota="Fija por sesión · paciente extra"
           />
-        ) : (
-          <TarjetaStat
-            icono="ingresos"
-            etiqueta="Copago"
-            valorGrande={autorizacionCompleta ? formatearCOP(autorizacionCompleta.copago) : '—'}
-            nota="Por sesión, en efectivo"
-          />
         )}
         <TarjetaStat
           icono="pulso"
           etiqueta="Terapia"
-          valorGrande={paciente.tipoTerapia ? ETIQUETA_TIPO_TERAPIA[paciente.tipoTerapia] : '—'}
+          valorGrande={paciente.tiposTerapia.map((tipo) => ETIQUETA_CORTA_TIPO_TERAPIA[tipo]).join(' + ') || '—'}
           textoLargo
           nota={paciente.eps ?? 'Particular'}
         />
@@ -183,7 +219,7 @@ export function FichaPaciente({ paciente }: PropiedadesFichaPaciente) {
 
       <SeccionAutorizacion
         pacienteId={paciente.id}
-        autorizacionActiva={paciente.autorizacionActiva}
+        autorizacionesActivas={autorizaciones}
         onActualizado={() => seleccionarPaciente(paciente.id)}
       />
 
