@@ -97,6 +97,9 @@ func (r *Repository) Listar(ctx context.Context, busqueda, mes string) ([]Pacien
 
 	for i := range pacientes {
 		activas := activasPorPaciente[pacientes[i].ID]
+		if activas == nil {
+			activas = []AutorizacionResumen{}
+		}
 		pacientes[i].AutorizacionesActivas = activas
 		pacientes[i].TiposTerapia = calcularTiposTerapia(activas, pacientes[i].TipoTerapia)
 	}
