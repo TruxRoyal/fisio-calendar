@@ -26,8 +26,8 @@ export interface PropsVistaMesMovil {
 }
 
 function colorCategoriaCita(cita: Cita): string {
-  const colorTipo = cita.paciente.tipoTerapia ? TIPO_TERAPIA_COLOR[cita.paciente.tipoTerapia] : null
-  return cita.paciente.color ?? colorTipo?.fg ?? 'var(--ac)'
+  const colorTipo = TIPO_TERAPIA_COLOR[cita.tipoTerapia]
+  return cita.paciente.color ?? colorTipo.fg ?? 'var(--ac)'
 }
 
 function coloresCategoriaDelDia(citasMes: Cita[], dia: Date): string[] {

@@ -33,12 +33,16 @@ func (s *Service) ObtenerDetalle(ctx context.Context, id int64) (*PacienteDetall
 		return nil, ErrNoEncontrado
 	}
 
-	autorizacion, err := s.repo.ObtenerAutorizacionActiva(ctx, id)
+	activas, err := s.repo.ListarAutorizacionesActivas(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	return &PacienteDetalle{Paciente: *p, AutorizacionActiva: autorizacion}, nil
+	return &PacienteDetalle{
+		Paciente:              *p,
+		AutorizacionesActivas: activas,
+		TiposTerapia:          calcularTiposTerapia(activas, p.TipoTerapia),
+	}, nil
 }
 
 func (s *Service) Crear(ctx context.Context, solicitud SolicitudCrearPaciente) (*Paciente, validate.Errores, error) {
@@ -111,12 +115,18 @@ func (s *Service) ObtenerResumenFinanciero(ctx context.Context, id int64, anio, 
 	}
 
 	anioMes := fmt.Sprintf("%04d-%02d", anio, mes)
-	facturado, copagosRecibidos, err := s.repo.ObtenerResumenFinanciero(ctx, id, anioMes)
+	facturado, copagosRecibidos, porTipo, err := s.repo.ObtenerResumenFinanciero(ctx, id, anioMes)
 	if err != nil {
 		return nil, err
 	}
 
-	return &ResumenFinancieroPaciente{Anio: anio, Mes: mes, Facturado: facturado, CopagosRecibidos: copagosRecibidos}, nil
+	return &ResumenFinancieroPaciente{
+		Anio:             anio,
+		Mes:              mes,
+		Facturado:        facturado,
+		CopagosRecibidos: copagosRecibidos,
+		PorTipo:          porTipo,
+	}, nil
 }
 
 func (s *Service) Eliminar(ctx context.Context, id int64) error {

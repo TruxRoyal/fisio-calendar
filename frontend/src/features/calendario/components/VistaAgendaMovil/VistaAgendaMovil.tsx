@@ -45,6 +45,7 @@ export function VistaAgendaMovil() {
     onActualizarCopago,
     mensajeError,
     setMensajeError,
+    advertencias,
     verificar,
     actualizarCita,
   } = useGestionCita()
@@ -145,6 +146,7 @@ export function VistaAgendaMovil() {
         inicio: posicion.nuevoInicio,
         fin: posicion.nuevoFin,
         autorizacionId: cita.autorizacionId,
+        tipoTerapia: cita.tipoTerapia,
         notas: cita.notas,
       })
       setCitaArrastrada(null)
@@ -217,7 +219,13 @@ export function VistaAgendaMovil() {
     if (!idsPacientesClave) return
     let vigente = true
     const ids = idsPacientesClave.split(',').map(Number)
-    Promise.allSettled(ids.map((id) => autorizacionesResumenApi.obtenerActiva(id).then((a) => [id, a] as const))).then((resultados) => {
+    Promise.allSettled(
+      ids.map((id) =>
+        autorizacionesResumenApi
+          .listarActivas(id)
+          .then((activas): readonly [number, AutorizacionResumen | null] => [id, activas[0] ?? null]),
+      ),
+    ).then((resultados) => {
       if (!vigente) return
       const entradas = resultados
         .filter((r): r is PromiseFulfilledResult<readonly [number, AutorizacionResumen | null]> => r.status === 'fulfilled')
@@ -410,6 +418,7 @@ export function VistaAgendaMovil() {
           onGuardarCampos={onGuardarCampos}
           onCambiarEstado={onCambiarEstado}
           onActualizarCopago={onActualizarCopago}
+          advertencias={advertencias}
         />
       )}
 

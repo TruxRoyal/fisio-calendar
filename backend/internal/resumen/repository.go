@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sort"
 )
 
 type Repository struct {
@@ -14,9 +15,10 @@ func NuevoRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) ObtenerAgregadoMensual(ctx context.Context, anioMes string) (sesionesAtendidas, sesionesTrabajo, pagoNeto, copagosRecaudados int, err error) {
+func (r *Repository) ObtenerAgregadoMensual(ctx context.Context, anioMes string) (sesionesAtendidas, sesionesTrabajo, pagoNeto, copagosRecaudados int, porTipo []ResumenTipo, err error) {
 	consulta := `
 		SELECT
+			c.tipo_terapia,
 			COUNT(*),
 			COALESCE(SUM(CASE WHEN p.origen = 'trabajo' THEN 1 ELSE 0 END), 0),
 			COALESCE(SUM(c.valor_sesion), 0),
@@ -24,20 +26,41 @@ func (r *Repository) ObtenerAgregadoMensual(ctx context.Context, anioMes string)
 		FROM cita c
 		JOIN paciente p ON p.id = c.paciente_id
 		WHERE c.estado = 'atendida' AND strftime('%Y-%m', c.inicio) = ?
+		GROUP BY c.tipo_terapia
+		ORDER BY c.tipo_terapia ASC
 	`
 
-	err = r.db.QueryRowContext(ctx, consulta, anioMes).Scan(&sesionesAtendidas, &sesionesTrabajo, &pagoNeto, &copagosRecaudados)
+	filas, err := r.db.QueryContext(ctx, consulta, anioMes)
 	if err != nil {
-		return 0, 0, 0, 0, fmt.Errorf("obtener agregado mensual: %w", err)
+		return 0, 0, 0, 0, nil, fmt.Errorf("obtener agregado mensual: %w", err)
+	}
+	defer filas.Close()
+
+	porTipo = []ResumenTipo{}
+	for filas.Next() {
+		var fila ResumenTipo
+		var sesionesTrabajoTipo int
+		if err := filas.Scan(&fila.TipoTerapia, &fila.SesionesAtendidas, &sesionesTrabajoTipo, &fila.PagoNeto, &fila.CopagosRecaudados); err != nil {
+			return 0, 0, 0, 0, nil, fmt.Errorf("escanear agregado mensual por tipo: %w", err)
+		}
+		sesionesAtendidas += fila.SesionesAtendidas
+		sesionesTrabajo += sesionesTrabajoTipo
+		pagoNeto += fila.PagoNeto
+		copagosRecaudados += fila.CopagosRecaudados
+		porTipo = append(porTipo, fila)
+	}
+	if err := filas.Err(); err != nil {
+		return 0, 0, 0, 0, nil, err
 	}
 
-	return sesionesAtendidas, sesionesTrabajo, pagoNeto, copagosRecaudados, nil
+	return sesionesAtendidas, sesionesTrabajo, pagoNeto, copagosRecaudados, porTipo, nil
 }
 
 func (r *Repository) ObtenerAgregadoMensualRango(ctx context.Context, desde, hasta string) ([]FilaAgregadoMensual, error) {
 	consulta := `
 		SELECT
 			strftime('%Y-%m', c.inicio) AS anio_mes,
+			c.tipo_terapia,
 			COUNT(*),
 			COALESCE(SUM(CASE WHEN p.origen = 'trabajo' THEN 1 ELSE 0 END), 0),
 			COALESCE(SUM(c.valor_sesion), 0),
@@ -45,7 +68,7 @@ func (r *Repository) ObtenerAgregadoMensualRango(ctx context.Context, desde, has
 		FROM cita c
 		JOIN paciente p ON p.id = c.paciente_id
 		WHERE c.estado = 'atendida' AND strftime('%Y-%m', c.inicio) BETWEEN ? AND ?
-		GROUP BY anio_mes
+		GROUP BY anio_mes, c.tipo_terapia
 	`
 
 	filas, err := r.db.QueryContext(ctx, consulta, desde, hasta)
@@ -57,7 +80,7 @@ func (r *Repository) ObtenerAgregadoMensualRango(ctx context.Context, desde, has
 	resultado := []FilaAgregadoMensual{}
 	for filas.Next() {
 		var f FilaAgregadoMensual
-		if err := filas.Scan(&f.AnioMes, &f.SesionesAtendidas, &f.SesionesTrabajo, &f.PagoNeto, &f.CopagosRecaudados); err != nil {
+		if err := filas.Scan(&f.AnioMes, &f.TipoTerapia, &f.SesionesAtendidas, &f.SesionesTrabajo, &f.PagoNeto, &f.CopagosRecaudados); err != nil {
 			return nil, fmt.Errorf("escanear agregado mensual: %w", err)
 		}
 		resultado = append(resultado, f)
@@ -99,14 +122,15 @@ func (r *Repository) ListarDesglosePorPaciente(ctx context.Context, anioMes stri
 		SELECT
 			p.id,
 			p.nombre,
+			c.tipo_terapia,
 			COUNT(*),
 			COALESCE(SUM(c.valor_sesion), 0),
 			COALESCE(SUM(c.copago_cobrado), 0)
 		FROM cita c
 		JOIN paciente p ON p.id = c.paciente_id
 		WHERE c.estado = 'atendida' AND strftime('%Y-%m', c.inicio) = ?
-		GROUP BY p.id, p.nombre
-		ORDER BY COALESCE(SUM(c.valor_sesion), 0) + COALESCE(SUM(c.copago_cobrado), 0) DESC
+		GROUP BY p.id, p.nombre, c.tipo_terapia
+		ORDER BY p.nombre ASC, c.tipo_terapia ASC
 	`
 
 	filas, err := r.db.QueryContext(ctx, consulta, anioMes)
@@ -115,22 +139,49 @@ func (r *Repository) ListarDesglosePorPaciente(ctx context.Context, anioMes stri
 	}
 	defer filas.Close()
 
-	desglose := []DesglosePaciente{}
+	orden := []int{}
+	porPaciente := map[int]*DesglosePaciente{}
 	for filas.Next() {
-		var d DesglosePaciente
-		if err := filas.Scan(&d.PacienteId, &d.Nombre, &d.Sesiones, &d.PagoNeto, &d.Copagos); err != nil {
+		var pacienteID int
+		var nombre, tipoTerapia string
+		var sesiones, pagoNeto, copagos int
+		if err := filas.Scan(&pacienteID, &nombre, &tipoTerapia, &sesiones, &pagoNeto, &copagos); err != nil {
 			return nil, fmt.Errorf("escanear desglose por paciente: %w", err)
 		}
-		d.Total = d.PagoNeto + d.Copagos
-		desglose = append(desglose, d)
+
+		d, existe := porPaciente[pacienteID]
+		if !existe {
+			d = &DesglosePaciente{PacienteId: pacienteID, Nombre: nombre, PorTipo: []ResumenTipo{}}
+			porPaciente[pacienteID] = d
+			orden = append(orden, pacienteID)
+		}
+		d.Sesiones += sesiones
+		d.PagoNeto += pagoNeto
+		d.Copagos += copagos
+		d.Total += pagoNeto + copagos
+		d.PorTipo = append(d.PorTipo, ResumenTipo{
+			TipoTerapia:       tipoTerapia,
+			SesionesAtendidas: sesiones,
+			PagoNeto:          pagoNeto,
+			CopagosRecaudados: copagos,
+		})
+	}
+	if err := filas.Err(); err != nil {
+		return nil, err
 	}
 
-	return desglose, filas.Err()
+	desglose := make([]DesglosePaciente, 0, len(orden))
+	for _, id := range orden {
+		desglose = append(desglose, *porPaciente[id])
+	}
+	sort.Slice(desglose, func(i, j int) bool { return desglose[i].Total > desglose[j].Total })
+
+	return desglose, nil
 }
 
 func (r *Repository) ListarDetalleMensual(ctx context.Context, anioMes string) ([]DetalleSesion, error) {
 	consulta := `
-		SELECT c.inicio, p.nombre, c.valor_sesion, c.copago_cobrado
+		SELECT c.inicio, p.nombre, c.tipo_terapia, c.valor_sesion, c.copago_cobrado
 		FROM cita c
 		JOIN paciente p ON p.id = c.paciente_id
 		WHERE c.estado = 'atendida' AND strftime('%Y-%m', c.inicio) = ?
@@ -146,7 +197,7 @@ func (r *Repository) ListarDetalleMensual(ctx context.Context, anioMes string) (
 	detalle := []DetalleSesion{}
 	for filas.Next() {
 		var d DetalleSesion
-		if err := filas.Scan(&d.Fecha, &d.PacienteNombre, &d.ValorSesion, &d.CopagoCobrado); err != nil {
+		if err := filas.Scan(&d.Fecha, &d.PacienteNombre, &d.TipoTerapia, &d.ValorSesion, &d.CopagoCobrado); err != nil {
 			return nil, fmt.Errorf("escanear detalle mensual: %w", err)
 		}
 		detalle = append(detalle, d)

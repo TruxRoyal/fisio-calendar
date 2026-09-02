@@ -118,6 +118,8 @@ func manejarError(w http.ResponseWriter, err error) {
 		httpx.Error(w, http.StatusNotFound, "no_encontrado", "Autorizacion no encontrada")
 	case errors.Is(err, ErrPacienteNoEncontrado):
 		httpx.Error(w, http.StatusBadRequest, "paciente_no_encontrado", "El paciente indicado no existe")
+	case errors.Is(err, ErrAutorizacionActivaDuplicada):
+		httpx.Error(w, http.StatusConflict, "autorizacion_activa_duplicada", "Ya existe una autorizacion activa de ese tipo para el paciente")
 	default:
 		httpx.Error(w, http.StatusInternalServerError, "error_interno", err.Error())
 	}

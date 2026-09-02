@@ -3,15 +3,18 @@ import { useCalendarioStore } from '../store'
 import { useDeteccionChoque } from './useDeteccionChoque'
 import { sumarMinutos } from '../../../shared/lib/fecha'
 import { ErrorPeticion } from '../../../shared/api/cliente'
+import type { TipoTerapia } from '../../../shared/types/comun'
 import type { Cita, CitaBorrador, EstadoCita, PacienteBusqueda } from '../types'
 
 const DURACION_DEFECTO = 30
+const TIPO_TERAPIA_DEFECTO: TipoTerapia = 'fisica'
 
-export function citaBorradorVacia(inicio: string): CitaBorrador {
+export function citaBorradorVacia(inicio: string, tipoTerapia: TipoTerapia = TIPO_TERAPIA_DEFECTO): CitaBorrador {
   return {
     id: 0,
     pacienteId: 0,
     autorizacionId: null,
+    tipoTerapia,
     inicio,
     fin: sumarMinutos(inicio, DURACION_DEFECTO),
     estado: 'agendada',
@@ -29,12 +32,15 @@ export function useGestionCita() {
   const { verificar } = useDeteccionChoque()
   const [citaSeleccionada, setCitaSeleccionada] = useState<CitaBorrador | null>(null)
   const [mensajeError, setMensajeError] = useState<string | null>(null)
+  const [advertencias, setAdvertencias] = useState<string[]>([])
 
   function abrirCitaExistente(cita: Cita) {
+    setAdvertencias([])
     setCitaSeleccionada({
       id: cita.id,
       pacienteId: cita.pacienteId,
       autorizacionId: cita.autorizacionId,
+      tipoTerapia: cita.tipoTerapia,
       inicio: cita.inicio,
       fin: cita.fin,
       estado: cita.estado,
@@ -46,12 +52,14 @@ export function useGestionCita() {
   }
 
   function abrirCitaNueva(inicio: string) {
+    setAdvertencias([])
     setCitaSeleccionada(citaBorradorVacia(inicio))
   }
 
   function abrirCitaParaPaciente(inicio: string, paciente: PacienteBusqueda) {
+    setAdvertencias([])
     setCitaSeleccionada({
-      ...citaBorradorVacia(inicio),
+      ...citaBorradorVacia(inicio, paciente.tipoTerapia ?? TIPO_TERAPIA_DEFECTO),
       pacienteId: paciente.id,
       paciente: {
         id: paciente.id,
@@ -65,16 +73,18 @@ export function useGestionCita() {
 
   function cerrarDrawer() {
     setCitaSeleccionada(null)
+    setAdvertencias([])
   }
 
-  async function onCrear(solicitud: { pacienteId: number; inicio: string; fin: string; notas?: string | null }) {
+  async function onCrear(solicitud: { pacienteId: number; tipoTerapia: TipoTerapia; inicio: string; fin: string; notas?: string | null }) {
     const conflicto = await verificar(solicitud.inicio, solicitud.fin)
     if (conflicto) {
       setMensajeError('Esta cita choca con otra existente.')
       return false
     }
     try {
-      await crearCita(solicitud)
+      const creada = await crearCita(solicitud)
+      setAdvertencias(creada.advertencias ?? [])
       return true
     } catch (error) {
       if (error instanceof ErrorPeticion) setMensajeError(error.message)
@@ -82,7 +92,7 @@ export function useGestionCita() {
     }
   }
 
-  async function onGuardarCampos(id: number, cambios: { inicio: string; fin: string; notas: string | null }) {
+  async function onGuardarCampos(id: number, cambios: { inicio: string; fin: string; tipoTerapia: TipoTerapia; notas: string | null }) {
     const conflicto = await verificar(cambios.inicio, cambios.fin, id)
     if (conflicto) {
       setMensajeError('Esta cita choca con otra existente.')
@@ -93,9 +103,13 @@ export function useGestionCita() {
         inicio: cambios.inicio,
         fin: cambios.fin,
         autorizacionId: citaSeleccionada?.autorizacionId ?? null,
+        tipoTerapia: cambios.tipoTerapia,
         notas: cambios.notas,
       })
-      setCitaSeleccionada((actual) => (actual ? { ...actual, inicio: actualizada.inicio, fin: actualizada.fin, notas: actualizada.notas } : actual))
+      setAdvertencias(actualizada.advertencias ?? [])
+      setCitaSeleccionada((actual) =>
+        actual ? { ...actual, inicio: actualizada.inicio, fin: actualizada.fin, tipoTerapia: actualizada.tipoTerapia, notas: actualizada.notas } : actual,
+      )
       return true
     } catch (error) {
       if (error instanceof ErrorPeticion) setMensajeError(error.message)
@@ -137,6 +151,7 @@ export function useGestionCita() {
     onActualizarCopago,
     mensajeError,
     setMensajeError,
+    advertencias,
     verificar,
     actualizarCita,
   }

@@ -19,7 +19,7 @@ func NuevoService(repo *Repository) *Service {
 func (s *Service) ObtenerMensual(ctx context.Context, anio, mes int) (*ResumenMensual, error) {
 	anioMes := formatearAnioMes(anio, mes)
 
-	sesiones, sesionesTrabajo, pagoNeto, copagos, err := s.repo.ObtenerAgregadoMensual(ctx, anioMes)
+	sesiones, sesionesTrabajo, pagoNeto, copagos, porTipo, err := s.repo.ObtenerAgregadoMensual(ctx, anioMes)
 	if err != nil {
 		return nil, err
 	}
@@ -34,6 +34,7 @@ func (s *Service) ObtenerMensual(ctx context.Context, anio, mes int) (*ResumenMe
 		PagoNeto:          pagoNeto,
 		CopagosRecaudados: copagos,
 		Total:             pagoNeto + copagos,
+		PorTipo:           porTipo,
 	}, nil
 }
 
@@ -52,27 +53,53 @@ func (s *Service) ObtenerHistoricoMensual(ctx context.Context, meses, anioAncla,
 		return nil, err
 	}
 
-	porMes := make(map[string]FilaAgregadoMensual, len(filas))
+	type agregadoMes struct {
+		sesionesAtendidas int
+		sesionesTrabajo   int
+		pagoNeto          int
+		copagosRecaudados int
+		porTipo           []ResumenTipo
+	}
+
+	porMes := make(map[string]*agregadoMes, len(filas))
 	for _, f := range filas {
-		porMes[f.AnioMes] = f
+		agregado, existe := porMes[f.AnioMes]
+		if !existe {
+			agregado = &agregadoMes{porTipo: []ResumenTipo{}}
+			porMes[f.AnioMes] = agregado
+		}
+		agregado.sesionesAtendidas += f.SesionesAtendidas
+		agregado.sesionesTrabajo += f.SesionesTrabajo
+		agregado.pagoNeto += f.PagoNeto
+		agregado.copagosRecaudados += f.CopagosRecaudados
+		agregado.porTipo = append(agregado.porTipo, ResumenTipo{
+			TipoTerapia:       f.TipoTerapia,
+			SesionesAtendidas: f.SesionesAtendidas,
+			PagoNeto:          f.PagoNeto,
+			CopagosRecaudados: f.CopagosRecaudados,
+		})
 	}
 
 	resultado := make([]ResumenMensual, 0, meses)
 	for i := 0; i < meses; i++ {
 		fecha := fechaInicio.AddDate(0, i, 0)
 		anioMes := formatearAnioMes(fecha.Year(), int(fecha.Month()))
-		f := porMes[anioMes]
+		agregado, existe := porMes[anioMes]
+		if !existe {
+			agregado = &agregadoMes{porTipo: []ResumenTipo{}}
+		}
 
 		resultado = append(resultado, ResumenMensual{
 			Anio:              fecha.Year(),
 			Mes:               int(fecha.Month()),
-			SesionesAtendidas: f.SesionesAtendidas,
-			SesionesTrabajo:   f.SesionesTrabajo,
+			SesionesAtendidas: agregado.sesionesAtendidas,
+			SesionesTrabajo:   agregado.sesionesTrabajo,
 			UmbralEscalon:     UmbralEscalon,
-			UmbralAlcanzado:   f.SesionesTrabajo >= UmbralEscalon,
-			PagoNeto:          f.PagoNeto,
-			CopagosRecaudados: f.CopagosRecaudados,
-			Total:             f.PagoNeto + f.CopagosRecaudados,
+			UmbralAlcanzado:   agregado.sesionesTrabajo >= UmbralEscalon,
+			PagoNeto:          agregado.pagoNeto,
+			CopagosRecaudados: agregado.copagosRecaudados,
+			Total:             agregado.pagoNeto + agregado.copagosRecaudados,
+			PorTipo:           agregado.porTipo,
 		})
 	}
 
@@ -102,15 +129,17 @@ func (s *Service) ExportarExcel(ctx context.Context, anio, mes int) (*excelize.F
 
 	archivo.SetCellValue(hoja, "A1", "Fecha")
 	archivo.SetCellValue(hoja, "B1", "Paciente")
-	archivo.SetCellValue(hoja, "C1", "Valor sesion")
-	archivo.SetCellValue(hoja, "D1", "Copago cobrado")
+	archivo.SetCellValue(hoja, "C1", "Tipo de terapia")
+	archivo.SetCellValue(hoja, "D1", "Valor sesion")
+	archivo.SetCellValue(hoja, "E1", "Copago cobrado")
 
 	fila := 2
 	for _, d := range detalle {
 		archivo.SetCellValue(hoja, fmt.Sprintf("A%d", fila), d.Fecha)
 		archivo.SetCellValue(hoja, fmt.Sprintf("B%d", fila), d.PacienteNombre)
-		archivo.SetCellValue(hoja, fmt.Sprintf("C%d", fila), d.ValorSesion)
-		archivo.SetCellValue(hoja, fmt.Sprintf("D%d", fila), d.CopagoCobrado)
+		archivo.SetCellValue(hoja, fmt.Sprintf("C%d", fila), d.TipoTerapia)
+		archivo.SetCellValue(hoja, fmt.Sprintf("D%d", fila), d.ValorSesion)
+		archivo.SetCellValue(hoja, fmt.Sprintf("E%d", fila), d.CopagoCobrado)
 		fila++
 	}
 

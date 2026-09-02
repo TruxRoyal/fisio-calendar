@@ -4,6 +4,7 @@ type Autorizacion struct {
 	ID                int64   `json:"id"`
 	PacienteID        int64   `json:"pacienteId"`
 	Numero            *string `json:"numero"`
+	TipoTerapia       string  `json:"tipoTerapia"`
 	Copago            int     `json:"copago"`
 	SesionesTotales   int     `json:"sesionesTotales"`
 	SesionesUsadas    int     `json:"sesionesUsadas"`
@@ -18,6 +19,7 @@ type Autorizacion struct {
 type SolicitudCrearAutorizacion struct {
 	PacienteID       int64   `json:"pacienteId"`
 	Numero           *string `json:"numero"`
+	TipoTerapia      string  `json:"tipoTerapia"`
 	Copago           int     `json:"copago"`
 	SesionesTotales  int     `json:"sesionesTotales"`
 	FechaVencimiento *string `json:"fechaVencimiento"`
@@ -25,11 +27,14 @@ type SolicitudCrearAutorizacion struct {
 
 type SolicitudActualizarAutorizacion struct {
 	Numero           *string `json:"numero"`
+	TipoTerapia      string  `json:"tipoTerapia"`
 	Copago           int     `json:"copago"`
 	SesionesTotales  int     `json:"sesionesTotales"`
 	FechaVencimiento *string `json:"fechaVencimiento"`
 	Activa           bool    `json:"activa"`
 }
+
+var TiposTerapiaValidos = []string{"respiratoria", "fisica"}
 
 const (
 	DiasAlertaVencimiento = 7

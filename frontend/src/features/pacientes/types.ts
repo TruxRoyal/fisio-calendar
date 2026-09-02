@@ -24,6 +24,7 @@ export interface Paciente {
 
 export interface AutorizacionResumen {
   id: number
+  tipoTerapia: TipoTerapia
   sesionesTotales: number
   sesionesUsadas: number
   sesionesRestantes: number
@@ -32,7 +33,8 @@ export interface AutorizacionResumen {
 }
 
 export interface PacienteDetalle extends Paciente {
-  autorizacionActiva: AutorizacionResumen | null
+  autorizacionesActivas: AutorizacionResumen[]
+  tiposTerapia: TipoTerapia[]
 }
 
 export interface SolicitudPaciente {
@@ -56,6 +58,7 @@ export interface Autorizacion {
   id: number
   pacienteId: number
   numero: string | null
+  tipoTerapia: TipoTerapia
   copago: number
   sesionesTotales: number
   sesionesUsadas: number
@@ -70,6 +73,7 @@ export interface Autorizacion {
 export interface SolicitudCrearAutorizacion {
   pacienteId: number
   numero?: string | null
+  tipoTerapia: TipoTerapia
   copago: number
   sesionesTotales: number
   fechaVencimiento?: string | null
@@ -77,6 +81,7 @@ export interface SolicitudCrearAutorizacion {
 
 export interface SolicitudActualizarAutorizacion {
   numero?: string | null
+  tipoTerapia: TipoTerapia
   copago: number
   sesionesTotales: number
   fechaVencimiento?: string | null
@@ -93,9 +98,16 @@ export interface EventoCronologia {
   monto: number | null
 }
 
+export interface FinancieroTipo {
+  tipoTerapia: TipoTerapia
+  facturado: number
+  copagosRecibidos: number
+}
+
 export interface ResumenFinancieroPaciente {
   anio: number
   mes: number
   facturado: number
   copagosRecibidos: number
+  porTipo: FinancieroTipo[]
 }

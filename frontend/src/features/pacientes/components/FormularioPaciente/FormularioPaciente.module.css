@@ -79,6 +79,12 @@
   border-color: var(--t1);
 }
 
+.textoAyuda {
+  font-size: 12px;
+  color: var(--t3);
+  line-height: 1.4;
+}
+
 .mensajeError {
   display: flex;
   align-items: center;
