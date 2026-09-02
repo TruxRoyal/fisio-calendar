@@ -17,7 +17,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  overflow: hidden;
+  overflow: visible;
   padding-bottom: 0;
   gap: 0;
 }
@@ -28,7 +28,7 @@
   bottom: 7px;
   left: 0;
   right: auto;
-  overflow: hidden;
+  overflow: visible;
   padding-bottom: 0;
   gap: 0;
 }
@@ -78,18 +78,20 @@
 
 .chipSesiones {
   position: absolute;
-  top: 0;
+  top: -8px;
   right: 10px;
+  z-index: 5;
   font-size: 10.5px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--acT);
   background: var(--acS);
   border: 1px solid var(--acL);
-  border-top: none;
-  border-radius: 0 0 7px 7px;
-  padding: 1px 7px 2px;
+  border-bottom: none;
+  border-radius: 7px 7px 0 0;
+  padding: 2px 7px 3px;
   line-height: 1.3;
+  box-shadow: 0 -1px 3px rgb(0 0 0 / .08);
 }
 
 .chipSesiones.urgente {
