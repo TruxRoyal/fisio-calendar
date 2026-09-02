@@ -10,13 +10,6 @@ import (
 	"fisio-backend/internal/shared/testdb"
 )
 
-// TestCitaTipoTerapiaEsIndependienteDeTipoPreferidoPaciente reproduce el
-// escenario del spec "Editing paciente tipo preferido does not retro-relabel
-// past citas": una cita creada con tipoTerapia='fisica' debe conservar ese
-// valor aunque el tipo preferido del paciente cambie despues. Antes de esta
-// unidad, cita.TipoTerapia se derivaba via JOIN en vivo contra
-// paciente.tipo_terapia, por lo que este test habria fallado (mostrando
-// 'respiratoria' en vez de 'fisica').
 func TestCitaTipoTerapiaEsIndependienteDeTipoPreferidoPaciente(t *testing.T) {
 	conexion := testdb.Nueva(t)
 	repo := cita.NuevoRepository(conexion)
@@ -53,10 +46,6 @@ func TestCitaTipoTerapiaEsIndependienteDeTipoPreferidoPaciente(t *testing.T) {
 	}
 }
 
-// TestActualizarRechazaCambioDeTipoTerapiaCuandoAtendida cubre el spec
-// "Cita tipoTerapia is frozen once atendida": una vez estado='atendida', un
-// intento de Actualizar con un tipoTerapia distinto debe rechazarse con un
-// error de validacion y la base de datos debe permanecer sin cambios.
 func TestActualizarRechazaCambioDeTipoTerapiaCuandoAtendida(t *testing.T) {
 	conexion := testdb.Nueva(t)
 	repo := cita.NuevoRepository(conexion)
@@ -103,10 +92,6 @@ func TestActualizarRechazaCambioDeTipoTerapiaCuandoAtendida(t *testing.T) {
 	}
 }
 
-// TestCalcularValorSesionCuentaSesionesDeAmbosTiposJuntas cubre el spec
-// "Pricing threshold stays patient-wide": el umbral de descuento
-// (UmbralEscalon) debe seguir sumando sesiones atendidas de todos los tipos
-// de terapia de un paciente, sin filtrar por tipoTerapia.
 func TestCalcularValorSesionCuentaSesionesDeAmbosTiposJuntas(t *testing.T) {
 	conexion := testdb.Nueva(t)
 	repo := cita.NuevoRepository(conexion)
@@ -138,8 +123,6 @@ func TestCalcularValorSesionCuentaSesionesDeAmbosTiposJuntas(t *testing.T) {
 		}
 
 		if i == cita.UmbralEscalon-1 {
-			// La ultima del lote (previas = UmbralEscalon-1) todavia debe
-			// cobrar el valor base: el umbral aun no se cruzo.
 			if actualizada.ValorSesion == nil || *actualizada.ValorSesion != cita.ValorSesionBase {
 				t.Fatalf("cita #%d (previas=%d): esperaba valorSesion=%d (base), obtuvo %v", i, i, cita.ValorSesionBase, actualizada.ValorSesion)
 			}
@@ -171,10 +154,6 @@ func TestCalcularValorSesionCuentaSesionesDeAmbosTiposJuntas(t *testing.T) {
 	}
 }
 
-// TestServiceCrearResuelveAutorizacionActivaSegunTipo cubre el flujo de
-// resolucion de autorizacion_id descrito en design.md: al crear una cita sin
-// autorizacionId explicito, el servicio debe resolverlo a la autorizacion
-// activa del paciente cuyo tipoTerapia coincida con el de la cita.
 func TestServiceCrearResuelveAutorizacionActivaSegunTipo(t *testing.T) {
 	conexion := testdb.Nueva(t)
 	repo := cita.NuevoRepository(conexion)
@@ -209,10 +188,6 @@ func TestServiceCrearResuelveAutorizacionActivaSegunTipo(t *testing.T) {
 	}
 }
 
-// TestServiceCrearAdviertesSinAutorizacionActivaDelTipo cubre el requisito
-// "advertencia-sin-autorizacion": crear una cita de un tipo sin autorizacion
-// activa debe igual tener exito (sin bloquear), pero devolver una advertencia
-// no bloqueante y dejar autorizacionId en nil.
 func TestServiceCrearAdviertesSinAutorizacionActivaDelTipo(t *testing.T) {
 	conexion := testdb.Nueva(t)
 	repo := cita.NuevoRepository(conexion)
@@ -278,9 +253,6 @@ func insertarAutorizacionTest(t *testing.T, conexion *sql.DB, pacienteID int64, 
 	return id
 }
 
-// horarioSecuencial genera un rango horario de una hora que no se solapa con
-// ningun otro indice, todo dentro de enero de 2024, avanzando 2 horas por
-// indice para dejar espacio entre citas.
 func horarioSecuencial(indice int) (inicio, fin string) {
 	dia := 1 + (indice*2)/24
 	hora := (indice * 2) % 24

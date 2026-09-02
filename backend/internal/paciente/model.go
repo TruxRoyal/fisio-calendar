@@ -31,18 +31,10 @@ type AutorizacionResumen struct {
 	Activa            bool    `json:"activa"`
 }
 
-// PacienteDetalle.AutorizacionesActivas reemplaza al antiguo campo singular
-// AutorizacionActiva: un paciente puede tener a lo sumo una autorizacion
-// activa POR tipoTerapia (ver migracion 0006 y autorizacion/model.go), asi
-// que ahora puede haber hasta una por cada valor de TiposTerapiaValidos.
 type PacienteDetalle struct {
 	Paciente
 	AutorizacionesActivas []AutorizacionResumen `json:"autorizacionesActivas"`
-	// TiposTerapia es el conjunto derivado (sin duplicados) de los tipos de
-	// las autorizaciones activas del paciente, unido con su tipo preferido.
-	// Se usa para el filtrado/visualizacion en el listado de pacientes (ver
-	// design.md, decision "Derived tiposTerapia set for filtering/display").
-	TiposTerapia []string `json:"tiposTerapia"`
+	TiposTerapia          []string              `json:"tiposTerapia"`
 }
 
 type EventoCronologia struct {
@@ -53,8 +45,6 @@ type EventoCronologia struct {
 	Monto   *int    `json:"monto"`
 }
 
-// FinancieroTipo es el desglose por tipoTerapia del resumen financiero
-// mensual de un paciente (ver spec "resumen-por-tipo").
 type FinancieroTipo struct {
 	TipoTerapia      string `json:"tipoTerapia"`
 	Facturado        int    `json:"facturado"`

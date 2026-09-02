@@ -53,9 +53,6 @@ func (s *Service) ObtenerHistoricoMensual(ctx context.Context, meses, anioAncla,
 		return nil, err
 	}
 
-	// Cada mes del rango puede tener varias filas (una por tipoTerapia), asi
-	// que se agregan en un acumulador por anio_mes antes de reconstruir cada
-	// ResumenMensual, sumando los totales y conservando el desglose por tipo.
 	type agregadoMes struct {
 		sesionesAtendidas int
 		sesionesTrabajo   int

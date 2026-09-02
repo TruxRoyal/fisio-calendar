@@ -10,11 +10,7 @@ import styles from './GrillaHoraria.module.css'
 
 export const ALTURA_HORA = 56
 const ALTURA_MINIMA_BLOQUE = 30
-// Por debajo de esto solo entra el nombre (direccion y sesiones se ocultan).
 const ALTURA_COMPACTA = 48
-// Por debajo de esto entra nombre + direccion, pero no el badge de sesiones
-// (padding + 3 filas necesita ~95px; entre ALTURA_COMPACTA y este umbral solo
-// alcanza para 2 filas, y mostrar el badge igual lo cortaba con overflow:hidden).
 const ALTURA_CON_BADGES = 92
 
 export interface ColumnaGrillaHoraria {

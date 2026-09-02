@@ -9,10 +9,6 @@ import type { Cita, CitaBorrador, EstadoCita, PacienteBusqueda } from '../types'
 const DURACION_DEFECTO = 30
 const TIPO_TERAPIA_DEFECTO: TipoTerapia = 'fisica'
 
-// citaBorradorVacia acepta un tipoTerapia opcional (por defecto 'fisica',
-// igual al backfill de la migracion 0005) para que abrirCitaParaPaciente
-// pueda sembrar el tipo preferido del paciente elegido; abrirCitaNueva (sin
-// paciente aun conocido) usa el valor por defecto.
 export function citaBorradorVacia(inicio: string, tipoTerapia: TipoTerapia = TIPO_TERAPIA_DEFECTO): CitaBorrador {
   return {
     id: 0,
@@ -36,10 +32,6 @@ export function useGestionCita() {
   const { verificar } = useDeteccionChoque()
   const [citaSeleccionada, setCitaSeleccionada] = useState<CitaBorrador | null>(null)
   const [mensajeError, setMensajeError] = useState<string | null>(null)
-  // advertencias transporta Cita.advertencias (respuesta transitoria de
-  // Crear/Actualizar cuando no hay autorizacion activa del tipo de la cita;
-  // ver spec "advertencia-sin-autorizacion"). DrawerCita (Work Unit 6) la
-  // renderiza como banner no bloqueante.
   const [advertencias, setAdvertencias] = useState<string[]>([])
 
   function abrirCitaExistente(cita: Cita) {

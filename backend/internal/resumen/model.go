@@ -1,9 +1,5 @@
 package resumen
 
-// ResumenTipo es el desglose por tipoTerapia de un agregado (mensual o por
-// paciente). No incluye SesionesTrabajo: ese contador filtra por
-// paciente.origen, una dimension ortogonal al tipoTerapia, y solo se reporta
-// a nivel de total (ver spec "resumen-por-tipo").
 type ResumenTipo struct {
 	TipoTerapia       string `json:"tipoTerapia"`
 	SesionesAtendidas int    `json:"sesionesAtendidas"`
@@ -34,9 +30,6 @@ type DesglosePaciente struct {
 	PorTipo    []ResumenTipo `json:"porTipo"`
 }
 
-// FilaAgregadoMensual es ahora una fila por (anio_mes, tipoTerapia): la
-// consulta subyacente agrupa por ambas columnas, de forma que ObtenerHistoricoMensual
-// pueda tanto sumar los totales del mes como conservar el desglose por tipo.
 type FilaAgregadoMensual struct {
 	AnioMes           string
 	TipoTerapia       string

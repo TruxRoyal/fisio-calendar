@@ -20,22 +20,6 @@ const columnasPaciente = `id, nombre, direccion, documento, telefono, diagnostic
 
 const columnasPacientePrefijadas = `p.id, p.nombre, p.direccion, p.documento, p.telefono, p.diagnostico, p.eps, p.tipo_terapia, p.lat, p.lng, p.fecha_nacimiento, p.observaciones, p.color, p.origen, p.tarifa_sesion, p.creado_en, p.actualizado_en`
 
-// Listar consulta pacientes en dos pasadas en vez de un unico LEFT JOIN.
-//
-// Antes de esta unidad, un paciente solo podia tener a lo sumo una
-// autorizacion activa (global), asi que un LEFT JOIN correlacionado + SELECT
-// DISTINCT bastaba: una fila de autorizacion por paciente. Desde que la
-// migracion 0006 permite hasta una autorizacion activa POR tipoTerapia, ese
-// mismo JOIN emitiria una fila por cada autorizacion activa del paciente
-// (columnas de paciente repetidas, columnas de autorizacion distintas), lo
-// que SELECT DISTINCT ya no puede colapsar correctamente. Ver design.md,
-// decision "Listar per-tipo auths".
-//
-// La solucion: una consulta trae los pacientes (con DISTINCT solo para
-// absorber el JOIN opcional con cita cuando se filtra por mes), y una
-// segunda consulta trae TODAS las autorizaciones activas de esos pacientes
-// de una vez (WHERE paciente_id IN (...) AND activa = 1); ambas se combinan
-// en Go por paciente_id.
 func (r *Repository) Listar(ctx context.Context, busqueda, mes string) ([]PacienteDetalle, error) {
 	consulta := fmt.Sprintf(`SELECT DISTINCT %s FROM paciente p`, columnasPacientePrefijadas)
 	condiciones := []string{}
@@ -122,13 +106,6 @@ func (r *Repository) ObtenerPorID(ctx context.Context, id int64) (*Paciente, err
 	return &p, nil
 }
 
-// ListarAutorizacionesActivas devuelve TODAS las autorizaciones activas del
-// paciente (una por cada tipoTerapia que tenga una autorizacion vigente),
-// reemplazando al antiguo ObtenerAutorizacionActiva (singular). El indice
-// unico parcial idx_autoriz_activa_por_tipo (migracion 0006) garantiza que
-// hay a lo sumo una fila activa por (paciente_id, tipo_terapia), asi que a
-// diferencia del metodo anterior ya no hace falta un ORDER BY ... LIMIT 1
-// para desempatar duplicados.
 func (r *Repository) ListarAutorizacionesActivas(ctx context.Context, pacienteID int64) ([]AutorizacionResumen, error) {
 	activasPorPaciente, err := r.listarAutorizacionesActivasPorPacientes(ctx, []int64{pacienteID})
 	if err != nil {
@@ -142,10 +119,6 @@ func (r *Repository) ListarAutorizacionesActivas(ctx context.Context, pacienteID
 	return activas, nil
 }
 
-// listarAutorizacionesActivasPorPacientes trae de una sola consulta todas
-// las autorizaciones activas de un conjunto de pacientes, agrupadas por
-// paciente_id. Usada tanto por Listar (varios pacientes) como por
-// ListarAutorizacionesActivas (un solo paciente).
 func (r *Repository) listarAutorizacionesActivasPorPacientes(ctx context.Context, pacienteIDs []int64) (map[int64][]AutorizacionResumen, error) {
 	marcadores := make([]string, len(pacienteIDs))
 	argumentos := make([]any, len(pacienteIDs))
@@ -186,10 +159,6 @@ func (r *Repository) listarAutorizacionesActivasPorPacientes(ctx context.Context
 	return resultado, filas.Err()
 }
 
-// calcularTiposTerapia deriva el conjunto (sin duplicados, orden alfabetico)
-// de tipos de terapia de un paciente: la union de los tipos de sus
-// autorizaciones activas con su tipo preferido (ver spec "Derived
-// tiposTerapia set for filtering/display").
 func calcularTiposTerapia(activas []AutorizacionResumen, tipoPreferido *string) []string {
 	vistos := map[string]bool{}
 	tipos := []string{}
@@ -356,10 +325,6 @@ func (r *Repository) eventosDeAutorizaciones(ctx context.Context, pacienteID int
 	return eventos, filas.Err()
 }
 
-// ObtenerResumenFinanciero agrupa por tipo_terapia (columna propia de cita
-// desde la migracion 0005, ya no derivada de paciente) y suma los totales en
-// Go, de forma que un mismo mes puede reportar el desglose por tipo ademas
-// del total sin duplicar la consulta.
 func (r *Repository) ObtenerResumenFinanciero(ctx context.Context, pacienteID int64, anioMes string) (facturado, copagosRecibidos int, porTipo []FinancieroTipo, err error) {
 	consulta := `
 		SELECT tipo_terapia, COALESCE(SUM(valor_sesion), 0), COALESCE(SUM(copago_cobrado), 0)

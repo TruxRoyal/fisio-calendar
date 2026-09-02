@@ -15,10 +15,6 @@ func NuevoRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
-// ObtenerAgregadoMensual agrupa por c.tipo_terapia (columna propia de cita
-// desde la migracion 0005) en vez de traer una unica fila escalar: los
-// totales se suman en Go a partir del desglose por tipo, que tambien se
-// devuelve para poblar ResumenMensual.PorTipo (ver spec "resumen-por-tipo").
 func (r *Repository) ObtenerAgregadoMensual(ctx context.Context, anioMes string) (sesionesAtendidas, sesionesTrabajo, pagoNeto, copagosRecaudados int, porTipo []ResumenTipo, err error) {
 	consulta := `
 		SELECT
@@ -60,10 +56,6 @@ func (r *Repository) ObtenerAgregadoMensual(ctx context.Context, anioMes string)
 	return sesionesAtendidas, sesionesTrabajo, pagoNeto, copagosRecaudados, porTipo, nil
 }
 
-// ObtenerAgregadoMensualRango agrupa por (anio_mes, tipo_terapia): cada mes
-// del rango puede devolver hasta una fila por tipoTerapia. El servicio
-// (ObtenerHistoricoMensual) suma estas filas para reconstruir el total de
-// cada mes y conserva el desglose para ResumenMensual.PorTipo.
 func (r *Repository) ObtenerAgregadoMensualRango(ctx context.Context, desde, hasta string) ([]FilaAgregadoMensual, error) {
 	consulta := `
 		SELECT
@@ -125,12 +117,6 @@ func (r *Repository) ObtenerCapacidadMensual(ctx context.Context, anioMes string
 	return minutosEstimados, minutosReales, nil
 }
 
-// ListarDesglosePorPaciente agrupa por (p.id, p.nombre, c.tipo_terapia): un
-// paciente con sesiones de mas de un tipoTerapia en el mes emite una fila
-// por tipo, que se combinan en Go en un unico DesglosePaciente con su
-// PorTipo poblado. El ORDER BY total DESC original ya no se puede expresar
-// en SQL (el total ahora se arma en Go), asi que se ordena despues de
-// combinar.
 func (r *Repository) ListarDesglosePorPaciente(ctx context.Context, anioMes string) ([]DesglosePaciente, error) {
 	consulta := `
 		SELECT

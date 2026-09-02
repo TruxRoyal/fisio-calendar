@@ -11,14 +11,6 @@ import (
 	"fisio-backend/migrations"
 )
 
-// TestMigrarBackfillYDedupeTipoTerapia reproduce el estado de una base de
-// datos en producción migrada solo hasta 0004 (antes de que existiera
-// tipo_terapia en cita/autorizacion), inserta datos representativos y luego
-// corre el resto de migraciones embebidas (0005/0006). Verifica que el
-// backfill copie el tipo_terapia del paciente al momento de migrar, que el
-// valor NULL caiga al default 'fisica', que el dedupe de autorizaciones
-// activas duplicadas deje solo la más reciente por (paciente_id,
-// tipo_terapia) y que el índice único resultante bloquee un nuevo duplicado.
 func TestMigrarBackfillYDedupeTipoTerapia(t *testing.T) {
 	conexion, err := db.Abrir(filepath.Join(t.TempDir(), "migrate_test.db"))
 	if err != nil {
@@ -35,12 +27,8 @@ func TestMigrarBackfillYDedupeTipoTerapia(t *testing.T) {
 	citaRespiratoria := insertarCita(t, conexion, pacienteRespiratoria)
 	citaSinTipo := insertarCita(t, conexion, pacienteSinTipo)
 
-	// Dos autorizaciones activas del mismo paciente/tipo (bug de datos
-	// preexistente): tras el dedupe solo debe sobrevivir activa la más
-	// reciente por creado_en.
 	autorizacionAntigua := insertarAutorizacion(t, conexion, pacienteRespiratoria, "2024-01-01 00:00:00")
 	autorizacionReciente := insertarAutorizacion(t, conexion, pacienteRespiratoria, "2024-06-01 00:00:00")
-	// Autorización activa de otro paciente/tipo: no debe verse afectada.
 	autorizacionFisica := insertarAutorizacion(t, conexion, pacienteFisica, "2024-01-01 00:00:00")
 
 	if err := db.Migrar(conexion, false); err != nil {
@@ -90,11 +78,6 @@ func TestMigrarBackfillYDedupeTipoTerapia(t *testing.T) {
 	}
 }
 
-// aplicarMigracionesHasta aplica manualmente, en orden, el contenido de las
-// migraciones embebidas no-seed cuyo nombre es <= corte, registrándolas en
-// schema_migrations. Reproduce el estado de arranque de una base de datos
-// histórica anterior a las migraciones bajo prueba, sin depender de que
-// existan archivos posteriores a corte.
 func aplicarMigracionesHasta(t *testing.T, conexion *sql.DB, corte string) {
 	t.Helper()
 

@@ -144,12 +144,6 @@ func esErrorPacienteInexistente(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "FOREIGN KEY constraint failed")
 }
 
-// esErrorAutorizacionActivaDuplicada detecta la violacion del indice unico
-// parcial idx_autoriz_activa_por_tipo (backend/migrations/0006_tipo_terapia_autorizacion.sql),
-// que permite a lo sumo una autorizacion activa por (paciente_id, tipo_terapia).
-// Sigue el mismo idioma de deteccion de "UNIQUE constraint failed" que
-// paciente/service.go's esErrorDocumentoDuplicado contra el mismo driver
-// modernc.org/sqlite.
 func esErrorAutorizacionActivaDuplicada(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "UNIQUE constraint failed")
 }

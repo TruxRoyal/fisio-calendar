@@ -10,11 +10,6 @@ import (
 	"fisio-backend/internal/shared/testdb"
 )
 
-// TestServiceCrearPermiteUnaActivaPorTipo cubre el spec "At most one active
-// authorization per (paciente, tipoTerapia)" / "Two active authorizations,
-// different tipos, allowed": una autorizacion activa fisica y una activa
-// respiratoria para el mismo paciente deben coexistir sin error, probando
-// empiricamente el indice unico parcial idx_autoriz_activa_por_tipo.
 func TestServiceCrearPermiteUnaActivaPorTipo(t *testing.T) {
 	conexion := testdb.Nueva(t)
 	repo := autorizacion.NuevoRepository(conexion)
@@ -48,11 +43,6 @@ func TestServiceCrearPermiteUnaActivaPorTipo(t *testing.T) {
 	}
 }
 
-// TestServiceCrearRechazaSegundaActivaMismoTipo cubre el spec "Second active
-// authorization same tipo rejected": crear una segunda autorizacion activa
-// fisica para el mismo paciente debe fallar por el indice unico parcial y
-// mapearse a autorizacion.ErrAutorizacionActivaDuplicada (no un error SQL
-// crudo).
 func TestServiceCrearRechazaSegundaActivaMismoTipo(t *testing.T) {
 	conexion := testdb.Nueva(t)
 	repo := autorizacion.NuevoRepository(conexion)
@@ -82,11 +72,6 @@ func TestServiceCrearRechazaSegundaActivaMismoTipo(t *testing.T) {
 	}
 }
 
-// TestServiceCrearPermiteNuevaActivaTrasDesactivarAnterior cubre el spec
-// "Zero active authorizations of either tipo" en su variante de transicion:
-// tras desactivar la autorizacion fisica existente (activa=0), crear una
-// nueva autorizacion activa fisica para el mismo paciente debe funcionar,
-// probando que el indice unico parcial solo restringe filas con activa=1.
 func TestServiceCrearPermiteNuevaActivaTrasDesactivarAnterior(t *testing.T) {
 	conexion := testdb.Nueva(t)
 	repo := autorizacion.NuevoRepository(conexion)
@@ -125,10 +110,6 @@ func TestServiceCrearPermiteNuevaActivaTrasDesactivarAnterior(t *testing.T) {
 	}
 }
 
-// TestServiceActualizarRechazaActivarSegundaMismoTipo cubre la misma
-// restriccion desde el camino de Actualizar: reactivar (activa=1) una
-// autorizacion cuando ya existe otra activa del mismo tipo tambien debe
-// mapearse a ErrAutorizacionActivaDuplicada.
 func TestServiceActualizarRechazaActivarSegundaMismoTipo(t *testing.T) {
 	conexion := testdb.Nueva(t)
 	repo := autorizacion.NuevoRepository(conexion)

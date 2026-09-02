@@ -112,9 +112,6 @@ func (r *Repository) ObtenerOrigenPaciente(ctx context.Context, pacienteID int64
 	return origen, tarifaSesion, nil
 }
 
-// ResolverAutorizacionActiva busca la autorizacion activa del paciente cuyo
-// tipoTerapia coincide con el de la cita. Devuelve nil (sin error) si no
-// existe ninguna autorizacion activa de ese tipo para el paciente.
 func (r *Repository) ResolverAutorizacionActiva(ctx context.Context, pacienteID int64, tipoTerapia string) (*int64, error) {
 	consulta := `
 		SELECT id FROM autorizacion

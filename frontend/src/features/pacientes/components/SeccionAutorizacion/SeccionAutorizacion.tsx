@@ -18,9 +18,6 @@ type ModoEdicion = 'editar' | 'nueva'
 
 interface PropiedadesSeccionAutorizacion {
   pacienteId: number
-  // Nota: se usa el tipo completo `Autorizacion` (no `AutorizacionResumen`) para
-  // conservar `numero`/`copago` de la autorizacion vigente al desactivarla antes
-  // de registrar la renovacion (ver alEnviar) sin perder esos datos.
   autorizacionesActivas: Autorizacion[]
   onActualizado: () => Promise<void>
 }
@@ -115,7 +112,6 @@ export function SeccionAutorizacion({ pacienteId, autorizacionesActivas, onActua
     try {
       const vigente = autorizacionesActivas.find((a) => a.tipoTerapia === tipo)
       if (modo[tipo] === 'editar' && vigente) {
-        // Edicion en el lugar: mismo id, no se toca sesionesUsadas (se deriva de las citas).
         await autorizacionesApi.actualizar(vigente.id, {
           numero: solicitud.numero,
           tipoTerapia: tipo,
@@ -126,9 +122,6 @@ export function SeccionAutorizacion({ pacienteId, autorizacionesActivas, onActua
         })
       } else {
         if (vigente) {
-          // idx_autoriz_activa_por_tipo permite a lo sumo una autorizacion activa
-          // por (paciente, tipo): hay que desactivar la vigente antes de crear la
-          // renovacion, o el POST siguiente responde 409 (autorizacion_activa_duplicada).
           await autorizacionesApi.actualizar(vigente.id, {
             numero: vigente.numero,
             tipoTerapia: vigente.tipoTerapia,

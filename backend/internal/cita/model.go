@@ -61,11 +61,6 @@ type SolicitudVerificarChoque struct {
 
 var EstadosValidos = []string{"agendada", "atendida", "cancelada"}
 
-// TiposTerapiaValidos enumera los tipos de terapia validos para una cita.
-// Se mantiene local a este paquete (en lugar de importarse desde paciente)
-// para no acoplar el modulo cita al modulo paciente; paciente.TiposTerapiaValidos
-// valida el "tipo preferido" del paciente, un concepto distinto y no autoritativo
-// para el tipo real de una cita (ver design.md, decision "Tipo freeze").
 var TiposTerapiaValidos = []string{"respiratoria", "fisica"}
 
 const (

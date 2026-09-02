@@ -9,12 +9,6 @@ import (
 	"fisio-backend/internal/shared/testdb"
 )
 
-// TestObtenerMensualDesglosaPorTipoYSumaAlTotal cubre el spec
-// "resumen-por-tipo" / "Dual-therapy patient summary": un paciente con
-// citas atendidas de fisica Y respiratoria en el mismo mes debe reportar un
-// desglose PorTipo correcto para cada tipo, y la suma de esos desgloses debe
-// coincidir con el total mensual sin tipo (el comportamiento pre-existente).
-// Tambien confirma que una cita cancelada no se cuenta en ningun lado.
 func TestObtenerMensualDesglosaPorTipoYSumaAlTotal(t *testing.T) {
 	conexion := testdb.Nueva(t)
 	repo := resumen.NuevoRepository(conexion)
@@ -23,13 +17,9 @@ func TestObtenerMensualDesglosaPorTipoYSumaAlTotal(t *testing.T) {
 
 	pacienteID := insertarPacienteTest(t, conexion, "Paciente Mixto", "fisica")
 
-	// 2 fisica atendidas: valor_sesion 100 c/u, copago 10 c/u.
 	insertarCitaTest(t, conexion, pacienteID, "fisica", "atendida", 100, 10, "2024-03-01T09:00:00", "2024-03-01T10:00:00")
 	insertarCitaTest(t, conexion, pacienteID, "fisica", "atendida", 100, 10, "2024-03-02T09:00:00", "2024-03-02T10:00:00")
-	// 1 respiratoria atendida: valor_sesion 150, copago 20 (valores distintos
-	// a proposito, para que un bug de mezcla de sumas sea detectable).
 	insertarCitaTest(t, conexion, pacienteID, "respiratoria", "atendida", 150, 20, "2024-03-03T09:00:00", "2024-03-03T10:00:00")
-	// 1 cancelada: no deberia contarse en ningun lado.
 	insertarCitaTest(t, conexion, pacienteID, "respiratoria", "cancelada", 150, 20, "2024-03-04T09:00:00", "2024-03-04T10:00:00")
 
 	resumenMensual, err := service.ObtenerMensual(ctx, 2024, 3)
@@ -76,9 +66,6 @@ func TestObtenerMensualDesglosaPorTipoYSumaAlTotal(t *testing.T) {
 		t.Fatalf("desglose respiratoria incorrecto (la cancelada no deberia sumar aqui): %+v", respiratoria)
 	}
 
-	// La suma de los desgloses por tipo debe coincidir exactamente con el
-	// total mensual sin tipo (mismo comportamiento pre-existente, ahora
-	// tambien correcto al mezclar tipos).
 	if sumaSesiones != resumenMensual.SesionesAtendidas {
 		t.Fatalf("suma de sesiones por tipo (%d) no coincide con el total (%d)", sumaSesiones, resumenMensual.SesionesAtendidas)
 	}
@@ -90,11 +77,6 @@ func TestObtenerMensualDesglosaPorTipoYSumaAlTotal(t *testing.T) {
 	}
 }
 
-// TestListarDesglosePorPacienteAgrupaPorTipoSinDuplicarPaciente cubre el
-// mismo riesgo de agrupacion, ahora en ListarDesglosePorPaciente: un
-// paciente con sesiones de ambos tipos en el mes debe aparecer una sola vez
-// en el desglose (no una fila por tipo), con su PorTipo poblado y su Total
-// sumando ambos tipos.
 func TestListarDesglosePorPacienteAgrupaPorTipoSinDuplicarPaciente(t *testing.T) {
 	conexion := testdb.Nueva(t)
 	repo := resumen.NuevoRepository(conexion)

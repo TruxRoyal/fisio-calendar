@@ -114,10 +114,6 @@ export function DrawerCita({
     }
   }, [pacienteIdActivo])
 
-  // Cuando se elige un paciente desde el buscador inline (esNueva, sin
-  // paciente aun conocido en `cita`), siembra el tipoTerapia por defecto
-  // desde el tipo preferido del paciente elegido; el usuario puede
-  // sobreescribirlo despues con el selector.
   useEffect(() => {
     if (!esNueva || !pacienteElegido) return
     setTipoTerapia(pacienteElegido.tipoTerapia ?? 'fisica')

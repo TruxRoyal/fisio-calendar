@@ -34,10 +34,6 @@ type SolicitudActualizarAutorizacion struct {
 	Activa           bool    `json:"activa"`
 }
 
-// TiposTerapiaValidos enumera los tipos de terapia validos para una
-// autorizacion. Se mantiene local a este paquete, igual que en cita, para no
-// acoplar el modulo autorizacion al modulo paciente (ver design.md, decision
-// "Tipo freeze" y cita/model.go).
 var TiposTerapiaValidos = []string{"respiratoria", "fisica"}
 
 const (

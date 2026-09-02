@@ -9,14 +9,6 @@ import (
 	"fisio-backend/internal/shared/testdb"
 )
 
-// TestListarIncluyeAmbasAutorizacionesActivasDePacienteDual cubre el area de
-// mayor riesgo del design.md ("Listar per-tipo auths"): antes de esta unidad,
-// Listar usaba un LEFT JOIN correlacionado + SELECT DISTINCT que solo podia
-// traer UNA autorizacion activa por paciente. Con la migracion 0006, un
-// paciente puede tener hasta una autorizacion activa POR tipoTerapia, asi
-// que un paciente con autorizaciones activas fisica Y respiratoria debe
-// aparecer en el listado exactamente una vez (no duplicado por el join) y
-// con AutorizacionesActivas conteniendo ambas (no solo una perdida).
 func TestListarIncluyeAmbasAutorizacionesActivasDePacienteDual(t *testing.T) {
 	conexion := testdb.Nueva(t)
 	repo := paciente.NuevoRepository(conexion)
@@ -26,9 +18,6 @@ func TestListarIncluyeAmbasAutorizacionesActivasDePacienteDual(t *testing.T) {
 	autorizacionFisicaID := insertarAutorizacionActivaTest(t, conexion, pacienteID, "fisica", 10)
 	autorizacionRespiratoriaID := insertarAutorizacionActivaTest(t, conexion, pacienteID, "respiratoria", 8)
 
-	// Un segundo paciente sin ninguna autorizacion activa, para probar que
-	// el stitch en Go no arrastra autorizaciones de otro paciente ni rompe
-	// cuando el mapa no tiene ninguna entrada para un id.
 	otroPacienteID := insertarPacienteTest(t, conexion, "Paciente Sin Autorizacion", "fisica")
 
 	pacientes, err := repo.Listar(ctx, "", "")
@@ -84,10 +73,6 @@ func TestListarIncluyeAmbasAutorizacionesActivasDePacienteDual(t *testing.T) {
 	}
 }
 
-// TestObtenerDetalleIncluyeAmbasAutorizacionesActivas cubre el mismo
-// escenario dual mediante ObtenerDetalle (Service.ObtenerDetalle ->
-// ListarAutorizacionesActivas), el reemplazo del antiguo
-// ObtenerAutorizacionActiva singular.
 func TestObtenerDetalleIncluyeAmbasAutorizacionesActivas(t *testing.T) {
 	conexion := testdb.Nueva(t)
 	repo := paciente.NuevoRepository(conexion)

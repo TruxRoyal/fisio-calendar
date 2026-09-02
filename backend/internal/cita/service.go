@@ -114,10 +114,6 @@ func (s *Service) Actualizar(ctx context.Context, id int64, solicitud SolicitudA
 	return actualizada, nil, nil, nil
 }
 
-// resolverAutorizacionSiFalta resuelve el id de la autorizacion activa que
-// coincide con el tipoTerapia de la cita cuando el llamador no especifico
-// una autorizacion explicitamente. Devuelve una advertencia no bloqueante
-// cuando el paciente no tiene una autorizacion activa de ese tipo.
 func (s *Service) resolverAutorizacionSiFalta(ctx context.Context, pacienteID int64, tipoTerapia string, autorizacionID **int64) ([]string, error) {
 	if *autorizacionID != nil {
 		return nil, nil

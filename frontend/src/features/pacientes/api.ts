@@ -16,7 +16,6 @@ export const pacientesApi = {
     if (busqueda) parametros.set('q', busqueda)
     if (mes) parametros.set('mes', mes)
     const query = parametros.toString()
-    // GET /pacientes returns PacienteDetalle[], not Paciente[] — see backend/internal/paciente/repository.go Listar.
     return clienteApi.get<PacienteDetalle[]>(`/pacientes${query ? `?${query}` : ''}`)
   },
   obtener: (id: number) => clienteApi.get<PacienteDetalle>(`/pacientes/${id}`),
