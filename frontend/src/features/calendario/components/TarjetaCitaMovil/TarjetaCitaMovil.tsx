@@ -13,15 +13,26 @@ export interface PropsTarjetaCitaMovil {
   onAbrir: () => void
   variante?: 'lista' | 'grilla' | 'grillaHorizontal'
   compacto?: boolean
+  ocultarBadges?: boolean
   arrastrando?: boolean
   onPointerDown?: PointerEventHandler<HTMLButtonElement>
   style?: CSSProperties
 }
 
-export function TarjetaCitaMovil({ cita, autorizacion, onAbrir, variante = 'lista', compacto, arrastrando, onPointerDown, style }: PropsTarjetaCitaMovil) {
+export function TarjetaCitaMovil({
+  cita,
+  autorizacion,
+  onAbrir,
+  variante = 'lista',
+  compacto,
+  ocultarBadges,
+  arrastrando,
+  onPointerDown,
+  style,
+}: PropsTarjetaCitaMovil) {
   const estado = cita.estado
-  const colorTipo = cita.paciente.tipoTerapia ? TIPO_TERAPIA_COLOR[cita.paciente.tipoTerapia] : null
-  const colorBorde = cita.paciente.color ?? colorTipo?.fg ?? 'var(--ac)'
+  const colorTipo = TIPO_TERAPIA_COLOR[cita.tipoTerapia]
+  const colorBorde = cita.paciente.color ?? colorTipo.fg ?? 'var(--ac)'
   const sesionesBajas = !!autorizacion && (autorizacion.sesionesRestantes <= 1 || autorizacion.alertaVencimiento)
 
   return (
@@ -46,6 +57,11 @@ export function TarjetaCitaMovil({ cita, autorizacion, onAbrir, variante = 'list
         )}
         style={{ '--color-borde': colorBorde } as CSSProperties}
       >
+        {autorizacion && (
+          <span className={cn(styles.chipSesiones, sesionesBajas && styles.urgente)}>
+            {autorizacion.sesionesTotales - autorizacion.sesionesRestantes}/{autorizacion.sesionesTotales}
+          </span>
+        )}
         {variante === 'grillaHorizontal' ? (
           <>
             <div className={styles.filaNombre}>
@@ -61,14 +77,12 @@ export function TarjetaCitaMovil({ cita, autorizacion, onAbrir, variante = 'list
           <>
             <div className={styles.filaNombre}>
               <span className={styles.nombre}>{cita.paciente.nombre}</span>
-              {cita.paciente.tipoTerapia && (
-                <Icono
-                  nombre={cita.paciente.tipoTerapia === 'respiratoria' ? 'pulmon' : 'pulso'}
-                  tamano={13}
-                  grosor={1.9}
-                  className={styles.iconoTipo}
-                />
-              )}
+              <Icono
+                nombre={cita.tipoTerapia === 'respiratoria' ? 'pulmon' : 'pulso'}
+                tamano={13}
+                grosor={1.9}
+                className={styles.iconoTipo}
+              />
               {estado === 'atendida' && <Icono nombre="check" tamano={14} grosor={2.6} className={styles.iconoCheck} />}
             </div>
             {!compacto && cita.paciente.direccion && (
@@ -77,7 +91,7 @@ export function TarjetaCitaMovil({ cita, autorizacion, onAbrir, variante = 'list
                 <span>{cita.paciente.direccion}</span>
               </div>
             )}
-            {!compacto && (autorizacion || cita.copagoCobrado > 0) && (
+            {!compacto && !ocultarBadges && (autorizacion || cita.copagoCobrado > 0) && (
               <div className={styles.filaBadges}>
                 {autorizacion && (
                   <span className={cn(styles.badgeSesiones, sesionesBajas && styles.urgente)}>

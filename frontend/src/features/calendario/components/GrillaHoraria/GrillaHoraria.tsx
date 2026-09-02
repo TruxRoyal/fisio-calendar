@@ -11,6 +11,7 @@ import styles from './GrillaHoraria.module.css'
 export const ALTURA_HORA = 56
 const ALTURA_MINIMA_BLOQUE = 30
 const ALTURA_COMPACTA = 48
+const ALTURA_CON_BADGES = 92
 
 export interface ColumnaGrillaHoraria {
   fechaISO: string
@@ -89,6 +90,7 @@ export function GrillaHoraria({
                     onAbrir={() => onAbrirCita(cita)}
                     variante="grilla"
                     compacto={alturaBloque < ALTURA_COMPACTA}
+                    ocultarBadges={alturaBloque < ALTURA_CON_BADGES}
                     arrastrando={arrastrandoEstaCita}
                     onPointerDown={onIniciarArrastre?.(cita)}
                     style={{ top, height: alturaBloque }}

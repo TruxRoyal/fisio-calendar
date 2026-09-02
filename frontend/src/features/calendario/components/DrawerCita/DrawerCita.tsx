@@ -19,12 +19,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '../../../../shared/comp
 import { SelectorHora } from '../../../../shared/components/SelectorHora/SelectorHora'
 import { cn } from '../../../../shared/lib/clases'
 import { ETIQUETA_TIPO_TERAPIA } from '../../../../shared/types/comun'
+import type { TipoTerapia } from '../../../../shared/types/comun'
 import type { AutorizacionResumen, CitaBorrador, EstadoCita, PacienteBusqueda, PacienteParaDrawer } from '../../types'
 import styles from './DrawerCita.module.css'
 
 const DURACION_SALIDA_MS = 200
 
 const DURACIONES = [30, 45, 60, 90]
+const TIPOS_TERAPIA: TipoTerapia[] = ['respiratoria', 'fisica']
 const ESTADOS: { valor: EstadoCita; etiqueta: string; icono: 'reloj' | 'check' | 'cerrar' }[] = [
   { valor: 'agendada', etiqueta: 'Pendiente', icono: 'reloj' },
   { valor: 'atendida', etiqueta: 'Hecha', icono: 'check' },
@@ -34,13 +36,22 @@ const ESTADOS: { valor: EstadoCita; etiqueta: string; icono: 'reloj' | 'check' |
 interface PropiedadesDrawerCita {
   cita: CitaBorrador
   onCerrar: () => void
-  onCrear: (solicitud: { pacienteId: number; inicio: string; fin: string; notas?: string | null }) => Promise<boolean>
-  onGuardarCampos: (id: number, cambios: { inicio: string; fin: string; notas: string | null }) => Promise<boolean>
+  onCrear: (solicitud: { pacienteId: number; tipoTerapia: TipoTerapia; inicio: string; fin: string; notas?: string | null }) => Promise<boolean>
+  onGuardarCampos: (id: number, cambios: { inicio: string; fin: string; tipoTerapia: TipoTerapia; notas: string | null }) => Promise<boolean>
   onCambiarEstado: (estado: EstadoCita) => Promise<void>
   onActualizarCopago: (id: number, copago: number) => Promise<void>
+  advertencias: string[]
 }
 
-export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiarEstado, onActualizarCopago }: PropiedadesDrawerCita) {
+export function DrawerCita({
+  cita,
+  onCerrar,
+  onCrear,
+  onGuardarCampos,
+  onCambiarEstado,
+  onActualizarCopago,
+  advertencias,
+}: PropiedadesDrawerCita) {
   const esNueva = cita.id === 0
   const navegar = useNavigate()
 
@@ -49,7 +60,8 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
   const [horaInicio, setHoraInicio] = useState(() => cita.inicio.slice(11, 16))
   const [notas, setNotas] = useState(cita.notas ?? '')
   const [copago, setCopago] = useState(cita.copagoCobrado)
-  const [autorizacion, setAutorizacion] = useState<AutorizacionResumen | null>(null)
+  const [tipoTerapia, setTipoTerapia] = useState<TipoTerapia>(cita.tipoTerapia)
+  const [autorizaciones, setAutorizaciones] = useState<AutorizacionResumen[]>([])
   const [pacienteCompleto, setPacienteCompleto] = useState<PacienteParaDrawer | null>(null)
   const [pacienteElegido, setPacienteElegido] = useState<PacienteBusqueda | null>(null)
   const [busquedaPaciente, setBusquedaPaciente] = useState('')
@@ -84,20 +96,29 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
   const pacienteIdActivo = cita.pacienteId || pacienteElegido?.id || 0
 
   useEffect(() => {
-    if (!pacienteIdActivo) return
+    if (!pacienteIdActivo) {
+      setAutorizaciones([])
+      return
+    }
     let vigente = true
     autorizacionesResumenApi
-      .obtenerActiva(pacienteIdActivo)
+      .listarActivas(pacienteIdActivo)
       .then((resultado) => {
-        if (vigente) setAutorizacion(resultado)
+        if (vigente) setAutorizaciones(resultado)
       })
       .catch(() => {
-        if (vigente) setAutorizacion(null)
+        if (vigente) setAutorizaciones([])
       })
     return () => {
       vigente = false
     }
   }, [pacienteIdActivo])
+
+  useEffect(() => {
+    if (!esNueva || !pacienteElegido) return
+    setTipoTerapia(pacienteElegido.tipoTerapia ?? 'fisica')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pacienteElegido?.id])
 
   useEffect(() => {
     if (esNueva || !cita.pacienteId) return
@@ -160,7 +181,12 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
     const inicioActual = combinarFechaHora(fecha, horaInicio)
     const ejecutar = () => {
       guardarCamposPendiente.current = null
-      onGuardarCampos(cita.id, { inicio: inicioActual, fin: sumarMinutos(inicioActual, duracion), notas: notas || null }).then((guardado) => {
+      onGuardarCampos(cita.id, {
+        inicio: inicioActual,
+        fin: sumarMinutos(inicioActual, duracion),
+        tipoTerapia,
+        notas: notas || null,
+      }).then((guardado) => {
         if (guardado) mostrarGuardado()
       })
     }
@@ -168,7 +194,7 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
     const temporizador = setTimeout(ejecutar, 700)
     return () => clearTimeout(temporizador)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [duracion, notas, fecha, horaInicio])
+  }, [duracion, notas, fecha, horaInicio, tipoTerapia])
 
   useEffect(() => {
     if (esNueva) return
@@ -192,6 +218,7 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
       const inicioActual = combinarFechaHora(fecha, horaInicio)
       const creado = await onCrear({
         pacienteId: pacienteIdActivo,
+        tipoTerapia,
         inicio: inicioActual,
         fin: sumarMinutos(inicioActual, duracion),
         notas: notas || null,
@@ -204,6 +231,8 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
 
   const direccion = pacienteCompleto?.direccion ?? pacienteInfo.direccion
   const epsPaga = cita.valorSesion !== null ? cita.valorSesion - copago : null
+  const autorizacion = autorizaciones.find((a) => a.tipoTerapia === tipoTerapia) ?? null
+  const tipoTerapiaBloqueada = cita.estado === 'atendida'
   const porcentajeSesiones = autorizacion
     ? Math.min(100, Math.round(((autorizacion.sesionesTotales - autorizacion.sesionesRestantes) / Math.max(1, autorizacion.sesionesTotales)) * 100))
     : 0
@@ -227,7 +256,7 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
             <div className={styles.infoCabecera}>
               <div className={styles.nombreTitulo}>{pacienteInfo.nombre || 'Selecciona un paciente'}</div>
               <div className={styles.subtitulo}>
-                {pacienteInfo.tipoTerapia ? ETIQUETA_TIPO_TERAPIA[pacienteInfo.tipoTerapia] : '—'} · {duracion} min
+                {ETIQUETA_TIPO_TERAPIA[tipoTerapia]} · {duracion} min
               </div>
             </div>
             {guardadoVisible && (
@@ -310,6 +339,25 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
                   className={cn(styles.botonDuracion, activo && styles.activo)}
                 >
                   {min} min
+                </button>
+              )
+            })}
+          </div>
+
+          <TituloSeccion texto="Tipo de terapia" margenSuperior />
+          <div className={styles.filaTipoTerapia}>
+            {TIPOS_TERAPIA.map((tipo) => {
+              const activo = tipoTerapia === tipo
+              return (
+                <button
+                  type="button"
+                  key={tipo}
+                  onClick={() => setTipoTerapia(tipo)}
+                  disabled={tipoTerapiaBloqueada}
+                  title={tipoTerapiaBloqueada ? 'Una cita hecha no puede cambiar de tipo de terapia' : undefined}
+                  className={cn(styles.botonTipoTerapia, activo && styles.activo)}
+                >
+                  {ETIQUETA_TIPO_TERAPIA[tipo]}
                 </button>
               )
             })}
@@ -413,6 +461,17 @@ export function DrawerCita({ cita, onCerrar, onCrear, onGuardarCampos, onCambiar
             className={styles.textareaNotas}
           />
         </div>
+
+        {advertencias.length > 0 && (
+          <div className={styles.bannerAdvertencia}>
+            <Icono nombre="alerta" tamano={15} grosor={2} />
+            <div className={styles.textoAdvertencia}>
+              {advertencias.map((mensaje, indice) => (
+                <p key={indice}>{mensaje}</p>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className={styles.piePagina}>
           {!!pacienteIdActivo && (

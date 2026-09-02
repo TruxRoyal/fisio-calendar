@@ -22,6 +22,7 @@ type Paciente struct {
 
 type AutorizacionResumen struct {
 	ID                int64   `json:"id"`
+	TipoTerapia       string  `json:"tipoTerapia"`
 	SesionesTotales   int     `json:"sesionesTotales"`
 	SesionesUsadas    int     `json:"sesionesUsadas"`
 	SesionesRestantes int     `json:"sesionesRestantes"`
@@ -32,7 +33,8 @@ type AutorizacionResumen struct {
 
 type PacienteDetalle struct {
 	Paciente
-	AutorizacionActiva *AutorizacionResumen `json:"autorizacionActiva"`
+	AutorizacionesActivas []AutorizacionResumen `json:"autorizacionesActivas"`
+	TiposTerapia          []string              `json:"tiposTerapia"`
 }
 
 type EventoCronologia struct {
@@ -43,11 +45,18 @@ type EventoCronologia struct {
 	Monto   *int    `json:"monto"`
 }
 
+type FinancieroTipo struct {
+	TipoTerapia      string `json:"tipoTerapia"`
+	Facturado        int    `json:"facturado"`
+	CopagosRecibidos int    `json:"copagosRecibidos"`
+}
+
 type ResumenFinancieroPaciente struct {
-	Anio             int `json:"anio"`
-	Mes              int `json:"mes"`
-	Facturado        int `json:"facturado"`
-	CopagosRecibidos int `json:"copagosRecibidos"`
+	Anio             int              `json:"anio"`
+	Mes              int              `json:"mes"`
+	Facturado        int              `json:"facturado"`
+	CopagosRecibidos int              `json:"copagosRecibidos"`
+	PorTipo          []FinancieroTipo `json:"porTipo"`
 }
 
 type SolicitudCrearPaciente struct {

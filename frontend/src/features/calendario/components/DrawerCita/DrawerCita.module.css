@@ -331,6 +331,34 @@
   color: var(--acT);
 }
 
+.filaTipoTerapia {
+  display: flex;
+  gap: 6px;
+}
+
+.botonTipoTerapia {
+  flex: 1;
+  height: 38px;
+  border: 1px solid var(--bd);
+  background: var(--s1);
+  color: var(--t2);
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.botonTipoTerapia.activo {
+  border-color: var(--ac);
+  background: var(--acS);
+  color: var(--acT);
+}
+
+.botonTipoTerapia:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
 .filaEstados {
   display: flex;
   gap: 6px;
@@ -485,6 +513,37 @@
   background: var(--bg);
   outline: none;
   line-height: 1.55;
+}
+
+.bannerAdvertencia {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 20px 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--wrBd);
+  background: var(--wrBg);
+  color: var(--wrFg);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.bannerAdvertencia svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--wrIc);
+}
+
+.textoAdvertencia {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.textoAdvertencia p {
+  margin: 0;
 }
 
 .piePagina {

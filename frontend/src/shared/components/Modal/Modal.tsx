@@ -8,9 +8,10 @@ interface PropiedadesModal {
   onCerrar: () => void
   children: ReactNode
   ancho?: string
+  cerrarAlClickFuera?: boolean
 }
 
-export function Modal({ abierto, titulo, onCerrar, children, ancho = '480px' }: PropiedadesModal) {
+export function Modal({ abierto, titulo, onCerrar, children, ancho = '480px', cerrarAlClickFuera = true }: PropiedadesModal) {
   useEffect(() => {
     if (!abierto) return
 
@@ -25,7 +26,7 @@ export function Modal({ abierto, titulo, onCerrar, children, ancho = '480px' }: 
   if (!abierto) return null
 
   return (
-    <div className={styles.fondo} onClick={onCerrar}>
+    <div className={styles.fondo} onClick={cerrarAlClickFuera ? onCerrar : undefined}>
       <div
         role="dialog"
         aria-modal="true"

@@ -75,6 +75,7 @@ function VistaSemanalEscritorio() {
     onActualizarCopago,
     mensajeError,
     setMensajeError,
+    advertencias,
     verificar,
     actualizarCita,
   } = useGestionCita()
@@ -232,6 +233,7 @@ function VistaSemanalEscritorio() {
         inicio: actual.inicioPropuesto,
         fin: actual.finPropuesto,
         autorizacionId: cita?.autorizacionId ?? null,
+        tipoTerapia: cita?.tipoTerapia ?? 'fisica',
         notas: cita?.notas ?? null,
       })
     } catch (error) {
@@ -430,6 +432,7 @@ function VistaSemanalEscritorio() {
           onGuardarCampos={onGuardarCampos}
           onCambiarEstado={onCambiarEstado}
           onActualizarCopago={onActualizarCopago}
+          advertencias={advertencias}
         />
       )}
 

@@ -83,8 +83,8 @@ export function VistaMes({ onAbrirCita, onIrADia }: PropiedadesVistaMes) {
                 </div>
 
                 {visibles.map((cita) => {
-                  const colorTipo = cita.paciente.tipoTerapia ? TIPO_TERAPIA_COLOR[cita.paciente.tipoTerapia] : null
-                  const punto = cita.paciente.color ?? colorTipo?.fg ?? 'var(--ac)'
+                  const colorTipo = TIPO_TERAPIA_COLOR[cita.tipoTerapia]
+                  const punto = cita.paciente.color ?? colorTipo.fg ?? 'var(--ac)'
                   return (
                     <div
                       key={cita.id}

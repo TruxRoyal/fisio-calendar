@@ -16,7 +16,7 @@ export const pacientesApi = {
     if (busqueda) parametros.set('q', busqueda)
     if (mes) parametros.set('mes', mes)
     const query = parametros.toString()
-    return clienteApi.get<Paciente[]>(`/pacientes${query ? `?${query}` : ''}`)
+    return clienteApi.get<PacienteDetalle[]>(`/pacientes${query ? `?${query}` : ''}`)
   },
   obtener: (id: number) => clienteApi.get<PacienteDetalle>(`/pacientes/${id}`),
   crear: (solicitud: SolicitudPaciente) => clienteApi.post<Paciente>('/pacientes', solicitud),

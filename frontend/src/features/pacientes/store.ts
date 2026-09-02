@@ -3,7 +3,7 @@ import { pacientesApi } from './api'
 import type { Paciente, PacienteDetalle, SolicitudPaciente } from './types'
 
 interface EstadoPacientes {
-  pacientes: Paciente[]
+  pacientes: PacienteDetalle[]
   seleccionado: PacienteDetalle | null
   cargando: boolean
   busqueda: string
