@@ -105,7 +105,13 @@ export function FormularioPaciente({ abierto, pacienteInicial, onCerrar, onGuard
   }
 
   return (
-    <Modal abierto={abierto} titulo={pacienteInicial ? 'Editar paciente' : 'Nuevo paciente'} onCerrar={onCerrar} ancho="520px">
+    <Modal
+      abierto={abierto}
+      titulo={pacienteInicial ? 'Editar paciente' : 'Nuevo paciente'}
+      onCerrar={onCerrar}
+      ancho="520px"
+      cerrarAlClickFuera={false}
+    >
       <form onSubmit={alEnviar} className={styles.formulario}>
         <Input
           etiqueta="Nombre completo"
