@@ -38,6 +38,16 @@
   color: var(--wrFg);
 }
 
+.errorGuardado {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: -4px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--dgFg);
+}
+
 .filaAcciones {
   display: flex;
   justify-content: flex-end;
@@ -105,6 +115,13 @@
   margin: 10px 0 0;
   font-size: 12.5px;
   color: var(--acT);
+}
+
+.notaVencida {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--dgFg);
 }
 
 .alertaSesiones {

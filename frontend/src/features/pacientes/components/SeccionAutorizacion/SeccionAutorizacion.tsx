@@ -4,14 +4,17 @@ import { Input } from '../../../../shared/components/Input/Input'
 import { SelectorFecha } from '../../../../shared/components/SelectorFecha/SelectorFecha'
 import { Boton } from '../../../../shared/components/Boton/Boton'
 import { Icono } from '../../../../shared/components/Icono/Icono'
-import { formatearFechaCorta } from '../../../../shared/lib/fecha'
+import { formatearFechaCorta, diasHasta } from '../../../../shared/lib/fecha'
 import { autorizacionesApi } from '../../api'
+import { ErrorPeticion } from '../../../../shared/api/cliente'
 import type { Autorizacion, SolicitudCrearAutorizacion } from '../../types'
 import type { TipoTerapia } from '../../../../shared/types/comun'
 import { ETIQUETA_TIPO_TERAPIA } from '../../../../shared/types/comun'
 import styles from './SeccionAutorizacion.module.css'
 
 const TIPOS_TERAPIA: TipoTerapia[] = ['respiratoria', 'fisica']
+
+type ModoEdicion = 'editar' | 'nueva'
 
 interface PropiedadesSeccionAutorizacion {
   pacienteId: number
@@ -26,10 +29,29 @@ function solicitudVacia(pacienteId: number, tipoTerapia: TipoTerapia): Solicitud
   return { pacienteId, tipoTerapia, numero: '', copago: 0, sesionesTotales: 10, fechaVencimiento: '' }
 }
 
-function estadoInicialEditando(autorizacionesActivas: Autorizacion[]): Record<TipoTerapia, boolean> {
-  return Object.fromEntries(
-    TIPOS_TERAPIA.map((tipo) => [tipo, !autorizacionesActivas.some((a) => a.tipoTerapia === tipo)]),
-  ) as Record<TipoTerapia, boolean>
+function solicitudDesdeAutorizacion(autorizacion: Autorizacion): SolicitudCrearAutorizacion {
+  return {
+    pacienteId: autorizacion.pacienteId,
+    tipoTerapia: autorizacion.tipoTerapia,
+    numero: autorizacion.numero ?? '',
+    copago: autorizacion.copago,
+    sesionesTotales: autorizacion.sesionesTotales,
+    fechaVencimiento: autorizacion.fechaVencimiento ?? '',
+  }
+}
+
+function textoBotonGuardar(modo: ModoEdicion, hayAutorizacionVigente: boolean): string {
+  if (modo === 'editar') return 'Guardar cambios'
+  return hayAutorizacionVigente ? 'Renovar autorización' : 'Registrar autorización'
+}
+
+function esVencida(autorizacion: Autorizacion): boolean {
+  if (!autorizacion.fechaVencimiento) return false
+  return diasHasta(autorizacion.fechaVencimiento) < 0
+}
+
+function estadoVacioPorTipo<T>(valor: T): Record<TipoTerapia, T> {
+  return Object.fromEntries(TIPOS_TERAPIA.map((tipo) => [tipo, valor])) as Record<TipoTerapia, T>
 }
 
 function estadoInicialSolicitudes(pacienteId: number): Record<TipoTerapia, SolicitudCrearAutorizacion> {
@@ -40,17 +62,20 @@ function estadoInicialSolicitudes(pacienteId: number): Record<TipoTerapia, Solic
 }
 
 export function SeccionAutorizacion({ pacienteId, autorizacionesActivas, onActualizado }: PropiedadesSeccionAutorizacion) {
-  const [editando, setEditando] = useState<Record<TipoTerapia, boolean>>(() => estadoInicialEditando(autorizacionesActivas))
+  const [editando, setEditando] = useState<Record<TipoTerapia, boolean>>(() => estadoVacioPorTipo(false))
+  const [modo, setModo] = useState<Record<TipoTerapia, ModoEdicion>>(() => estadoVacioPorTipo<ModoEdicion>('nueva'))
   const [solicitudes, setSolicitudes] = useState<Record<TipoTerapia, SolicitudCrearAutorizacion>>(() =>
     estadoInicialSolicitudes(pacienteId),
   )
   const [guardandoTipo, setGuardandoTipo] = useState<TipoTerapia | null>(null)
-  const [erroresFecha, setErroresFecha] = useState<Record<TipoTerapia, boolean>>({ respiratoria: false, fisica: false })
+  const [erroresFecha, setErroresFecha] = useState<Record<TipoTerapia, boolean>>(() => estadoVacioPorTipo(false))
+  const [erroresGuardado, setErroresGuardado] = useState<Record<TipoTerapia, string | null>>(() => estadoVacioPorTipo(null))
 
   useEffect(() => {
-    setEditando(estadoInicialEditando(autorizacionesActivas))
+    setEditando(estadoVacioPorTipo(false))
     setSolicitudes(estadoInicialSolicitudes(pacienteId))
-    setErroresFecha({ respiratoria: false, fisica: false })
+    setErroresFecha(estadoVacioPorTipo(false))
+    setErroresGuardado(estadoVacioPorTipo(null))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pacienteId])
 
@@ -62,34 +87,67 @@ export function SeccionAutorizacion({ pacienteId, autorizacionesActivas, onActua
     setSolicitudes((actual) => ({ ...actual, [tipo]: { ...actual[tipo], [campo]: valor } }))
   }
 
+  function abrirEdicion(tipo: TipoTerapia, autorizacion: Autorizacion) {
+    setModo((actual) => ({ ...actual, [tipo]: 'editar' }))
+    setSolicitudes((actual) => ({ ...actual, [tipo]: solicitudDesdeAutorizacion(autorizacion) }))
+    setErroresGuardado((actual) => ({ ...actual, [tipo]: null }))
+    setEditando((actual) => ({ ...actual, [tipo]: true }))
+  }
+
+  function abrirRegistroONovacion(tipo: TipoTerapia) {
+    setModo((actual) => ({ ...actual, [tipo]: 'nueva' }))
+    setSolicitudes((actual) => ({ ...actual, [tipo]: solicitudVacia(pacienteId, tipo) }))
+    setErroresGuardado((actual) => ({ ...actual, [tipo]: null }))
+    setEditando((actual) => ({ ...actual, [tipo]: true }))
+  }
+
   async function alEnviar(tipo: TipoTerapia, evento: FormEvent) {
     evento.preventDefault()
+    if (guardandoTipo) return
     const solicitud = solicitudes[tipo]
     if (!solicitud.fechaVencimiento) {
       setErroresFecha((actual) => ({ ...actual, [tipo]: true }))
       return
     }
     setErroresFecha((actual) => ({ ...actual, [tipo]: false }))
+    setErroresGuardado((actual) => ({ ...actual, [tipo]: null }))
     setGuardandoTipo(tipo)
     try {
       const vigente = autorizacionesActivas.find((a) => a.tipoTerapia === tipo)
-      if (vigente) {
-        // idx_autoriz_activa_por_tipo permite a lo sumo una autorizacion activa
-        // por (paciente, tipo): hay que desactivar la vigente antes de crear la
-        // renovacion, o el POST siguiente responde 409 (autorizacion_activa_duplicada).
+      if (modo[tipo] === 'editar' && vigente) {
+        // Edicion en el lugar: mismo id, no se toca sesionesUsadas (se deriva de las citas).
         await autorizacionesApi.actualizar(vigente.id, {
-          numero: vigente.numero,
-          tipoTerapia: vigente.tipoTerapia,
-          copago: vigente.copago,
-          sesionesTotales: vigente.sesionesTotales,
-          fechaVencimiento: vigente.fechaVencimiento,
-          activa: false,
+          numero: solicitud.numero,
+          tipoTerapia: tipo,
+          copago: solicitud.copago,
+          sesionesTotales: solicitud.sesionesTotales,
+          fechaVencimiento: solicitud.fechaVencimiento,
+          activa: true,
         })
+      } else {
+        if (vigente) {
+          // idx_autoriz_activa_por_tipo permite a lo sumo una autorizacion activa
+          // por (paciente, tipo): hay que desactivar la vigente antes de crear la
+          // renovacion, o el POST siguiente responde 409 (autorizacion_activa_duplicada).
+          await autorizacionesApi.actualizar(vigente.id, {
+            numero: vigente.numero,
+            tipoTerapia: vigente.tipoTerapia,
+            copago: vigente.copago,
+            sesionesTotales: vigente.sesionesTotales,
+            fechaVencimiento: vigente.fechaVencimiento,
+            activa: false,
+          })
+        }
+        await autorizacionesApi.crear(solicitud)
       }
-      await autorizacionesApi.crear(solicitud)
       await onActualizado()
       setEditando((actual) => ({ ...actual, [tipo]: false }))
       setSolicitudes((actual) => ({ ...actual, [tipo]: solicitudVacia(pacienteId, tipo) }))
+    } catch (err) {
+      setErroresGuardado((actual) => ({
+        ...actual,
+        [tipo]: err instanceof ErrorPeticion ? err.message : 'No se pudo guardar la autorización. Intenta de nuevo.',
+      }))
     } finally {
       setGuardandoTipo(null)
     }
@@ -97,21 +155,28 @@ export function SeccionAutorizacion({ pacienteId, autorizacionesActivas, onActua
 
   return (
     <div className={styles.contenedor}>
-      {TIPOS_TERAPIA.map((tipo) => (
-        <BloqueAutorizacionTipo
-          key={tipo}
-          tipo={tipo}
-          autorizacion={autorizacionesActivas.find((a) => a.tipoTerapia === tipo) ?? null}
-          editando={editando[tipo]}
-          solicitud={solicitudes[tipo]}
-          guardando={guardandoTipo === tipo}
-          errorFechaVencimiento={erroresFecha[tipo]}
-          onCambiarCampo={(campo, valor) => actualizarCampo(tipo, campo, valor)}
-          onEnviar={(evento) => alEnviar(tipo, evento)}
-          onEditar={() => setEditando((actual) => ({ ...actual, [tipo]: true }))}
-          onCancelar={() => setEditando((actual) => ({ ...actual, [tipo]: false }))}
-        />
-      ))}
+      {TIPOS_TERAPIA.map((tipo) => {
+        const autorizacion = autorizacionesActivas.find((a) => a.tipoTerapia === tipo) ?? null
+        return (
+          <BloqueAutorizacionTipo
+            key={tipo}
+            tipo={tipo}
+            autorizacion={autorizacion}
+            vencida={autorizacion ? esVencida(autorizacion) : false}
+            editando={editando[tipo]}
+            modo={modo[tipo]}
+            solicitud={solicitudes[tipo]}
+            guardando={guardandoTipo === tipo}
+            errorFechaVencimiento={erroresFecha[tipo]}
+            errorGuardado={erroresGuardado[tipo]}
+            onCambiarCampo={(campo, valor) => actualizarCampo(tipo, campo, valor)}
+            onEnviar={(evento) => alEnviar(tipo, evento)}
+            onEditar={() => (autorizacion ? abrirEdicion(tipo, autorizacion) : abrirRegistroONovacion(tipo))}
+            onRenovar={() => abrirRegistroONovacion(tipo)}
+            onCancelar={() => setEditando((actual) => ({ ...actual, [tipo]: false }))}
+          />
+        )
+      })}
     </div>
   )
 }
@@ -119,26 +184,34 @@ export function SeccionAutorizacion({ pacienteId, autorizacionesActivas, onActua
 interface PropiedadesBloqueAutorizacionTipo {
   tipo: TipoTerapia
   autorizacion: Autorizacion | null
+  vencida: boolean
   editando: boolean
+  modo: ModoEdicion
   solicitud: SolicitudCrearAutorizacion
   guardando: boolean
   errorFechaVencimiento: boolean
+  errorGuardado: string | null
   onCambiarCampo: <K extends keyof SolicitudCrearAutorizacion>(campo: K, valor: SolicitudCrearAutorizacion[K]) => void
   onEnviar: (evento: FormEvent) => void
   onEditar: () => void
+  onRenovar: () => void
   onCancelar: () => void
 }
 
 function BloqueAutorizacionTipo({
   tipo,
   autorizacion,
+  vencida,
   editando,
+  modo,
   solicitud,
   guardando,
   errorFechaVencimiento,
+  errorGuardado,
   onCambiarCampo,
   onEnviar,
   onEditar,
+  onRenovar,
   onCancelar,
 }: PropiedadesBloqueAutorizacionTipo) {
   return (
@@ -177,6 +250,12 @@ function BloqueAutorizacionTipo({
             }}
           />
           {errorFechaVencimiento && <p className={styles.errorCampo}>La fecha de vencimiento es obligatoria</p>}
+          {errorGuardado && (
+            <p className={styles.errorGuardado}>
+              <Icono nombre="alerta" tamano={13} grosor={2} />
+              {errorGuardado}
+            </p>
+          )}
           <div className={styles.filaAcciones}>
             {autorizacion && (
               <Boton type="button" tamano="sm" variante="secundario" onClick={onCancelar}>
@@ -184,16 +263,16 @@ function BloqueAutorizacionTipo({
               </Boton>
             )}
             <Boton type="submit" tamano="sm" variante="primario" disabled={guardando}>
-              {guardando ? 'Guardando…' : 'Guardar autorización'}
+              {guardando ? 'Guardando…' : textoBotonGuardar(modo, Boolean(autorizacion))}
             </Boton>
           </div>
         </form>
       ) : autorizacion ? (
-        <TarjetaAutorizacionTipo autorizacion={autorizacion} onRenovar={onEditar} />
+        <TarjetaAutorizacionTipo autorizacion={autorizacion} vencida={vencida} onEditar={onEditar} onRenovar={onRenovar} />
       ) : (
         <div className={styles.vacio}>
           <p className={styles.textoVacio}>Sin autorización activa</p>
-          <Boton tamano="sm" variante="primario" onClick={onEditar}>
+          <Boton tamano="sm" variante="primario" onClick={onRenovar}>
             Registrar autorización
           </Boton>
         </div>
@@ -202,7 +281,17 @@ function BloqueAutorizacionTipo({
   )
 }
 
-function TarjetaAutorizacionTipo({ autorizacion, onRenovar }: { autorizacion: Autorizacion; onRenovar: () => void }) {
+function TarjetaAutorizacionTipo({
+  autorizacion,
+  vencida,
+  onEditar,
+  onRenovar,
+}: {
+  autorizacion: Autorizacion
+  vencida: boolean
+  onEditar: () => void
+  onRenovar: () => void
+}) {
   const porcentaje = Math.min(100, Math.round((autorizacion.sesionesUsadas / Math.max(1, autorizacion.sesionesTotales)) * 100))
   const alertaSesiones = autorizacion.sesionesRestantes <= 3
 
@@ -212,14 +301,24 @@ function TarjetaAutorizacionTipo({ autorizacion, onRenovar }: { autorizacion: Au
         <span className={styles.tituloSesiones}>
           Sesiones restantes: {autorizacion.sesionesRestantes} de {autorizacion.sesionesTotales}
         </span>
-        <button type="button" onClick={onRenovar} className={styles.botonRenovar}>
-          Renovar
-        </button>
+        {vencida ? (
+          <button type="button" onClick={onRenovar} className={styles.botonRenovar}>
+            Renovar
+          </button>
+        ) : (
+          <button type="button" onClick={onEditar} className={styles.botonRenovar}>
+            Editar
+          </button>
+        )}
       </div>
       <div className={styles.pista}>
         <div className={styles.relleno} style={{ '--ancho': `${porcentaje}%` } as CSSProperties} />
       </div>
-      {autorizacion.fechaVencimiento && <p className={styles.notaVence}>Vence el {formatearFechaCorta(autorizacion.fechaVencimiento)}</p>}
+      {autorizacion.fechaVencimiento && (
+        <p className={vencida ? styles.notaVencida : styles.notaVence}>
+          {vencida ? 'Venció el' : 'Vence el'} {formatearFechaCorta(autorizacion.fechaVencimiento)}
+        </p>
+      )}
       {alertaSesiones && (
         <p className={styles.alertaSesiones}>
           <Icono nombre="alerta" tamano={13} grosor={2.1} />
