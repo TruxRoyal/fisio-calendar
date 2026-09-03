@@ -308,6 +308,10 @@ function WidgetCargaMensual({ capacidad }: { capacidad: CapacidadMensual }) {
   const pctReal = Math.min(100, (capacidad.minutosReales / maxReferencia) * 100)
   const pctSesiones =
     capacidad.sesionesTotalesMes > 0 ? Math.min(100, (capacidad.sesionesHechasMes / capacidad.sesionesTotalesMes) * 100) : 0
+  const pctRegistradas =
+    capacidad.sesionesAutorizadasTotal > 0
+      ? Math.min(100, (capacidad.sesionesRegistradasTotal / capacidad.sesionesAutorizadasTotal) * 100)
+      : 0
 
   return (
     <div className={styles.seccionCarga}>
@@ -326,8 +330,18 @@ function WidgetCargaMensual({ capacidad }: { capacidad: CapacidadMensual }) {
           color="var(--okFg)"
           colorTexto="var(--okFg)"
         />
+        <BarraCarga
+          etiqueta="Registradas"
+          valor={`${capacidad.sesionesRegistradasTotal}/${capacidad.sesionesAutorizadasTotal}`}
+          pct={pctRegistradas}
+          color="var(--acD)"
+          colorTexto="var(--acT)"
+        />
 
-        <div className={styles.notaCarga}>Estimado: sesiones pendientes × 30 min · Real: duración de las sesiones ya atendidas este mes</div>
+        <div className={styles.notaCarga}>
+          Estimado: sesiones pendientes × 30 min · Real: duración de las sesiones ya atendidas este mes · Registradas: de
+          todas las sesiones autorizadas activas, cuántas ya tienen cita creada (agendada o hecha)
+        </div>
       </div>
     </div>
   )

@@ -251,7 +251,7 @@ func TestObtenerCapacidadMensualCuentaSesionesHechasYTotalesExcluyendoCanceladas
 	// Cita fuera del mes objetivo: no debe contar en ningun total.
 	insertarCitaTest(t, conexion, pacienteID, "fisica", "atendida", 100, 0, "2024-04-01T09:00:00", "2024-04-01T10:00:00")
 
-	_, _, sesionesHechasMes, sesionesTotalesMes, err := repo.ObtenerCapacidadMensual(ctx, "2024-03")
+	_, _, sesionesHechasMes, sesionesTotalesMes, _, _, err := repo.ObtenerCapacidadMensual(ctx, "2024-03")
 	if err != nil {
 		t.Fatalf("obtener capacidad mensual: %v", err)
 	}
@@ -261,6 +261,41 @@ func TestObtenerCapacidadMensualCuentaSesionesHechasYTotalesExcluyendoCanceladas
 	}
 	if sesionesTotalesMes != 3 {
 		t.Fatalf("esperaba sesionesTotalesMes=3 (2 atendidas + 1 agendada, cancelada excluida), obtuvo %d", sesionesTotalesMes)
+	}
+}
+
+func TestObtenerCapacidadMensualCuentaAutorizadasYRegistradasDelTotalDePacientes(t *testing.T) {
+	conexion := testdb.Nueva(t)
+	repo := resumen.NuevoRepository(conexion)
+	ctx := context.Background()
+
+	pacienteUnoID := insertarPacienteTest(t, conexion, "Paciente Uno Backlog", "fisica")
+	pacienteDosID := insertarPacienteTest(t, conexion, "Paciente Dos Backlog", "respiratoria")
+
+	autorizacionUnoID := insertarAutorizacionTest(t, conexion, pacienteUnoID, "fisica", 10)
+	autorizacionDosID := insertarAutorizacionTest(t, conexion, pacienteDosID, "respiratoria", 10)
+	// Autorizacion inactiva (de otro tipo, para no chocar con el indice unico de activas): no debe sumar a lo autorizado ni a lo registrado.
+	autorizacionInactivaID := insertarAutorizacionTest(t, conexion, pacienteUnoID, "respiratoria", 10)
+	desactivarAutorizacionTest(t, conexion, autorizacionInactivaID)
+
+	// 2 citas registradas (con autorizacion_id) para el paciente uno: 1 atendida, 1 agendada.
+	insertarCitaConAutorizacionTest(t, conexion, pacienteUnoID, autorizacionUnoID, "fisica", "atendida", "2024-03-01T09:00:00", "2024-03-01T10:00:00")
+	insertarCitaConAutorizacionTest(t, conexion, pacienteUnoID, autorizacionUnoID, "fisica", "agendada", "2024-03-05T09:00:00", "2024-03-05T10:00:00")
+	// 1 cita cancelada: no debe contar como registrada.
+	insertarCitaConAutorizacionTest(t, conexion, pacienteUnoID, autorizacionUnoID, "fisica", "cancelada", "2024-03-06T09:00:00", "2024-03-06T10:00:00")
+	// 1 cita registrada para el paciente dos.
+	insertarCitaConAutorizacionTest(t, conexion, pacienteDosID, autorizacionDosID, "respiratoria", "atendida", "2024-03-02T09:00:00", "2024-03-02T10:00:00")
+
+	_, _, _, _, sesionesAutorizadasTotal, sesionesRegistradasTotal, err := repo.ObtenerCapacidadMensual(ctx, "2024-03")
+	if err != nil {
+		t.Fatalf("obtener capacidad mensual: %v", err)
+	}
+
+	if sesionesAutorizadasTotal != 20 {
+		t.Fatalf("esperaba sesionesAutorizadasTotal=20 (10+10 de las 2 autorizaciones activas, la inactiva no cuenta), obtuvo %d", sesionesAutorizadasTotal)
+	}
+	if sesionesRegistradasTotal != 3 {
+		t.Fatalf("esperaba sesionesRegistradasTotal=3 (2 del paciente uno + 1 del paciente dos, la cancelada no cuenta), obtuvo %d", sesionesRegistradasTotal)
 	}
 }
 
@@ -318,6 +353,50 @@ func insertarCitaTest(t *testing.T, conexion *sql.DB, pacienteID int64, tipoTera
 	)
 	if err != nil {
 		t.Fatalf("insertar cita %s/%s para paciente %d: %v", tipoTerapia, estado, pacienteID, err)
+	}
+
+	id, err := resultado.LastInsertId()
+	if err != nil {
+		t.Fatalf("obtener id de cita: %v", err)
+	}
+	return id
+}
+
+func insertarAutorizacionTest(t *testing.T, conexion *sql.DB, pacienteID int64, tipoTerapia string, sesionesTotales int) int64 {
+	t.Helper()
+
+	resultado, err := conexion.Exec(
+		`INSERT INTO autorizacion (paciente_id, tipo_terapia, sesiones_totales, activa) VALUES (?, ?, ?, 1)`,
+		pacienteID, tipoTerapia, sesionesTotales,
+	)
+	if err != nil {
+		t.Fatalf("insertar autorizacion %s para paciente %d: %v", tipoTerapia, pacienteID, err)
+	}
+
+	id, err := resultado.LastInsertId()
+	if err != nil {
+		t.Fatalf("obtener id de autorizacion: %v", err)
+	}
+	return id
+}
+
+func desactivarAutorizacionTest(t *testing.T, conexion *sql.DB, autorizacionID int64) {
+	t.Helper()
+
+	if _, err := conexion.Exec(`UPDATE autorizacion SET activa = 0 WHERE id = ?`, autorizacionID); err != nil {
+		t.Fatalf("desactivar autorizacion %d: %v", autorizacionID, err)
+	}
+}
+
+func insertarCitaConAutorizacionTest(t *testing.T, conexion *sql.DB, pacienteID, autorizacionID int64, tipoTerapia, estado, inicio, fin string) int64 {
+	t.Helper()
+
+	resultado, err := conexion.Exec(
+		`INSERT INTO cita (paciente_id, autorizacion_id, tipo_terapia, estado, inicio, fin) VALUES (?, ?, ?, ?, ?, ?)`,
+		pacienteID, autorizacionID, tipoTerapia, estado, inicio, fin,
+	)
+	if err != nil {
+		t.Fatalf("insertar cita %s/%s con autorizacion para paciente %d: %v", tipoTerapia, estado, pacienteID, err)
 	}
 
 	id, err := resultado.LastInsertId()

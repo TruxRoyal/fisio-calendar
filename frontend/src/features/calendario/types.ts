@@ -121,4 +121,6 @@ export interface CapacidadMensual {
   minutosReales: number
   sesionesHechasMes: number
   sesionesTotalesMes: number
+  sesionesAutorizadasTotal: number
+  sesionesRegistradasTotal: number
 }
