@@ -160,21 +160,21 @@ func (r *Repository) listarAutorizacionesActivasPorPacientes(ctx context.Context
 }
 
 func calcularTiposTerapia(activas []AutorizacionResumen, tipoPreferido *string) []string {
-	vistos := map[string]bool{}
-	tipos := []string{}
-	agregar := func(tipo string) {
-		if tipo == "" || vistos[tipo] {
-			return
+	if len(activas) == 0 {
+		if tipoPreferido != nil && *tipoPreferido != "" {
+			return []string{*tipoPreferido}
 		}
-		vistos[tipo] = true
-		tipos = append(tipos, tipo)
+		return []string{}
 	}
 
+	vistos := map[string]bool{}
+	tipos := []string{}
 	for _, a := range activas {
-		agregar(a.TipoTerapia)
-	}
-	if tipoPreferido != nil {
-		agregar(*tipoPreferido)
+		if a.TipoTerapia == "" || vistos[a.TipoTerapia] {
+			continue
+		}
+		vistos[a.TipoTerapia] = true
+		tipos = append(tipos, a.TipoTerapia)
 	}
 
 	sort.Strings(tipos)

@@ -119,4 +119,6 @@ export type VistaCalendario = 'semana' | 'dia' | 'mes'
 export interface CapacidadMensual {
   minutosEstimados: number
   minutosReales: number
+  sesionesHechasMes: number
+  sesionesTotalesMes: number
 }

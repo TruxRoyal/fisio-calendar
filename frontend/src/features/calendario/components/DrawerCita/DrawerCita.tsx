@@ -112,7 +112,7 @@ export function DrawerCita({
     return () => {
       vigente = false
     }
-  }, [pacienteIdActivo])
+  }, [pacienteIdActivo, cita.estado])
 
   useEffect(() => {
     if (!esNueva || !pacienteElegido) return

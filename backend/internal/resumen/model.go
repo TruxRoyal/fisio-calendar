@@ -48,9 +48,35 @@ type DetalleSesion struct {
 }
 
 type CapacidadMensual struct {
-	MinutosEstimados int `json:"minutosEstimados"`
-	MinutosReales    int `json:"minutosReales"`
+	MinutosEstimados   int `json:"minutosEstimados"`
+	MinutosReales      int `json:"minutosReales"`
+	SesionesHechasMes  int `json:"sesionesHechasMes"`
+	SesionesTotalesMes int `json:"sesionesTotalesMes"`
 }
 
 const UmbralEscalon = 71
 const DuracionEstimadaMin = 30
+
+type FilaAgendadaProyeccion struct {
+	PacienteID   int64
+	Origen       string
+	TarifaSesion *int
+	Inicio       string
+}
+
+type ProyeccionMensual struct {
+	Anio                        int `json:"anio"`
+	Mes                         int `json:"mes"`
+	UmbralEscalon               int `json:"umbralEscalon"`
+	SesionesTrabajoActual       int `json:"sesionesTrabajoActual"`
+	SesionesTrabajoProyectadas  int `json:"sesionesTrabajoProyectadas"`
+	SesionesRestantes           int `json:"sesionesRestantes"`
+	SesionesRestantesTrabajo    int `json:"sesionesRestantesTrabajo"`
+	SesionesRestantesExtra      int `json:"sesionesRestantesExtra"`
+	SesionesSinTarifa           int `json:"sesionesSinTarifa"`
+	PagoNetoActual               int `json:"pagoNetoActual"`
+	PagoNetoProyectado           int `json:"pagoNetoProyectado"`
+	TotalActual                  int `json:"totalActual"`
+	TotalProyectado              int `json:"totalProyectado"`
+	ValorPromedioSesionRestante  int `json:"valorPromedioSesionRestante"`
+}

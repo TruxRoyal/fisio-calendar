@@ -157,7 +157,16 @@ func (s *Service) CambiarEstado(ctx context.Context, id int64, solicitud Solicit
 		valorSesion = &valor
 	}
 
-	actualizada, err := s.repo.CambiarEstado(ctx, id, solicitud.Estado, valorSesion, solicitud.CopagoCobrado)
+	copagoCobrado := solicitud.CopagoCobrado
+	if solicitud.Estado == "atendida" && existente.Estado != "atendida" && copagoCobrado == nil && existente.AutorizacionID != nil {
+		copago, err := s.repo.ObtenerCopagoAutorizacion(ctx, *existente.AutorizacionID)
+		if err != nil {
+			return nil, nil, err
+		}
+		copagoCobrado = &copago
+	}
+
+	actualizada, err := s.repo.CambiarEstado(ctx, id, solicitud.Estado, valorSesion, copagoCobrado)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { resumenApi } from '../api'
-import type { DesglosePaciente, ResumenMensual } from '../types'
+import type { DesglosePaciente, ProyeccionMensual, ResumenMensual } from '../types'
 
 export function useResumen(anio: number, mes: number) {
   const [resumen, setResumen] = useState<ResumenMensual | null>(null)
@@ -21,6 +21,27 @@ export function useResumen(anio: number, mes: number) {
   }, [anio, mes])
 
   return { resumen, cargando }
+}
+
+export function useProyeccion(anio: number, mes: number) {
+  const [proyeccion, setProyeccion] = useState<ProyeccionMensual | null>(null)
+  const [cargando, setCargando] = useState(false)
+
+  useEffect(() => {
+    let vigente = true
+    setProyeccion(null)
+    setCargando(true)
+    resumenApi.obtenerProyeccion(anio, mes).then((datos) => {
+      if (!vigente) return
+      setProyeccion(datos)
+      setCargando(false)
+    })
+    return () => {
+      vigente = false
+    }
+  }, [anio, mes])
+
+  return { proyeccion, cargando }
 }
 
 export function useResumenHistorico(anio: number, mes: number, meses = 6) {

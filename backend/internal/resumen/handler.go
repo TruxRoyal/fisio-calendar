@@ -100,6 +100,22 @@ func (h *Handler) ObtenerDesglose(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, desglose)
 }
 
+func (h *Handler) ObtenerProyeccion(w http.ResponseWriter, r *http.Request) {
+	anio, mes, err := periodoDesdeQuery(r)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "periodo_invalido", err.Error())
+		return
+	}
+
+	proyeccion, err := h.service.ObtenerProyeccionMensual(r.Context(), anio, mes)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, "error_interno", err.Error())
+		return
+	}
+
+	httpx.JSON(w, http.StatusOK, proyeccion)
+}
+
 func (h *Handler) ObtenerCapacidadMensual(w http.ResponseWriter, r *http.Request) {
 	capacidad, err := h.service.ObtenerCapacidadMensual(r.Context())
 	if err != nil {

@@ -1,16 +1,17 @@
 import { useState } from 'react'
-import { useDesglosePorPaciente, useResumen, useResumenHistorico } from '../../hooks/useResumen'
+import { useDesglosePorPaciente, useProyeccion, useResumen, useResumenHistorico } from '../../hooks/useResumen'
 import { TarjetaCifra } from '../TarjetaCifra/TarjetaCifra'
 import type { DeltaCifra } from '../TarjetaCifra/TarjetaCifra'
 import { GraficoIngresos } from '../GraficoIngresos/GraficoIngresos'
+import { PanelPresupuesto } from '../PanelPresupuesto/PanelPresupuesto'
 import { Boton } from '../../../../shared/components/Boton/Boton'
 import { Icono } from '../../../../shared/components/Icono/Icono'
 import { AtmosferaFondo } from '../../../../shared/components/AtmosferaFondo/AtmosferaFondo'
-import { Progress } from '../../../../shared/components/ui/progress'
 import { formatearCOP } from '../../../../shared/lib/moneda'
 import { formatearMesAnio } from '../../../../shared/lib/fecha'
+import { ETIQUETA_TIPO_TERAPIA, type TipoTerapia } from '../../../../shared/types/comun'
 import { resumenApi } from '../../api'
-import type { DesglosePaciente } from '../../types'
+import type { DesglosePaciente, ResumenTipo } from '../../types'
 import styles from './ResumenMensual.module.css'
 
 function calcularDelta(actual: number, anterior: number): DeltaCifra | null {
@@ -28,6 +29,7 @@ export function ResumenMensual() {
   const [anio, setAnio] = useState(ahora.getFullYear())
   const [mes, setMes] = useState(ahora.getMonth() + 1)
   const { resumen, cargando } = useResumen(anio, mes)
+  const { proyeccion, cargando: cargandoProyeccion } = useProyeccion(anio, mes)
   const { historico } = useResumenHistorico(anio, mes, 6)
   const { desglose } = useDesglosePorPaciente(anio, mes)
   const [exportando, setExportando] = useState(false)
@@ -79,6 +81,12 @@ export function ResumenMensual() {
               <div className={styles.etiquetaHero}>Total del mes</div>
               <div className={styles.filaValorHero}>
                 <span className={styles.valorHero}>{formatearCOP(resumen.total)}</span>
+                {resumen.copagosRecaudados > 0 && (
+                  <span className={styles.badgeCopagos}>
+                    <Icono nombre="moneda" tamano={13} grosor={1.9} />
+                    +{formatearCOP(resumen.copagosRecaudados)} copagos
+                  </span>
+                )}
                 {mesAnterior && (() => {
                   const delta = calcularDelta(resumen.total, mesAnterior.total)
                   return delta ? (
@@ -104,12 +112,6 @@ export function ResumenMensual() {
                 delta={mesAnterior ? calcularDelta(resumen.pagoNeto, mesAnterior.pagoNeto) : null}
               />
               <TarjetaCifra
-                etiqueta="Copagos recaudados"
-                valor={formatearCOP(resumen.copagosRecaudados)}
-                color={{ fg: 'var(--acT)', bg: 'var(--acS)', bd: 'var(--acL)' }}
-                delta={mesAnterior ? calcularDelta(resumen.copagosRecaudados, mesAnterior.copagosRecaudados) : null}
-              />
-              <TarjetaCifra
                 etiqueta="Sesiones atendidas"
                 valor={String(resumen.sesionesAtendidas)}
                 color={{ fg: 'var(--t1)', bg: 'var(--s1)', bd: 'var(--bd)' }}
@@ -117,28 +119,9 @@ export function ResumenMensual() {
               />
             </div>
 
-            <div className={styles.panelEscalon}>
-              <div className={styles.filaEscalon}>
-                <div>
-                  <div className={styles.tituloEscalon}>Escalón de tarifa</div>
-                  <div className={styles.subtituloEscalon}>
-                    {resumen.umbralAlcanzado
-                      ? `Alcanzado — desde la sesión ${resumen.umbralEscalon + 1} el valor sube a $25.000`
-                      : `${resumen.sesionesTrabajo} de ${resumen.umbralEscalon} sesiones del trabajo para subir a $25.000`}
-                  </div>
-                </div>
-                {resumen.umbralAlcanzado && (
-                  <div className={styles.badgeEscalon}>
-                    <Icono nombre="check" tamano={13} grosor={2.6} />
-                    Alcanzado
-                  </div>
-                )}
-              </div>
-              <Progress
-                value={Math.min(100, (resumen.sesionesTrabajo / resumen.umbralEscalon) * 100)}
-                className={styles.pistaEscalon}
-              />
-            </div>
+            {resumen.porTipo.length > 0 && <PanelPorTipo porTipo={resumen.porTipo} />}
+
+            <PanelPresupuesto resumen={resumen} proyeccion={proyeccion} cargando={cargandoProyeccion} />
 
             {historico.length > 0 && (
               <div className={styles.panelGrafico}>
@@ -151,6 +134,37 @@ export function ResumenMensual() {
             {desglose.length > 0 && <PanelDesglose desglose={desglose} />}
           </>
         )}
+      </div>
+    </div>
+  )
+}
+
+function PanelPorTipo({ porTipo }: { porTipo: ResumenTipo[] }) {
+  const maximo = Math.max(...porTipo.map((t) => t.pagoNeto), 1)
+
+  return (
+    <div className={styles.panelDesglose}>
+      <div className={styles.tituloPanelGrafico}>Por tipo de terapia</div>
+      <div className={styles.subtituloPanelGrafico}>Sesiones e ingresos de este mes, física vs. respiratoria</div>
+      <div className={styles.listaDesglose}>
+        {porTipo.map((tipo) => (
+          <div key={tipo.tipoTerapia} className={styles.filaDesglose}>
+            <div className={styles.infoDesglose}>
+              <div className={styles.filaNombreDesglose}>
+                <span className={styles.nombreDesglose}>{ETIQUETA_TIPO_TERAPIA[tipo.tipoTerapia as TipoTerapia] ?? tipo.tipoTerapia}</span>
+                <span className={styles.valorDesglose}>{formatearCOP(tipo.pagoNeto)}</span>
+              </div>
+              <div className={styles.pistaDesglose}>
+                <div className={styles.rellenoDesglose} style={{ width: `${(tipo.pagoNeto / maximo) * 100}%` }} />
+              </div>
+              <div className={styles.notaDesglose}>
+                {tipo.sesionesAtendidas} sesión{tipo.sesionesAtendidas === 1 ? '' : 'es'} atendida
+                {tipo.sesionesAtendidas === 1 ? '' : 's'}
+                {tipo.copagosRecaudados > 0 && ` · ${formatearCOP(tipo.copagosRecaudados)} copagos`}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )

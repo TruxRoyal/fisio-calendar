@@ -33,6 +33,12 @@
   margin-top: 4px;
 }
 
+.totalPorTerapia {
+  font-size: 12px;
+  color: var(--t3);
+  margin-top: 2px;
+}
+
 .filaBusqueda {
   display: flex;
   gap: 8px;
@@ -83,6 +89,41 @@
 
 .botonNuevo:hover {
   background: var(--acS);
+}
+
+.filaOrden {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.etiquetaOrden {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--t3);
+  margin-right: 2px;
+}
+
+.chipOrden {
+  border: 1px solid var(--bd);
+  background: var(--s1);
+  color: var(--t3);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chipOrden.activo {
+  border-color: var(--acL);
+  background: var(--acS);
+  color: var(--acT);
 }
 
 .listaPacientes {
