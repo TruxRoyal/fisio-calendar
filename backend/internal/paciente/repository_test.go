@@ -73,6 +73,34 @@ func TestListarIncluyeAmbasAutorizacionesActivasDePacienteDual(t *testing.T) {
 	}
 }
 
+func TestListarNoMezclaTipoPreferidoConAutorizacionActivaDeOtroTipo(t *testing.T) {
+	conexion := testdb.Nueva(t)
+	repo := paciente.NuevoRepository(conexion)
+	ctx := context.Background()
+
+	pacienteID := insertarPacienteTest(t, conexion, "Paciente Preferido Fisica Activa Respiratoria", "fisica")
+	insertarAutorizacionActivaTest(t, conexion, pacienteID, "respiratoria", 10)
+
+	pacientes, err := repo.Listar(ctx, "", "")
+	if err != nil {
+		t.Fatalf("listar pacientes: %v", err)
+	}
+
+	var encontrado *paciente.PacienteDetalle
+	for i := range pacientes {
+		if pacientes[i].ID == pacienteID {
+			encontrado = &pacientes[i]
+		}
+	}
+	if encontrado == nil {
+		t.Fatal("no se encontro al paciente en el listado")
+	}
+
+	if len(encontrado.TiposTerapia) != 1 || encontrado.TiposTerapia[0] != "respiratoria" {
+		t.Fatalf("esperaba TiposTerapia=[respiratoria] (la autorizacion activa manda sobre el tipo preferido), obtuvo %v", encontrado.TiposTerapia)
+	}
+}
+
 func TestObtenerDetalleIncluyeAmbasAutorizacionesActivas(t *testing.T) {
 	conexion := testdb.Nueva(t)
 	repo := paciente.NuevoRepository(conexion)

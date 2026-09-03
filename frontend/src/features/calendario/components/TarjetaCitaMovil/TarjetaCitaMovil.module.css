@@ -7,6 +7,9 @@
   width: 100%;
   text-align: left;
   cursor: pointer;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .filaCita.lista {

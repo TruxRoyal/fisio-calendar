@@ -112,6 +112,15 @@ func (r *Repository) ObtenerOrigenPaciente(ctx context.Context, pacienteID int64
 	return origen, tarifaSesion, nil
 }
 
+func (r *Repository) ObtenerCopagoAutorizacion(ctx context.Context, autorizacionID int64) (int, error) {
+	var copago int
+	err := r.db.QueryRowContext(ctx, "SELECT copago FROM autorizacion WHERE id = ?", autorizacionID).Scan(&copago)
+	if err != nil {
+		return 0, fmt.Errorf("obtener copago de autorizacion: %w", err)
+	}
+	return copago, nil
+}
+
 func (r *Repository) ResolverAutorizacionActiva(ctx context.Context, pacienteID int64, tipoTerapia string) (*int64, error) {
 	consulta := `
 		SELECT id FROM autorizacion

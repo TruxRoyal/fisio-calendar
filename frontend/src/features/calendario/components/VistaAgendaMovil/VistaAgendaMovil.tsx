@@ -4,7 +4,7 @@ import { useGestionCita } from '../../hooks/useGestionCita'
 import { useArrastreMovil } from '../../hooks/useArrastreMovil'
 import type { PosicionArrastre } from '../../hooks/useArrastreMovil'
 import { rangoHorarioDelDia } from '../../lib'
-import { citasApi, autorizacionesResumenApi } from '../../api'
+import { citasApi, autorizacionesResumenApi, capacidadApi } from '../../api'
 import { DrawerCita } from '../DrawerCita/DrawerCita'
 import { ALTURA_HORA } from '../GrillaHoraria/GrillaHoraria'
 import { PIXELES_POR_HORA as ANCHO_HORA_SEMANA } from '../GrillaSemanal/GrillaSemanal'
@@ -12,6 +12,7 @@ import { Icono } from '../../../../shared/components/Icono/Icono'
 import { AlertaMensaje } from '../../../../shared/components/AlertaMensaje/AlertaMensaje'
 import { PaletaComandos } from '../../../../shared/components/PaletaComandos/PaletaComandos'
 import { ToggleGroup, ToggleGroupItem } from '../../../../shared/components/ui/toggle-group'
+import { Badge } from '../../../../shared/components/ui/badge'
 import { ErrorPeticion } from '../../../../shared/api/cliente'
 import { VistaMesMovil } from '../VistaMesMovil/VistaMesMovil'
 import { VistaDiaMovil } from '../VistaDiaMovil/VistaDiaMovil'
@@ -29,7 +30,7 @@ import {
 } from '../../../../shared/lib/fecha'
 import { formatearCOP } from '../../../../shared/lib/moneda'
 import { cn } from '../../../../shared/lib/clases'
-import type { AutorizacionResumen, Cita, VistaCalendario } from '../../types'
+import type { AutorizacionResumen, CapacidadMensual, Cita, VistaCalendario } from '../../types'
 import styles from './VistaAgendaMovil.module.css'
 
 export function VistaAgendaMovil() {
@@ -57,6 +58,7 @@ export function VistaAgendaMovil() {
   const [errorMes, setErrorMes] = useState(false)
   const [buscadorAbierto, setBuscadorAbierto] = useState(false)
   const [autorizaciones, setAutorizaciones] = useState<Record<number, AutorizacionResumen | null>>({})
+  const [capacidad, setCapacidad] = useState<CapacidadMensual | null>(null)
   const [citaArrastrada, setCitaArrastrada] = useState<PosicionArrastre | null>(null)
   const observadorListaRef = useRef<ResizeObserver | null>(null)
   const [alturaListaDisponible, setAlturaListaDisponible] = useState(0)
@@ -76,6 +78,10 @@ export function VistaAgendaMovil() {
   }, [])
 
   useEffect(() => () => observadorListaRef.current?.disconnect(), [])
+
+  useEffect(() => {
+    capacidadApi.obtener().then(setCapacidad)
+  }, [citas])
 
   const diasGrillaMes = useMemo(() => {
     const inicioGrilla = inicioSemana(inicioMes(mesReferencia))
@@ -308,6 +314,14 @@ export function VistaAgendaMovil() {
             Mes
           </ToggleGroupItem>
         </ToggleGroup>
+
+        {capacidad && (
+          <div className={styles.filaCapacidad}>
+            <Badge variant="secondary">
+              {capacidad.sesionesHechasMes}/{capacidad.sesionesTotalesMes} sesiones este mes
+            </Badge>
+          </div>
+        )}
 
         {modoVista === 'dia' && (
           <div className={styles.filaStats}>

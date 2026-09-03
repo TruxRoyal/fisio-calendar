@@ -99,10 +99,11 @@ export function useGestionCita() {
       return false
     }
     try {
+      const tipoCambio = cambios.tipoTerapia !== citaSeleccionada?.tipoTerapia
       const actualizada = await actualizarCita(id, {
         inicio: cambios.inicio,
         fin: cambios.fin,
-        autorizacionId: citaSeleccionada?.autorizacionId ?? null,
+        autorizacionId: tipoCambio ? null : (citaSeleccionada?.autorizacionId ?? null),
         tipoTerapia: cambios.tipoTerapia,
         notas: cambios.notas,
       })

@@ -19,6 +19,7 @@ import {
 } from '../../../../shared/lib/fecha'
 import { TIPO_TERAPIA_COLOR } from '../../../../shared/theme/paletas'
 import { cn } from '../../../../shared/lib/clases'
+import { compararPacientes, OPCIONES_ORDEN_PACIENTES, type ModoOrdenPacientes } from '../../../../shared/lib/ordenPacientes'
 import type { AutorizacionActivaPaciente, AutorizacionResumen, CapacidadMensual, Cita, PacienteBusqueda } from '../../types'
 import type { TipoTerapia } from '../../../../shared/types/comun'
 import { ETIQUETA_TIPO_TERAPIA } from '../../../../shared/types/comun'
@@ -67,6 +68,7 @@ function iniciales(nombre: string): string {
 export function PanelPacientes({ onSeleccionarPaciente, onIniciarArrastrePaciente }: PropiedadesPanelPacientes) {
   const [busqueda, setBusqueda] = useState('')
   const [filtro, setFiltro] = useState<Filtro>('todos')
+  const [ordenPacientes, setOrdenPacientes] = useState<ModoOrdenPacientes>('alfabetico')
   const [pacientes, setPacientes] = useState<PacienteBusqueda[]>([])
   const [citasHoy, setCitasHoy] = useState<Cita[]>([])
   const [autorizacionProxima, setAutorizacionProxima] = useState<AutorizacionResumen | null>(null)
@@ -119,6 +121,11 @@ export function PanelPacientes({ onSeleccionarPaciente, onIniciarArrastrePacient
     }
     return p.tiposTerapia.includes(filtro)
   })
+
+  const pacientesOrdenados = useMemo(
+    () => [...pacientesFiltrados].sort(compararPacientes(ordenPacientes)),
+    [pacientesFiltrados, ordenPacientes],
+  )
 
   return (
     <aside className={styles.panel}>
@@ -216,8 +223,25 @@ export function PanelPacientes({ onSeleccionarPaciente, onIniciarArrastrePacient
         })}
       </div>
 
+      <div className={styles.filaOrden}>
+        <span className={styles.etiquetaOrden}>Ordenar</span>
+        {OPCIONES_ORDEN_PACIENTES.map((opcion) => {
+          const activo = ordenPacientes === opcion.id
+          return (
+            <button
+              type="button"
+              key={opcion.id}
+              onClick={() => setOrdenPacientes(opcion.id)}
+              className={cn(styles.chipOrden, activo && styles.activo)}
+            >
+              {opcion.etiqueta}
+            </button>
+          )
+        })}
+      </div>
+
       <div className={styles.listaPacientes}>
-        {pacientesFiltrados.map((paciente) => {
+        {pacientesOrdenados.map((paciente) => {
           const color = paciente.tipoTerapia ? TIPO_TERAPIA_COLOR[paciente.tipoTerapia] : null
           const avatarBg = paciente.color ? `${paciente.color}22` : (color?.bg ?? 'var(--s3)')
           const avatarFg = paciente.color ?? color?.fg ?? 'var(--t3)'
@@ -272,7 +296,7 @@ export function PanelPacientes({ onSeleccionarPaciente, onIniciarArrastrePacient
             </button>
           )
         })}
-        {pacientesFiltrados.length === 0 && <p className={styles.vacioLista}>No hay pacientes que coincidan</p>}
+        {pacientesOrdenados.length === 0 && <p className={styles.vacioLista}>No hay pacientes que coincidan</p>}
       </div>
     </aside>
   )
@@ -282,6 +306,8 @@ function WidgetCargaMensual({ capacidad }: { capacidad: CapacidadMensual }) {
   const maxReferencia = Math.max(capacidad.minutosEstimados, capacidad.minutosReales, 1)
   const pctEstimado = Math.min(100, (capacidad.minutosEstimados / maxReferencia) * 100)
   const pctReal = Math.min(100, (capacidad.minutosReales / maxReferencia) * 100)
+  const pctSesiones =
+    capacidad.sesionesTotalesMes > 0 ? Math.min(100, (capacidad.sesionesHechasMes / capacidad.sesionesTotalesMes) * 100) : 0
 
   return (
     <div className={styles.seccionCarga}>
@@ -293,6 +319,13 @@ function WidgetCargaMensual({ capacidad }: { capacidad: CapacidadMensual }) {
 
         <BarraCarga etiqueta="Estimado" valor={formatearDuracionHoras(capacidad.minutosEstimados)} pct={pctEstimado} color="var(--s4)" colorTexto="var(--t2)" />
         <BarraCarga etiqueta="Real" valor={formatearDuracionHoras(capacidad.minutosReales)} pct={pctReal} color="var(--acD)" colorTexto="var(--acT)" />
+        <BarraCarga
+          etiqueta="Sesiones"
+          valor={`${capacidad.sesionesHechasMes}/${capacidad.sesionesTotalesMes}`}
+          pct={pctSesiones}
+          color="var(--okFg)"
+          colorTexto="var(--okFg)"
+        />
 
         <div className={styles.notaCarga}>Estimado: sesiones pendientes × 30 min · Real: duración de las sesiones ya atendidas este mes</div>
       </div>
