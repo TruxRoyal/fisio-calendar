@@ -23,6 +23,7 @@
   overflow: visible;
   padding-bottom: 0;
   gap: 0;
+  touch-action: none;
 }
 
 .filaCita.grillaHorizontal {
@@ -34,12 +35,12 @@
   overflow: visible;
   padding-bottom: 0;
   gap: 0;
+  touch-action: none;
 }
 
 .filaCita.arrastrando {
   opacity: .85;
   z-index: 10;
-  touch-action: none;
 }
 
 .columnaHora {

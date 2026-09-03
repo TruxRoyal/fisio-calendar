@@ -224,16 +224,18 @@ func (s *Service) ExportarExcel(ctx context.Context, anio, mes int) (*excelize.F
 func (s *Service) ObtenerCapacidadMensual(ctx context.Context) (*CapacidadMensual, error) {
 	anioMes := formatearAnioMes(anioMesActual())
 
-	minutosEstimados, minutosReales, sesionesHechasMes, sesionesTotalesMes, err := s.repo.ObtenerCapacidadMensual(ctx, anioMes)
+	minutosEstimados, minutosReales, sesionesHechasMes, sesionesTotalesMes, sesionesAutorizadasTotal, sesionesRegistradasTotal, err := s.repo.ObtenerCapacidadMensual(ctx, anioMes)
 	if err != nil {
 		return nil, err
 	}
 
 	return &CapacidadMensual{
-		MinutosEstimados:   minutosEstimados,
-		MinutosReales:      minutosReales,
-		SesionesHechasMes:  sesionesHechasMes,
-		SesionesTotalesMes: sesionesTotalesMes,
+		MinutosEstimados:         minutosEstimados,
+		MinutosReales:            minutosReales,
+		SesionesHechasMes:        sesionesHechasMes,
+		SesionesTotalesMes:       sesionesTotalesMes,
+		SesionesAutorizadasTotal: sesionesAutorizadasTotal,
+		SesionesRegistradasTotal: sesionesRegistradasTotal,
 	}, nil
 }
 

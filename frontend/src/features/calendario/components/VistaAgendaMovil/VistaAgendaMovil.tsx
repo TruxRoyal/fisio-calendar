@@ -320,6 +320,9 @@ export function VistaAgendaMovil() {
             <Badge variant="secondary">
               {capacidad.sesionesHechasMes}/{capacidad.sesionesTotalesMes} sesiones este mes
             </Badge>
+            <Badge variant="secondary">
+              {capacidad.sesionesRegistradasTotal}/{capacidad.sesionesAutorizadasTotal} registradas
+            </Badge>
           </div>
         )}
 
