@@ -3,6 +3,7 @@ package resumen_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
 
 	"fisio-backend/internal/resumen"
@@ -115,10 +116,188 @@ func TestListarDesglosePorPacienteAgrupaPorTipoSinDuplicarPaciente(t *testing.T)
 	}
 }
 
+func TestObtenerProyeccionMensualCalculaEscalonSobreCitasAgendadas(t *testing.T) {
+	conexion := testdb.Nueva(t)
+	repo := resumen.NuevoRepository(conexion)
+	service := resumen.NuevoService(repo)
+	ctx := context.Background()
+
+	// Paciente de trabajo: 65 sesiones ya atendidas (por debajo del umbral de 71),
+	// y 10 citas agendadas que deben cruzar el umbral a mitad de la simulación.
+	pacienteID := insertarPacienteTest(t, conexion, "Paciente Trabajo", "fisica")
+
+	indice := 0
+	for i := 0; i < 65; i++ {
+		inicio, fin := horarioSecuencialResumenTest(indice)
+		insertarCitaTest(t, conexion, pacienteID, "fisica", "atendida", 23500, 0, inicio, fin)
+		indice++
+	}
+	for i := 0; i < 10; i++ {
+		inicio, fin := horarioSecuencialResumenTest(indice)
+		insertarCitaTest(t, conexion, pacienteID, "fisica", "agendada", 0, 0, inicio, fin)
+		indice++
+	}
+
+	proyeccion, err := service.ObtenerProyeccionMensual(ctx, 2024, 3)
+	if err != nil {
+		t.Fatalf("obtener proyeccion mensual: %v", err)
+	}
+
+	if proyeccion.SesionesTrabajoActual != 65 {
+		t.Fatalf("esperaba sesionesTrabajoActual=65, obtuvo %d", proyeccion.SesionesTrabajoActual)
+	}
+	if proyeccion.SesionesTrabajoProyectadas != 75 {
+		t.Fatalf("esperaba sesionesTrabajoProyectadas=75, obtuvo %d", proyeccion.SesionesTrabajoProyectadas)
+	}
+	if proyeccion.SesionesRestantes != 10 || proyeccion.SesionesRestantesTrabajo != 10 {
+		t.Fatalf("esperaba 10 sesiones restantes de trabajo, obtuvo restantes=%d restantesTrabajo=%d", proyeccion.SesionesRestantes, proyeccion.SesionesRestantesTrabajo)
+	}
+
+	// 6 citas antes de cruzar el umbral (65..70) a valor base, 4 desde el umbral (71..74) a valor escalon.
+	esperadoPagoProyectado := 6*23500 + 4*25000
+	if proyeccion.PagoNetoProyectado != esperadoPagoProyectado {
+		t.Fatalf("esperaba pagoNetoProyectado=%d, obtuvo %d", esperadoPagoProyectado, proyeccion.PagoNetoProyectado)
+	}
+
+	esperadoPagoActual := 65 * 23500
+	if proyeccion.PagoNetoActual != esperadoPagoActual {
+		t.Fatalf("esperaba pagoNetoActual=%d, obtuvo %d", esperadoPagoActual, proyeccion.PagoNetoActual)
+	}
+	if proyeccion.TotalActual != proyeccion.PagoNetoActual {
+		t.Fatalf("esperaba totalActual=%d (sin copagos), obtuvo %d", proyeccion.PagoNetoActual, proyeccion.TotalActual)
+	}
+	esperadoTotalProyectado := proyeccion.TotalActual + esperadoPagoProyectado
+	if proyeccion.TotalProyectado != esperadoTotalProyectado {
+		t.Fatalf("esperaba totalProyectado=%d, obtuvo %d", esperadoTotalProyectado, proyeccion.TotalProyectado)
+	}
+}
+
+func TestObtenerProyeccionMensualDistingueTarifaExtraDeSinTarifa(t *testing.T) {
+	conexion := testdb.Nueva(t)
+	repo := resumen.NuevoRepository(conexion)
+	service := resumen.NuevoService(repo)
+	ctx := context.Background()
+
+	pacienteConTarifa := insertarPacienteConOrigenTest(t, conexion, "Paciente Extra Con Tarifa", "fisica", "extra", intPtrResumenTest(40000))
+	pacienteSinTarifa := insertarPacienteConOrigenTest(t, conexion, "Paciente Extra Sin Tarifa", "fisica", "extra", nil)
+
+	inicio1, fin1 := horarioSecuencialResumenTest(0)
+	insertarCitaTest(t, conexion, pacienteConTarifa, "fisica", "agendada", 0, 0, inicio1, fin1)
+
+	inicio2, fin2 := horarioSecuencialResumenTest(1)
+	insertarCitaTest(t, conexion, pacienteSinTarifa, "fisica", "agendada", 0, 0, inicio2, fin2)
+
+	proyeccion, err := service.ObtenerProyeccionMensual(ctx, 2024, 3)
+	if err != nil {
+		t.Fatalf("obtener proyeccion mensual: %v", err)
+	}
+
+	if proyeccion.SesionesRestantesExtra != 1 {
+		t.Fatalf("esperaba sesionesRestantesExtra=1, obtuvo %d", proyeccion.SesionesRestantesExtra)
+	}
+	if proyeccion.SesionesSinTarifa != 1 {
+		t.Fatalf("esperaba sesionesSinTarifa=1, obtuvo %d", proyeccion.SesionesSinTarifa)
+	}
+	if proyeccion.SesionesRestantes != 2 {
+		t.Fatalf("esperaba sesionesRestantes=2, obtuvo %d", proyeccion.SesionesRestantes)
+	}
+	if proyeccion.PagoNetoProyectado != 40000 {
+		t.Fatalf("esperaba pagoNetoProyectado=40000 (solo la cita con tarifa), obtuvo %d", proyeccion.PagoNetoProyectado)
+	}
+	if proyeccion.ValorPromedioSesionRestante != 40000 {
+		t.Fatalf("esperaba valorPromedioSesionRestante=40000 (promedio sobre 1 sesion valorada), obtuvo %d", proyeccion.ValorPromedioSesionRestante)
+	}
+}
+
+func TestObtenerProyeccionMensualSinCitasAgendadasNoDividePorCero(t *testing.T) {
+	conexion := testdb.Nueva(t)
+	repo := resumen.NuevoRepository(conexion)
+	service := resumen.NuevoService(repo)
+	ctx := context.Background()
+
+	pacienteID := insertarPacienteTest(t, conexion, "Paciente Sin Agendadas", "fisica")
+	insertarCitaTest(t, conexion, pacienteID, "fisica", "atendida", 23500, 0, "2024-03-01T09:00:00", "2024-03-01T10:00:00")
+
+	proyeccion, err := service.ObtenerProyeccionMensual(ctx, 2024, 3)
+	if err != nil {
+		t.Fatalf("obtener proyeccion mensual: %v", err)
+	}
+
+	if proyeccion.SesionesRestantes != 0 {
+		t.Fatalf("esperaba sesionesRestantes=0, obtuvo %d", proyeccion.SesionesRestantes)
+	}
+	if proyeccion.PagoNetoProyectado != 0 {
+		t.Fatalf("esperaba pagoNetoProyectado=0, obtuvo %d", proyeccion.PagoNetoProyectado)
+	}
+	if proyeccion.ValorPromedioSesionRestante != 0 {
+		t.Fatalf("esperaba valorPromedioSesionRestante=0 sin dividir por cero, obtuvo %d", proyeccion.ValorPromedioSesionRestante)
+	}
+	if proyeccion.TotalProyectado != proyeccion.TotalActual {
+		t.Fatalf("esperaba totalProyectado=totalActual sin citas agendadas, obtuvo %d vs %d", proyeccion.TotalProyectado, proyeccion.TotalActual)
+	}
+}
+
+func TestObtenerCapacidadMensualCuentaSesionesHechasYTotalesExcluyendoCanceladas(t *testing.T) {
+	conexion := testdb.Nueva(t)
+	repo := resumen.NuevoRepository(conexion)
+	ctx := context.Background()
+
+	pacienteID := insertarPacienteTest(t, conexion, "Paciente Capacidad", "fisica")
+
+	insertarCitaTest(t, conexion, pacienteID, "fisica", "atendida", 100, 0, "2024-03-01T09:00:00", "2024-03-01T10:00:00")
+	insertarCitaTest(t, conexion, pacienteID, "fisica", "atendida", 100, 0, "2024-03-02T09:00:00", "2024-03-02T10:00:00")
+	insertarCitaTest(t, conexion, pacienteID, "fisica", "agendada", 0, 0, "2024-03-05T09:00:00", "2024-03-05T10:00:00")
+	insertarCitaTest(t, conexion, pacienteID, "fisica", "cancelada", 0, 0, "2024-03-06T09:00:00", "2024-03-06T10:00:00")
+	// Cita fuera del mes objetivo: no debe contar en ningun total.
+	insertarCitaTest(t, conexion, pacienteID, "fisica", "atendida", 100, 0, "2024-04-01T09:00:00", "2024-04-01T10:00:00")
+
+	_, _, sesionesHechasMes, sesionesTotalesMes, err := repo.ObtenerCapacidadMensual(ctx, "2024-03")
+	if err != nil {
+		t.Fatalf("obtener capacidad mensual: %v", err)
+	}
+
+	if sesionesHechasMes != 2 {
+		t.Fatalf("esperaba sesionesHechasMes=2, obtuvo %d", sesionesHechasMes)
+	}
+	if sesionesTotalesMes != 3 {
+		t.Fatalf("esperaba sesionesTotalesMes=3 (2 atendidas + 1 agendada, cancelada excluida), obtuvo %d", sesionesTotalesMes)
+	}
+}
+
+func horarioSecuencialResumenTest(indice int) (inicio, fin string) {
+	dia := 1 + (indice*2)/24
+	hora := (indice * 2) % 24
+	inicio = fmt.Sprintf("2024-03-%02dT%02d:00:00", dia, hora)
+	fin = fmt.Sprintf("2024-03-%02dT%02d:00:00", dia, hora+1)
+	return inicio, fin
+}
+
+func intPtrResumenTest(valor int) *int {
+	return &valor
+}
+
 func insertarPacienteTest(t *testing.T, conexion *sql.DB, nombre, tipoTerapia string) int64 {
 	t.Helper()
 
 	resultado, err := conexion.Exec(`INSERT INTO paciente (nombre, tipo_terapia) VALUES (?, ?)`, nombre, tipoTerapia)
+	if err != nil {
+		t.Fatalf("insertar paciente %s: %v", nombre, err)
+	}
+
+	id, err := resultado.LastInsertId()
+	if err != nil {
+		t.Fatalf("obtener id de paciente %s: %v", nombre, err)
+	}
+	return id
+}
+
+func insertarPacienteConOrigenTest(t *testing.T, conexion *sql.DB, nombre, tipoTerapia, origen string, tarifaSesion *int) int64 {
+	t.Helper()
+
+	resultado, err := conexion.Exec(
+		`INSERT INTO paciente (nombre, tipo_terapia, origen, tarifa_sesion) VALUES (?, ?, ?, ?)`,
+		nombre, tipoTerapia, origen, tarifaSesion,
+	)
 	if err != nil {
 		t.Fatalf("insertar paciente %s: %v", nombre, err)
 	}

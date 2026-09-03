@@ -1,0 +1,210 @@
+.panel {
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  border-radius: 15px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 2px rgba(28, 20, 34, .04);
+  margin-top: 14px;
+}
+
+.tituloPanel {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.015em;
+  margin-bottom: 4px;
+}
+
+.subtituloPanel {
+  font-size: 12.5px;
+  color: var(--t3);
+  margin-bottom: 12px;
+}
+
+.textoCargando {
+  color: var(--t3);
+  margin: 4px 0 0;
+}
+
+.filaObjetivo {
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
+}
+
+@media (max-width: 560px) {
+  .filaObjetivo {
+    flex-direction: column;
+    gap: 20px;
+  }
+}
+
+.columnaAnillo {
+  flex: 0 0 170px;
+}
+
+@media (max-width: 560px) {
+  .columnaAnillo {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+}
+
+.columnaEstadisticas {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 4px;
+}
+
+.miniEstadistica {
+  padding: 10px 12px;
+  background: var(--s2);
+  border: 1px solid var(--bd);
+  border-radius: 11px;
+}
+
+.miniEtiqueta {
+  font-size: 11.5px;
+  color: var(--t3);
+}
+
+.miniValor {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -.015em;
+  margin-top: 3px;
+}
+
+.bloqueEscalon {
+  margin-top: 18px;
+}
+
+.filaEscalon {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.tituloEscalon {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.subtituloEscalon {
+  font-size: 12.5px;
+  color: var(--t3);
+  margin-top: 2px;
+}
+
+.notaProyectada {
+  font-size: 12.5px;
+  color: var(--t3);
+  margin-top: 4px;
+}
+
+.badgeEscalon {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--okFg);
+  background: var(--okBg);
+  border: 1px solid var(--okBd);
+  border-radius: 99px;
+  padding: 3px 9px;
+  flex-shrink: 0;
+}
+
+.pistaEscalon {
+  position: relative;
+  height: 10px;
+  border-radius: 99px;
+  background: var(--s3);
+}
+
+.rellenoActual {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  border-radius: 99px;
+  background: var(--chart1);
+}
+
+.rellenoProyectado {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 0 99px 99px 0;
+  background: color-mix(in srgb, var(--chart1) 35%, transparent);
+  border: 1.5px dashed var(--chart1);
+  border-left: none;
+}
+
+.marcadorUmbral {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: var(--dgFg);
+}
+
+.etiquetaUmbral {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  transform: translateX(-50%);
+  margin-bottom: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--dgFg);
+  white-space: nowrap;
+}
+
+.leyendaEscalon {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: var(--t3);
+}
+
+.itemLeyenda {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatchActual,
+.swatchProyectado,
+.swatchUmbral {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.swatchActual {
+  background: var(--chart1);
+}
+
+.swatchProyectado {
+  background: color-mix(in srgb, var(--chart1) 35%, transparent);
+  border: 1.5px dashed var(--chart1);
+}
+
+.swatchUmbral {
+  background: var(--dgFg);
+}
+
+.notaPie {
+  font-size: 11.5px;
+  color: var(--t3);
+  margin-top: 14px;
+}

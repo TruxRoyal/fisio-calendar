@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/xuri/excelize/v2"
+
+	"fisio-backend/internal/cita"
 )
 
 type Service struct {
@@ -110,6 +112,69 @@ func (s *Service) ObtenerDesglosePorPaciente(ctx context.Context, anio, mes int)
 	return s.repo.ListarDesglosePorPaciente(ctx, formatearAnioMes(anio, mes))
 }
 
+func (s *Service) ObtenerProyeccionMensual(ctx context.Context, anio, mes int) (*ProyeccionMensual, error) {
+	anioMes := formatearAnioMes(anio, mes)
+
+	resumenActual, err := s.ObtenerMensual(ctx, anio, mes)
+	if err != nil {
+		return nil, err
+	}
+
+	agendadas, err := s.repo.ListarAgendadasMensual(ctx, anioMes)
+	if err != nil {
+		return nil, err
+	}
+
+	// La simulación asume que toda cita agendada de trabajo se atenderá en el
+	// orden actual, sin cancelaciones ni citas nuevas insertadas antes en el mes.
+	contadorTrabajo := resumenActual.SesionesTrabajo
+	pagoNetoProyectado := 0
+	restantesTrabajo, restantesExtra, sinTarifa := 0, 0, 0
+
+	for _, fila := range agendadas {
+		switch fila.Origen {
+		case "trabajo":
+			valor := cita.ValorSesionBase
+			if contadorTrabajo >= cita.UmbralEscalon {
+				valor = cita.ValorSesionEscalon
+			}
+			pagoNetoProyectado += valor
+			contadorTrabajo++
+			restantesTrabajo++
+		case "extra":
+			if fila.TarifaSesion == nil {
+				sinTarifa++
+				continue
+			}
+			pagoNetoProyectado += *fila.TarifaSesion
+			restantesExtra++
+		}
+	}
+
+	sesionesValoradas := restantesTrabajo + restantesExtra
+	valorPromedio := 0
+	if sesionesValoradas > 0 {
+		valorPromedio = pagoNetoProyectado / sesionesValoradas
+	}
+
+	return &ProyeccionMensual{
+		Anio:                        anio,
+		Mes:                         mes,
+		UmbralEscalon:               UmbralEscalon,
+		SesionesTrabajoActual:       resumenActual.SesionesTrabajo,
+		SesionesTrabajoProyectadas:  contadorTrabajo,
+		SesionesRestantes:           len(agendadas),
+		SesionesRestantesTrabajo:    restantesTrabajo,
+		SesionesRestantesExtra:      restantesExtra,
+		SesionesSinTarifa:           sinTarifa,
+		PagoNetoActual:              resumenActual.PagoNeto,
+		PagoNetoProyectado:          pagoNetoProyectado,
+		TotalActual:                 resumenActual.Total,
+		TotalProyectado:             resumenActual.Total + pagoNetoProyectado,
+		ValorPromedioSesionRestante: valorPromedio,
+	}, nil
+}
+
 func (s *Service) ExportarExcel(ctx context.Context, anio, mes int) (*excelize.File, error) {
 	anioMes := formatearAnioMes(anio, mes)
 
@@ -159,12 +224,17 @@ func (s *Service) ExportarExcel(ctx context.Context, anio, mes int) (*excelize.F
 func (s *Service) ObtenerCapacidadMensual(ctx context.Context) (*CapacidadMensual, error) {
 	anioMes := formatearAnioMes(anioMesActual())
 
-	minutosEstimados, minutosReales, err := s.repo.ObtenerCapacidadMensual(ctx, anioMes)
+	minutosEstimados, minutosReales, sesionesHechasMes, sesionesTotalesMes, err := s.repo.ObtenerCapacidadMensual(ctx, anioMes)
 	if err != nil {
 		return nil, err
 	}
 
-	return &CapacidadMensual{MinutosEstimados: minutosEstimados, MinutosReales: minutosReales}, nil
+	return &CapacidadMensual{
+		MinutosEstimados:   minutosEstimados,
+		MinutosReales:      minutosReales,
+		SesionesHechasMes:  sesionesHechasMes,
+		SesionesTotalesMes: sesionesTotalesMes,
+	}, nil
 }
 
 func formatearAnioMes(anio, mes int) string {

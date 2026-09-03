@@ -144,61 +144,22 @@
 
 .gridCifras {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   margin-top: 20px;
 }
 
-@media (max-width: 768px) {
-  .gridCifras {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.panelEscalon {
-  background: var(--s1);
-  border: 1px solid var(--bd);
-  border-radius: 15px;
-  padding: 16px 20px;
-  box-shadow: 0 1px 2px rgba(28, 20, 34, .04);
-  margin-top: 14px;
-}
-
-.filaEscalon {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.tituloEscalon {
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.subtituloEscalon {
-  font-size: 12.5px;
-  color: var(--t3);
-  margin-top: 2px;
-}
-
-.badgeEscalon {
+.badgeCopagos {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
+  gap: 5px;
+  font-size: 12.5px;
   font-weight: 700;
-  color: var(--okFg);
-  background: var(--okBg);
-  border: 1px solid var(--okBd);
+  padding: 4px 10px 4px 8px;
   border-radius: 99px;
-  padding: 3px 9px;
-  flex-shrink: 0;
-}
-
-.pistaEscalon {
-  height: 6px;
+  background: var(--acS);
+  color: var(--acT);
+  border: 1px solid var(--acL);
 }
 
 .panelGrafico,

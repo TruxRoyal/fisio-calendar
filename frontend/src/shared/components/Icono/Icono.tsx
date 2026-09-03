@@ -6,6 +6,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  CircleDollarSign,
   Clock,
   EllipsisVertical,
   ExternalLink,
@@ -17,6 +18,7 @@ import {
   Search,
   Settings,
   Sun,
+  Target,
   Trash,
   TriangleAlert,
   User,
@@ -47,6 +49,8 @@ export type NombreIcono =
   | 'luna'
   | 'telefono'
   | 'ajustes'
+  | 'objetivo'
+  | 'moneda'
 
 const CONTENIDO_PROPIO: Partial<Record<NombreIcono, ReactElement>> = {
   mapa: (
@@ -87,6 +91,8 @@ const ICONOS_LUCIDE: Partial<Record<NombreIcono, LucideIcon>> = {
   luna: Moon,
   telefono: Phone,
   ajustes: Settings,
+  objetivo: Target,
+  moneda: CircleDollarSign,
 }
 
 interface PropiedadesIcono extends SVGProps<SVGSVGElement> {

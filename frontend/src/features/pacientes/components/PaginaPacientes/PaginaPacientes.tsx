@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Icono } from '../../../../shared/components/Icono/Icono'
 import { Boton } from '../../../../shared/components/Boton/Boton'
@@ -15,6 +15,7 @@ import {
 } from '../../../../shared/components/ui/breadcrumb'
 import { TIPO_TERAPIA_COLOR } from '../../../../shared/theme/paletas'
 import { cn } from '../../../../shared/lib/clases'
+import { compararPacientes, OPCIONES_ORDEN_PACIENTES, type ModoOrdenPacientes } from '../../../../shared/lib/ordenPacientes'
 import { usePacientes } from '../../hooks/usePacientes'
 import { usePacientesStore } from '../../store'
 import { FichaPaciente } from '../FichaPaciente/FichaPaciente'
@@ -37,6 +38,7 @@ export function PaginaPacientes() {
   const crearPaciente = usePacientesStore((estado) => estado.crearPaciente)
   const [formularioAbierto, setFormularioAbierto] = useState(false)
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>('todos')
+  const [ordenPacientes, setOrdenPacientes] = useState<ModoOrdenPacientes>('alfabetico')
   const [parametros, setParametros] = useSearchParams()
 
   useEffect(() => {
@@ -63,12 +65,23 @@ export function PaginaPacientes() {
     (paciente) => filtroTipo === 'todos' || paciente.tiposTerapia.includes(filtroTipo),
   )
 
+  const totalFisica = pacientes.filter((p) => p.tiposTerapia.includes('fisica')).length
+  const totalRespiratoria = pacientes.filter((p) => p.tiposTerapia.includes('respiratoria')).length
+
+  const pacientesOrdenados = useMemo(
+    () => [...pacientesFiltrados].sort(compararPacientes(ordenPacientes)),
+    [pacientesFiltrados, ordenPacientes],
+  )
+
   return (
     <div className={styles.pagina}>
       <div className={cn(styles.panelLista, seleccionado && styles.ocultoMovil)}>
         <div className={styles.cabecera}>
           <div className={styles.etiqueta}>Pacientes</div>
           <div className={styles.total}>{pacientes.length} en total</div>
+          <div className={styles.totalPorTerapia}>
+            {totalFisica} física · {totalRespiratoria} respiratoria · {totalFisica + totalRespiratoria} en total por terapia
+          </div>
           <div className={styles.filaBusqueda}>
             <div className={styles.contenedorBusqueda}>
               <Icono nombre="buscar" tamano={16} className={styles.iconoBusqueda} />
@@ -95,9 +108,22 @@ export function PaginaPacientes() {
               </button>
             ))}
           </div>
+          <div className={styles.filaOrden}>
+            <span className={styles.etiquetaOrden}>Ordenar</span>
+            {OPCIONES_ORDEN_PACIENTES.map((opcion) => (
+              <button
+                key={opcion.id}
+                type="button"
+                onClick={() => setOrdenPacientes(opcion.id)}
+                className={cn(styles.chipOrden, ordenPacientes === opcion.id && styles.activo)}
+              >
+                {opcion.etiqueta}
+              </button>
+            ))}
+          </div>
         </div>
         <div className={styles.listaPacientes}>
-          {pacientesFiltrados.map((paciente) => {
+          {pacientesOrdenados.map((paciente) => {
             const color = paciente.tipoTerapia ? TIPO_TERAPIA_COLOR[paciente.tipoTerapia] : null
             const activo = seleccionado?.id === paciente.id
             const avatarBg = activo ? 'var(--acS2)' : (color?.bg ?? 'var(--s3)')
