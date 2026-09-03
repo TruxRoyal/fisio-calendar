@@ -89,7 +89,7 @@ func (r *Repository) ObtenerAgregadoMensualRango(ctx context.Context, desde, has
 	return resultado, filas.Err()
 }
 
-func (r *Repository) ObtenerCapacidadMensual(ctx context.Context, anioMes string) (minutosEstimados, minutosReales, sesionesHechasMes, sesionesTotalesMes int, err error) {
+func (r *Repository) ObtenerCapacidadMensual(ctx context.Context, anioMes string) (minutosEstimados, minutosReales, sesionesHechasMes, sesionesTotalesMes, sesionesAutorizadasTotal, sesionesRegistradasTotal int, err error) {
 	consultaEstimado := `
 		SELECT COALESCE(SUM(
 			MAX(0, a.sesiones_totales - (SELECT COUNT(*) FROM cita c WHERE c.autorizacion_id = a.id AND c.estado = 'atendida'))
@@ -99,7 +99,7 @@ func (r *Repository) ObtenerCapacidadMensual(ctx context.Context, anioMes string
 	`
 	var sesionesRestantesTotales int
 	if err = r.db.QueryRowContext(ctx, consultaEstimado).Scan(&sesionesRestantesTotales); err != nil {
-		return 0, 0, 0, 0, fmt.Errorf("obtener sesiones restantes totales: %w", err)
+		return 0, 0, 0, 0, 0, 0, fmt.Errorf("obtener sesiones restantes totales: %w", err)
 	}
 	minutosEstimados = sesionesRestantesTotales * DuracionEstimadaMin
 
@@ -110,7 +110,7 @@ func (r *Repository) ObtenerCapacidadMensual(ctx context.Context, anioMes string
 	`
 	var minutosRealesFloat float64
 	if err = r.db.QueryRowContext(ctx, consultaReal, anioMes).Scan(&minutosRealesFloat); err != nil {
-		return 0, 0, 0, 0, fmt.Errorf("obtener minutos reales del mes: %w", err)
+		return 0, 0, 0, 0, 0, 0, fmt.Errorf("obtener minutos reales del mes: %w", err)
 	}
 	minutosReales = int(minutosRealesFloat + 0.5)
 
@@ -122,10 +122,21 @@ func (r *Repository) ObtenerCapacidadMensual(ctx context.Context, anioMes string
 		WHERE estado != 'cancelada' AND strftime('%Y-%m', inicio) = ?
 	`
 	if err = r.db.QueryRowContext(ctx, consultaSesionesMes, anioMes).Scan(&sesionesHechasMes, &sesionesTotalesMes); err != nil {
-		return 0, 0, 0, 0, fmt.Errorf("obtener sesiones del mes: %w", err)
+		return 0, 0, 0, 0, 0, 0, fmt.Errorf("obtener sesiones del mes: %w", err)
 	}
 
-	return minutosEstimados, minutosReales, sesionesHechasMes, sesionesTotalesMes, nil
+	consultaAutorizadasRegistradas := `
+		SELECT
+			COALESCE(SUM(a.sesiones_totales), 0),
+			COALESCE(SUM((SELECT COUNT(*) FROM cita c WHERE c.autorizacion_id = a.id AND c.estado != 'cancelada')), 0)
+		FROM autorizacion a
+		WHERE a.activa = 1
+	`
+	if err = r.db.QueryRowContext(ctx, consultaAutorizadasRegistradas).Scan(&sesionesAutorizadasTotal, &sesionesRegistradasTotal); err != nil {
+		return 0, 0, 0, 0, 0, 0, fmt.Errorf("obtener sesiones autorizadas y registradas: %w", err)
+	}
+
+	return minutosEstimados, minutosReales, sesionesHechasMes, sesionesTotalesMes, sesionesAutorizadasTotal, sesionesRegistradasTotal, nil
 }
 
 func (r *Repository) ListarDesglosePorPaciente(ctx context.Context, anioMes string) ([]DesglosePaciente, error) {

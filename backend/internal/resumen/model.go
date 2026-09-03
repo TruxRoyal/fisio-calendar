@@ -48,10 +48,12 @@ type DetalleSesion struct {
 }
 
 type CapacidadMensual struct {
-	MinutosEstimados   int `json:"minutosEstimados"`
-	MinutosReales      int `json:"minutosReales"`
-	SesionesHechasMes  int `json:"sesionesHechasMes"`
-	SesionesTotalesMes int `json:"sesionesTotalesMes"`
+	MinutosEstimados         int `json:"minutosEstimados"`
+	MinutosReales            int `json:"minutosReales"`
+	SesionesHechasMes        int `json:"sesionesHechasMes"`
+	SesionesTotalesMes       int `json:"sesionesTotalesMes"`
+	SesionesAutorizadasTotal int `json:"sesionesAutorizadasTotal"`
+	SesionesRegistradasTotal int `json:"sesionesRegistradasTotal"`
 }
 
 const UmbralEscalon = 71
