@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useDesglosePorPaciente, useProyeccion, useResumen, useResumenHistorico } from '../../hooks/useResumen'
+import { useDesglosePorPaciente, useDetalleMensual, useProyeccion, useResumen, useResumenHistorico } from '../../hooks/useResumen'
 import { TarjetaCifra } from '../TarjetaCifra/TarjetaCifra'
 import type { DeltaCifra } from '../TarjetaCifra/TarjetaCifra'
 import { GraficoIngresos } from '../GraficoIngresos/GraficoIngresos'
@@ -8,11 +8,13 @@ import { Boton } from '../../../../shared/components/Boton/Boton'
 import { Icono } from '../../../../shared/components/Icono/Icono'
 import { AtmosferaFondo } from '../../../../shared/components/AtmosferaFondo/AtmosferaFondo'
 import { formatearCOP } from '../../../../shared/lib/moneda'
-import { formatearMesAnio } from '../../../../shared/lib/fecha'
+import { formatearDiaSemana, formatearFechaCorta, formatearHora, formatearMesAnio } from '../../../../shared/lib/fecha'
 import { ETIQUETA_TIPO_TERAPIA, type TipoTerapia } from '../../../../shared/types/comun'
 import { resumenApi } from '../../api'
-import type { DesglosePaciente, ResumenTipo } from '../../types'
+import type { DesglosePaciente, DetalleSesion, ResumenTipo } from '../../types'
 import styles from './ResumenMensual.module.css'
+
+const ETIQUETA_ORIGEN: Record<string, string> = { trabajo: 'Trabajo', extra: 'Extra' }
 
 function calcularDelta(actual: number, anterior: number): DeltaCifra | null {
   if (anterior === 0) return actual > 0 ? { texto: 'Nuevo', positivo: true } : null
@@ -32,6 +34,7 @@ export function ResumenMensual() {
   const { proyeccion, cargando: cargandoProyeccion } = useProyeccion(anio, mes)
   const { historico } = useResumenHistorico(anio, mes, 6)
   const { desglose } = useDesglosePorPaciente(anio, mes)
+  const { detalle } = useDetalleMensual(anio, mes)
   const [exportando, setExportando] = useState(false)
 
   const mesAnterior = historico.length >= 2 ? (historico.at(-2) ?? null) : null
@@ -132,6 +135,8 @@ export function ResumenMensual() {
             )}
 
             {desglose.length > 0 && <PanelDesglose desglose={desglose} />}
+
+            {detalle.length > 0 && <PanelDetalle detalle={detalle} />}
           </>
         )}
       </div>
@@ -203,6 +208,47 @@ function PanelDesglose({ desglose }: { desglose: DesglosePaciente[] }) {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+function PanelDetalle({ detalle }: { detalle: DetalleSesion[] }) {
+  return (
+    <div className={styles.panelDesglose}>
+      <div className={styles.tituloPanelGrafico}>Detalle de sesiones</div>
+      <div className={styles.subtituloPanelGrafico}>Cada sesión atendida este mes</div>
+      <div className={styles.contenedorTablaDetalle}>
+        <table className={styles.tablaDetalle}>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Hora</th>
+              <th>Paciente</th>
+              <th>Documento</th>
+              <th>Tipo</th>
+              <th>Origen</th>
+              <th>Valor</th>
+              <th>Copago</th>
+            </tr>
+          </thead>
+          <tbody>
+            {detalle.map((sesion, indice) => (
+              <tr key={`${sesion.fecha}-${indice}`}>
+                <td>
+                  {formatearDiaSemana(sesion.fecha)} {formatearFechaCorta(sesion.fecha)}
+                </td>
+                <td>{formatearHora(sesion.fecha)}</td>
+                <td>{sesion.pacienteNombre}</td>
+                <td>{sesion.documento ?? '—'}</td>
+                <td>{ETIQUETA_TIPO_TERAPIA[sesion.tipoTerapia as TipoTerapia] ?? sesion.tipoTerapia}</td>
+                <td>{ETIQUETA_ORIGEN[sesion.origen] ?? sesion.origen}</td>
+                <td>{formatearCOP(sesion.valorSesion)}</td>
+                <td>{sesion.copagoCobrado > 0 ? formatearCOP(sesion.copagoCobrado) : '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )

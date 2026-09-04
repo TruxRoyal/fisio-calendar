@@ -44,3 +44,13 @@ export interface DesglosePaciente {
   total: number
   porTipo: ResumenTipo[]
 }
+
+export interface DetalleSesion {
+  fecha: string
+  pacienteNombre: string
+  documento: string | null
+  tipoTerapia: string
+  origen: string
+  valorSesion: number
+  copagoCobrado: number
+}

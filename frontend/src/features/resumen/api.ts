@@ -1,5 +1,5 @@
 import { clienteApi } from '../../shared/api/cliente'
-import type { DesglosePaciente, ProyeccionMensual, ResumenMensual } from './types'
+import type { DesglosePaciente, DetalleSesion, ProyeccionMensual, ResumenMensual } from './types'
 
 export const resumenApi = {
   obtenerMensual: (anio: number, mes: number) =>
@@ -14,4 +14,6 @@ export const resumenApi = {
   },
   obtenerDesglose: (anio: number, mes: number) =>
     clienteApi.get<DesglosePaciente[]>(`/resumen/desglose?anio=${anio}&mes=${mes}`),
+  obtenerDetalle: (anio: number, mes: number) =>
+    clienteApi.get<DetalleSesion[]>(`/resumen/detalle?anio=${anio}&mes=${mes}`),
 }

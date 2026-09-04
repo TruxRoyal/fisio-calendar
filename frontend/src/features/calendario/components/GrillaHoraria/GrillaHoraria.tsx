@@ -8,10 +8,12 @@ import type { AutorizacionResumen, Cita } from '../../types'
 import type { PosicionArrastre } from '../../hooks/useArrastreMovil'
 import styles from './GrillaHoraria.module.css'
 
-export const ALTURA_HORA = 56
-const ALTURA_MINIMA_BLOQUE = 30
-const ALTURA_COMPACTA = 48
+export const ALTURA_HORA_COMPACTA = 72
+export const ALTURA_HORA_DETALLADA = 144
+const ALTURA_MINIMA_BLOQUE = 52
+const ALTURA_COMPACTA = 56
 const ALTURA_CON_BADGES = 92
+const ESPACIO_ENTRE_BLOQUES = 6
 
 export interface ColumnaGrillaHoraria {
   fechaISO: string
@@ -37,7 +39,7 @@ export function GrillaHoraria({
   onIniciarArrastre,
   alturaHora,
 }: PropsGrillaHoraria) {
-  const altura = alturaHora ?? ALTURA_HORA
+  const altura = alturaHora ?? ALTURA_HORA_DETALLADA
   const { horaInicio, horaFin } = rango
   const horas = Array.from({ length: horaFin - horaInicio }, (_, i) => horaInicio + i)
   const alturaTotal = (horaFin - horaInicio) * altura
@@ -80,7 +82,13 @@ export function GrillaHoraria({
                 const arrastrandoEstaCita = citaArrastrada?.citaId === cita.id
                 const inicioEfectivo = arrastrandoEstaCita ? citaArrastrada.nuevoInicio : cita.inicio
                 const finEfectivo = arrastrandoEstaCita ? citaArrastrada.nuevoFin : cita.fin
-                const alturaBloque = Math.max((diferenciaMinutos(inicioEfectivo, finEfectivo) / 60) * altura, ALTURA_MINIMA_BLOQUE)
+                const alturaNatural = (diferenciaMinutos(inicioEfectivo, finEfectivo) / 60) * altura
+                // El bloque nunca puede superar su propia franja horaria (alturaNatural), sin
+                // importar cuánto "infle" el piso mínimo, o se monta sobre la siguiente cita.
+                const alturaBloque = Math.min(
+                  Math.max(alturaNatural - ESPACIO_ENTRE_BLOQUES, ALTURA_MINIMA_BLOQUE),
+                  Math.max(alturaNatural - 2, 2),
+                )
                 const top = (minutosDesdeHoraBase(inicioEfectivo, horaInicio) / 60) * altura
                 return (
                   <TarjetaCitaMovil
