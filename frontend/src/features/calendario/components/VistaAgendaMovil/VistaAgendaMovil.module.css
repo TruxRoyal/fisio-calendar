@@ -57,6 +57,12 @@
   cursor: pointer;
 }
 
+.botonIconoCabeceraActivo {
+  background: var(--acS);
+  border-color: var(--acL);
+  color: var(--acT);
+}
+
 .botonHoy {
   height: 36px;
   padding: 0 14px;

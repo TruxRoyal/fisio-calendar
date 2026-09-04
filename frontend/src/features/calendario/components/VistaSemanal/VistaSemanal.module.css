@@ -276,6 +276,15 @@
   background: var(--s3);
 }
 
+.botonIconoActivo {
+  background: var(--acS);
+  color: var(--acT);
+}
+
+.botonIconoActivo:hover {
+  background: var(--acS);
+}
+
 .ghostPaciente {
   position: fixed;
   z-index: 80;

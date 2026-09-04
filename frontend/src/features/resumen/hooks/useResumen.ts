@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { resumenApi } from '../api'
-import type { DesglosePaciente, ProyeccionMensual, ResumenMensual } from '../types'
+import type { DesglosePaciente, DetalleSesion, ProyeccionMensual, ResumenMensual } from '../types'
 
 export function useResumen(anio: number, mes: number) {
   const [resumen, setResumen] = useState<ResumenMensual | null>(null)
@@ -84,4 +84,25 @@ export function useDesglosePorPaciente(anio: number, mes: number) {
   }, [anio, mes])
 
   return { desglose, cargando }
+}
+
+export function useDetalleMensual(anio: number, mes: number) {
+  const [detalle, setDetalle] = useState<DetalleSesion[]>([])
+  const [cargando, setCargando] = useState(false)
+
+  useEffect(() => {
+    let vigente = true
+    setDetalle([])
+    setCargando(true)
+    resumenApi.obtenerDetalle(anio, mes).then((datos) => {
+      if (!vigente) return
+      setDetalle(datos)
+      setCargando(false)
+    })
+    return () => {
+      vigente = false
+    }
+  }, [anio, mes])
+
+  return { detalle, cargando }
 }
