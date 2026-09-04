@@ -40,11 +40,13 @@ type FilaAgregadoMensual struct {
 }
 
 type DetalleSesion struct {
-	Fecha          string
-	PacienteNombre string
-	TipoTerapia    string
-	ValorSesion    int
-	CopagoCobrado  int
+	Fecha          string  `json:"fecha"`
+	PacienteNombre string  `json:"pacienteNombre"`
+	Documento      *string `json:"documento"`
+	TipoTerapia    string  `json:"tipoTerapia"`
+	Origen         string  `json:"origen"`
+	ValorSesion    int     `json:"valorSesion"`
+	CopagoCobrado  int     `json:"copagoCobrado"`
 }
 
 type CapacidadMensual struct {

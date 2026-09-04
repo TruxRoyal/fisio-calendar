@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react'
 import { useCitas } from '../../hooks/useCitas'
 import { useGestionCita } from '../../hooks/useGestionCita'
@@ -25,6 +25,7 @@ import {
 } from '../../../../shared/lib/fecha'
 import { Boton } from '../../../../shared/components/Boton/Boton'
 import { Icono } from '../../../../shared/components/Icono/Icono'
+import type { NombreIcono } from '../../../../shared/components/Icono/Icono'
 import { ToggleGroup, ToggleGroupItem } from '../../../../shared/components/ui/toggle-group'
 import { useEsMovil } from '../../../../shared/hooks/useEsMovil'
 import { ErrorPeticion } from '../../../../shared/api/cliente'
@@ -32,10 +33,16 @@ import { cn } from '../../../../shared/lib/clases'
 import type { Cita, PacienteBusqueda, VistaCalendario } from '../../types'
 import styles from './VistaSemanal.module.css'
 
-const HORA_INICIO = 6
-const HORA_FIN = 20
-const ALTURA_HORA_MINIMA = 56
+const HORA_INICIO_DEFECTO = 6
+const HORA_FIN_DEFECTO = 20
+const ALTURA_HORA_MINIMA_COMPACTA = 56
+const ALTURA_HORA_MINIMA_DETALLADA = 132
 const DURACION_DEFECTO = 30
+const CLAVE_DENSIDAD = 'fisio.semanaDetallada'
+
+function leerDensidadGuardada(): boolean {
+  return localStorage.getItem(CLAVE_DENSIDAD) === 'true'
+}
 
 export function VistaSemanal() {
   const esMovil = useEsMovil()
@@ -82,11 +89,14 @@ function VistaSemanalEscritorio() {
 
   const [vista, setVista] = useState<VistaCalendario>('semana')
   const [fechaDia, setFechaDia] = useState(() => new Date())
+  const [vistaDetallada, setVistaDetallada] = useState(leerDensidadGuardada)
   const refGrilla = useRef<HTMLDivElement>(null)
   const refCuerpoSemana = useRef<HTMLDivElement>(null)
   const [anchoScrollbar, setAnchoScrollbar] = useState(0)
-  const [alturaHora, setAlturaHora] = useState(ALTURA_HORA_MINIMA)
-  const alturaHoraRef = useRef(ALTURA_HORA_MINIMA)
+  const alturaHoraMinima = vistaDetallada ? ALTURA_HORA_MINIMA_DETALLADA : ALTURA_HORA_MINIMA_COMPACTA
+  const alturaHoraMinimaRef = useRef(alturaHoraMinima)
+  const [alturaHora, setAlturaHora] = useState(alturaHoraMinima)
+  const alturaHoraRef = useRef(alturaHoraMinima)
   const observadorCuerpoSemanaRef = useRef<ResizeObserver | null>(null)
   const refCandidato = useRef<{ cita: Cita; diaIndice: number; modo: 'mover' | 'redimensionar'; pageX: number; pageY: number } | null>(null)
   const [arrastre, setArrastre] = useState<ArrastreActivo | null>(null)
@@ -94,8 +104,30 @@ function VistaSemanalEscritorio() {
   const [arrastrePaciente, setArrastrePaciente] = useState<ArrastrePacienteActivo | null>(null)
 
   const dias = Array.from({ length: 7 }, (_, i) => sumarDias(inicioSemanaActual, i))
-  const horas = Array.from({ length: HORA_FIN - HORA_INICIO }, (_, i) => HORA_INICIO + i)
-  const alturaTotal = (HORA_FIN - HORA_INICIO) * alturaHora
+
+  // El rango de horas por defecto cubre el horario habitual, pero se expande
+  // si hay una cita agendada fuera de ese rango para que nunca quede oculta.
+  const horaInicio = useMemo(() => {
+    let minimo = HORA_INICIO_DEFECTO
+    for (const cita of citas) {
+      const hora = analizarFechaHora(cita.inicio).getHours()
+      if (hora < minimo) minimo = hora
+    }
+    return minimo
+  }, [citas])
+
+  const horaFin = useMemo(() => {
+    let maximo = HORA_FIN_DEFECTO
+    for (const cita of citas) {
+      const fin = analizarFechaHora(cita.fin)
+      const horaFinCita = fin.getMinutes() > 0 ? fin.getHours() + 1 : fin.getHours()
+      if (horaFinCita > maximo) maximo = horaFinCita
+    }
+    return Math.min(24, maximo)
+  }, [citas])
+
+  const horas = Array.from({ length: horaFin - horaInicio }, (_, i) => horaInicio + i)
+  const alturaTotal = (horaFin - horaInicio) * alturaHora
   const UMBRAL_ARRASTRE = 4
 
   const refCitas = useRef(citas)
@@ -104,6 +136,10 @@ function VistaSemanalEscritorio() {
   refSemana.current = inicioSemanaActual
   const refVista = useRef(vista)
   refVista.current = vista
+  const horaInicioRef = useRef(horaInicio)
+  horaInicioRef.current = horaInicio
+  const horaFinRef = useRef(horaFin)
+  horaFinRef.current = horaFin
 
   useEffect(() => {
     function calcularPropuesta(actual: ArrastreActivo, evento: MouseEvent): ArrastreActivo {
@@ -127,10 +163,10 @@ function VistaSemanalEscritorio() {
 
       const fechaBase = sumarDias(refSemana.current, diaPropuesto)
       const horaOrigen = analizarFechaHora(actual.inicioOrigen)
-      let minutosDelDia = (horaOrigen.getHours() - HORA_INICIO) * 60 + horaOrigen.getMinutes() + deltaMinutos
-      minutosDelDia = Math.min((HORA_FIN - HORA_INICIO) * 60 - duracion, Math.max(0, minutosDelDia))
+      let minutosDelDia = (horaOrigen.getHours() - horaInicioRef.current) * 60 + horaOrigen.getMinutes() + deltaMinutos
+      minutosDelDia = Math.min((horaFinRef.current - horaInicioRef.current) * 60 - duracion, Math.max(0, minutosDelDia))
 
-      const horaCalculada = HORA_INICIO + Math.floor(minutosDelDia / 60)
+      const horaCalculada = horaInicioRef.current + Math.floor(minutosDelDia / 60)
       const minutos = minutosDelDia % 60
       const inicioPropuesto = combinarFechaHora(
         formatearFechaISO(fechaBase),
@@ -208,7 +244,7 @@ function VistaSemanalEscritorio() {
     const observador = new ResizeObserver(([entrada]) => {
       if (!entrada) return
       setAnchoScrollbar(nodo.offsetWidth - nodo.clientWidth)
-      const nuevaAltura = Math.max(ALTURA_HORA_MINIMA, entrada.contentRect.height / (HORA_FIN - HORA_INICIO))
+      const nuevaAltura = Math.max(alturaHoraMinimaRef.current, entrada.contentRect.height / (horaFinRef.current - horaInicioRef.current))
       alturaHoraRef.current = nuevaAltura
       setAlturaHora(nuevaAltura)
     })
@@ -217,6 +253,15 @@ function VistaSemanalEscritorio() {
   }, [])
 
   useEffect(() => () => observadorCuerpoSemanaRef.current?.disconnect(), [])
+
+  useEffect(() => {
+    localStorage.setItem(CLAVE_DENSIDAD, String(vistaDetallada))
+    alturaHoraMinimaRef.current = alturaHoraMinima
+    const alturaContenedor = refCuerpoSemana.current?.getBoundingClientRect().height ?? 0
+    const nuevaAltura = Math.max(alturaHoraMinima, alturaContenedor / (horaFinRef.current - horaInicioRef.current))
+    alturaHoraRef.current = nuevaAltura
+    setAlturaHora(nuevaAltura)
+  }, [vistaDetallada, alturaHoraMinima])
 
   async function finalizarArrastre(actual: ArrastreActivo) {
     if (actual.inicioPropuesto === actual.inicioOrigen && actual.finPropuesto === actual.finOrigen) return
@@ -259,10 +304,10 @@ function VistaSemanalEscritorio() {
     const anchoColumna = rect.width / 7
     const diaIndice = Math.min(6, Math.max(0, Math.floor((clientX - rect.left) / anchoColumna)))
     const minutosDelDia = Math.min(
-      (HORA_FIN - HORA_INICIO) * 60 - MINUTOS_SNAP,
+      (horaFinRef.current - horaInicioRef.current) * 60 - MINUTOS_SNAP,
       Math.max(0, snap(((clientY - rect.top) / alturaHora) * 60)),
     )
-    const horaCalculada = HORA_INICIO + Math.floor(minutosDelDia / 60)
+    const horaCalculada = horaInicioRef.current + Math.floor(minutosDelDia / 60)
     const minutos = minutosDelDia % 60
     const fechaDia = sumarDias(refSemana.current, diaIndice)
     const inicio = combinarFechaHora(
@@ -284,7 +329,7 @@ function VistaSemanalEscritorio() {
     if (evento.target !== evento.currentTarget) return
     const rect = evento.currentTarget.getBoundingClientRect()
     const minutosDelDia = snap(((evento.clientY - rect.top) / alturaHora) * 60)
-    const horaCalculada = HORA_INICIO + Math.floor(minutosDelDia / 60)
+    const horaCalculada = horaInicioRef.current + Math.floor(minutosDelDia / 60)
     const minutos = minutosDelDia % 60
     const inicio = combinarFechaHora(
       formatearFechaISO(dia),
@@ -302,6 +347,8 @@ function VistaSemanalEscritorio() {
           vista={vista}
           onCambiarVista={setVista}
           onNuevaCita={() => abrirCitaNueva(combinarFechaHora(hoyISO(), '08:00'))}
+          vistaDetallada={vistaDetallada}
+          onAlternarDensidad={() => setVistaDetallada((actual) => !actual)}
         />
 
         {vista === 'semana' && (
@@ -328,7 +375,7 @@ function VistaSemanalEscritorio() {
               <div ref={refGrilla} className={styles.grillaDias}>
                 {dias.map((dia, indiceDia) => {
                   const esHoy = esMismoDia(formatearFechaISO(dia), hoyISO())
-                  const minutosAhora = esHoy ? (new Date().getHours() - HORA_INICIO) * 60 + new Date().getMinutes() : -1
+                  const minutosAhora = esHoy ? (new Date().getHours() - horaInicio) * 60 + new Date().getMinutes() : -1
                   return (
                     <div
                       key={dia.toISOString()}
@@ -339,7 +386,7 @@ function VistaSemanalEscritorio() {
                         backgroundImage: `repeating-linear-gradient(to bottom, var(--grid) 0 1px, transparent 1px ${alturaHora}px)`,
                       }}
                     >
-                      {esHoy && minutosAhora >= 0 && minutosAhora <= (HORA_FIN - HORA_INICIO) * 60 && (
+                      {esHoy && minutosAhora >= 0 && minutosAhora <= (horaFin - horaInicio) * 60 && (
                         <div className={styles.lineaAhora} style={{ top: (minutosAhora / 60) * alturaHora }}>
                           <span className={styles.puntoAhora} />
                         </div>
@@ -352,7 +399,7 @@ function VistaSemanalEscritorio() {
                           <BloqueCita
                             key={cita.id}
                             cita={cita}
-                            top={(minutosDesdeHoraBase(cita.inicio, HORA_INICIO) / 60) * alturaHora}
+                            top={(minutosDesdeHoraBase(cita.inicio, horaInicio) / 60) * alturaHora}
                             altura={(diferenciaMinutos(cita.inicio, cita.fin) / 60) * alturaHora}
                             onAbrir={() => abrirCitaExistente(cita)}
                             onIniciarArrastre={(evento) => iniciarArrastre(cita, indiceDia, 'mover', evento)}
@@ -364,7 +411,7 @@ function VistaSemanalEscritorio() {
                         <BloqueCitaFantasma
                           inicio={arrastre.inicioPropuesto}
                           fin={arrastre.finPropuesto}
-                          top={(minutosDesdeHoraBase(arrastre.inicioPropuesto, HORA_INICIO) / 60) * alturaHora}
+                          top={(minutosDesdeHoraBase(arrastre.inicioPropuesto, horaInicio) / 60) * alturaHora}
                           altura={(diferenciaMinutos(arrastre.inicioPropuesto, arrastre.finPropuesto) / 60) * alturaHora}
                         />
                       )}
@@ -373,7 +420,7 @@ function VistaSemanalEscritorio() {
                         <BloqueCitaFantasma
                           inicio={destinoPaciente.inicio}
                           fin={sumarMinutos(destinoPaciente.inicio, DURACION_DEFECTO)}
-                          top={(minutosDesdeHoraBase(destinoPaciente.inicio, HORA_INICIO) / 60) * alturaHora}
+                          top={(minutosDesdeHoraBase(destinoPaciente.inicio, horaInicio) / 60) * alturaHora}
                           altura={(DURACION_DEFECTO / 60) * alturaHora}
                         />
                       )}
@@ -445,10 +492,14 @@ function BarraSuperior({
   vista,
   onCambiarVista,
   onNuevaCita,
+  vistaDetallada,
+  onAlternarDensidad,
 }: {
   vista: VistaCalendario
   onCambiarVista: (vista: VistaCalendario) => void
   onNuevaCita: () => void
+  vistaDetallada: boolean
+  onAlternarDensidad: () => void
 }) {
   const refSelectorVista = useRef<HTMLDivElement>(null)
 
@@ -480,6 +531,14 @@ function BarraSuperior({
           Mes
         </ToggleGroupItem>
       </ToggleGroup>
+      {vista === 'semana' && (
+        <BotonIcono
+          icono="vistaDetallada"
+          titulo={vistaDetallada ? 'Vista detallada (clic para compactar)' : 'Vista compacta (clic para agrandar)'}
+          activo={vistaDetallada}
+          onClick={onAlternarDensidad}
+        />
+      )}
       <div className={styles.espaciador} />
       <Boton variante="primario" onClick={onNuevaCita}>
         <Icono nombre="mas" tamano={17} grosor={2.2} />
@@ -538,9 +597,25 @@ function CabeceraSemana({
   )
 }
 
-export function BotonIcono({ icono, titulo, onClick }: { icono: 'chevronIzquierda' | 'chevronDerecha'; titulo: string; onClick: () => void }) {
+export function BotonIcono({
+  icono,
+  titulo,
+  onClick,
+  activo = false,
+}: {
+  icono: NombreIcono
+  titulo: string
+  onClick: () => void
+  activo?: boolean
+}) {
   return (
-    <button type="button" title={titulo} onClick={onClick} className={styles.botonIcono}>
+    <button
+      type="button"
+      title={titulo}
+      onClick={onClick}
+      aria-pressed={activo}
+      className={cn(styles.botonIcono, activo && styles.botonIconoActivo)}
+    >
       <Icono nombre={icono} tamano={17} grosor={2} />
     </button>
   )

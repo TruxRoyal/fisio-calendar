@@ -8,7 +8,6 @@
   border-left-width: 3px;
   border-left-color: var(--color-borde);
   padding: 5px 8px;
-  overflow: hidden;
   cursor: grab;
   box-shadow: 0 1px 2px rgba(28, 20, 34, .05);
   user-select: none;
@@ -49,6 +48,53 @@
   cursor: pointer;
 }
 
+.filaContenido {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.avatar {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  margin-right: 7px;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -.02em;
+  box-shadow: 0 1px 2px rgba(28, 20, 34, .18);
+  overflow: hidden;
+  transition: width .2s ease, height .2s ease, margin-right .2s ease, opacity .15s ease;
+}
+
+.compacto .avatar {
+  width: 0;
+  height: 0;
+  margin-right: 0;
+  opacity: 0;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.detalle {
+  font-size: 10.5px;
+  color: inherit;
+  opacity: .7;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .filaSuperior {
   display: flex;
   align-items: center;
@@ -80,6 +126,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 1px;
+}
+
+.nombreCompacto {
+  font-size: 10.5px;
+  margin-top: 0;
+  opacity: .85;
 }
 
 .asaRedimension {

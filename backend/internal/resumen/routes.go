@@ -13,6 +13,7 @@ func RegistrarRutas(h *Handler) httpx.RegistradorRutas {
 			rr.Get("/mensual/exportar", h.ExportarExcel)
 			rr.Get("/historico", h.ObtenerHistorico)
 			rr.Get("/desglose", h.ObtenerDesglose)
+			rr.Get("/detalle", h.ObtenerDetalle)
 			rr.Get("/proyeccion", h.ObtenerProyeccion)
 			rr.Get("/capacidad-mensual", h.ObtenerCapacidadMensual)
 		})

@@ -203,7 +203,7 @@ func (r *Repository) ListarDesglosePorPaciente(ctx context.Context, anioMes stri
 
 func (r *Repository) ListarDetalleMensual(ctx context.Context, anioMes string) ([]DetalleSesion, error) {
 	consulta := `
-		SELECT c.inicio, p.nombre, c.tipo_terapia, c.valor_sesion, c.copago_cobrado
+		SELECT c.inicio, p.nombre, p.documento, c.tipo_terapia, p.origen, c.valor_sesion, c.copago_cobrado
 		FROM cita c
 		JOIN paciente p ON p.id = c.paciente_id
 		WHERE c.estado = 'atendida' AND strftime('%Y-%m', c.inicio) = ?
@@ -219,7 +219,7 @@ func (r *Repository) ListarDetalleMensual(ctx context.Context, anioMes string) (
 	detalle := []DetalleSesion{}
 	for filas.Next() {
 		var d DetalleSesion
-		if err := filas.Scan(&d.Fecha, &d.PacienteNombre, &d.TipoTerapia, &d.ValorSesion, &d.CopagoCobrado); err != nil {
+		if err := filas.Scan(&d.Fecha, &d.PacienteNombre, &d.Documento, &d.TipoTerapia, &d.Origen, &d.ValorSesion, &d.CopagoCobrado); err != nil {
 			return nil, fmt.Errorf("escanear detalle mensual: %w", err)
 		}
 		detalle = append(detalle, d)

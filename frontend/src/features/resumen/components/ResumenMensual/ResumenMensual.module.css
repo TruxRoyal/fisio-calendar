@@ -256,3 +256,35 @@
   color: var(--t3);
   margin-top: 5px;
 }
+
+.contenedorTablaDetalle {
+  overflow-x: auto;
+}
+
+.tablaDetalle {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.tablaDetalle th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--t3);
+  padding: 0 10px 8px 0;
+  border-bottom: 1px solid var(--bd);
+}
+
+.tablaDetalle td {
+  padding: 8px 10px 8px 0;
+  border-bottom: 1px solid var(--bd);
+  color: var(--t1);
+}
+
+.tablaDetalle tbody tr:last-child td {
+  border-bottom: 0;
+}

@@ -49,6 +49,13 @@ func (s *Service) Crear(ctx context.Context, solicitud SolicitudCrearPaciente) (
 	if solicitud.Origen == "" {
 		solicitud.Origen = "trabajo"
 	}
+	solicitud.Nombre = strings.TrimSpace(solicitud.Nombre)
+	solicitud.Direccion = trimPtr(solicitud.Direccion)
+	solicitud.Documento = trimPtr(solicitud.Documento)
+	solicitud.Telefono = trimPtr(solicitud.Telefono)
+	solicitud.Diagnostico = trimPtr(solicitud.Diagnostico)
+	solicitud.EPS = trimPtr(solicitud.EPS)
+	solicitud.Observaciones = trimPtr(solicitud.Observaciones)
 	errores := validarSolicitud(solicitud.Nombre, solicitud.TipoTerapia, solicitud.Origen, solicitud.TarifaSesion)
 	if errores.TieneErrores() {
 		return nil, errores, nil
@@ -69,6 +76,13 @@ func (s *Service) Actualizar(ctx context.Context, id int64, solicitud SolicitudA
 	if solicitud.Origen == "" {
 		solicitud.Origen = "trabajo"
 	}
+	solicitud.Nombre = strings.TrimSpace(solicitud.Nombre)
+	solicitud.Direccion = trimPtr(solicitud.Direccion)
+	solicitud.Documento = trimPtr(solicitud.Documento)
+	solicitud.Telefono = trimPtr(solicitud.Telefono)
+	solicitud.Diagnostico = trimPtr(solicitud.Diagnostico)
+	solicitud.EPS = trimPtr(solicitud.EPS)
+	solicitud.Observaciones = trimPtr(solicitud.Observaciones)
 	errores := validarSolicitud(solicitud.Nombre, solicitud.TipoTerapia, solicitud.Origen, solicitud.TarifaSesion)
 	if errores.TieneErrores() {
 		return nil, errores, nil
@@ -154,4 +168,12 @@ func validarSolicitud(nombre, tipoTerapia, origen string, tarifaSesion *int) val
 
 func esErrorDocumentoDuplicado(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "UNIQUE constraint failed")
+}
+
+func trimPtr(valor *string) *string {
+	if valor == nil {
+		return nil
+	}
+	recortado := strings.TrimSpace(*valor)
+	return &recortado
 }

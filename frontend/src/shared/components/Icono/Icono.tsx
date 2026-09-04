@@ -15,6 +15,8 @@ import {
   Moon,
   Phone,
   Plus,
+  Rows2,
+  Rows3,
   Search,
   Settings,
   Sun,
@@ -51,6 +53,8 @@ export type NombreIcono =
   | 'ajustes'
   | 'objetivo'
   | 'moneda'
+  | 'vistaCompacta'
+  | 'vistaDetallada'
 
 const CONTENIDO_PROPIO: Partial<Record<NombreIcono, ReactElement>> = {
   mapa: (
@@ -93,6 +97,8 @@ const ICONOS_LUCIDE: Partial<Record<NombreIcono, LucideIcon>> = {
   ajustes: Settings,
   objetivo: Target,
   moneda: CircleDollarSign,
+  vistaCompacta: Rows3,
+  vistaDetallada: Rows2,
 }
 
 interface PropiedadesIcono extends SVGProps<SVGSVGElement> {

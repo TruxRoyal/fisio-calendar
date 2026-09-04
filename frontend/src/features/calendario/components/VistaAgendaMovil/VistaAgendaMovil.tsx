@@ -6,7 +6,7 @@ import type { PosicionArrastre } from '../../hooks/useArrastreMovil'
 import { rangoHorarioDelDia } from '../../lib'
 import { citasApi, autorizacionesResumenApi, capacidadApi } from '../../api'
 import { DrawerCita } from '../DrawerCita/DrawerCita'
-import { ALTURA_HORA } from '../GrillaHoraria/GrillaHoraria'
+import { ALTURA_HORA_COMPACTA, ALTURA_HORA_DETALLADA } from '../GrillaHoraria/GrillaHoraria'
 import { PIXELES_POR_HORA as ANCHO_HORA_SEMANA } from '../GrillaSemanal/GrillaSemanal'
 import { Icono } from '../../../../shared/components/Icono/Icono'
 import { AlertaMensaje } from '../../../../shared/components/AlertaMensaje/AlertaMensaje'
@@ -32,6 +32,13 @@ import { formatearCOP } from '../../../../shared/lib/moneda'
 import { cn } from '../../../../shared/lib/clases'
 import type { AutorizacionResumen, CapacidadMensual, Cita, VistaCalendario } from '../../types'
 import styles from './VistaAgendaMovil.module.css'
+
+const CLAVE_DENSIDAD_DIA = 'fisio.diaMovilDetallada'
+
+function leerDensidadGuardadaDia(): boolean {
+  const guardado = localStorage.getItem(CLAVE_DENSIDAD_DIA)
+  return guardado === null ? true : guardado === 'true'
+}
 
 export function VistaAgendaMovil() {
   const { citas, inicioSemanaActual, irSemana, irASemanaDe, irHoy } = useCitas()
@@ -62,6 +69,11 @@ export function VistaAgendaMovil() {
   const [citaArrastrada, setCitaArrastrada] = useState<PosicionArrastre | null>(null)
   const observadorListaRef = useRef<ResizeObserver | null>(null)
   const [alturaListaDisponible, setAlturaListaDisponible] = useState(0)
+  const [diaDetallado, setDiaDetallado] = useState(leerDensidadGuardadaDia)
+
+  useEffect(() => {
+    localStorage.setItem(CLAVE_DENSIDAD_DIA, String(diaDetallado))
+  }, [diaDetallado])
 
   const dias = Array.from({ length: 6 }, (_, i) => sumarDias(inicioSemanaActual, i))
   const diaSeleccionadoISO = formatearFechaISO(diaSeleccionado)
@@ -125,11 +137,12 @@ export function VistaAgendaMovil() {
   )
 
   const rangoDia = useMemo(() => rangoHorarioDelDia(citasDelDia), [citasDelDia])
+  const alturaHoraMinimaDia = diaDetallado ? ALTURA_HORA_DETALLADA : ALTURA_HORA_COMPACTA
   const alturaHoraDia = useMemo(() => {
     const horasRango = rangoDia.horaFin - rangoDia.horaInicio
-    if (horasRango <= 0) return ALTURA_HORA
-    return Math.max(ALTURA_HORA, alturaListaDisponible / horasRango)
-  }, [rangoDia, alturaListaDisponible])
+    if (horasRango <= 0) return alturaHoraMinimaDia
+    return Math.max(alturaHoraMinimaDia, alturaListaDisponible / horasRango)
+  }, [rangoDia, alturaListaDisponible, alturaHoraMinimaDia])
 
   async function confirmarArrastre(posicion: PosicionArrastre) {
     const cita = citas.find((c) => c.id === posicion.citaId)
@@ -293,6 +306,17 @@ export function VistaAgendaMovil() {
           >
             <Icono nombre="buscar" tamano={18} grosor={1.9} />
           </button>
+          {modoVista === 'dia' && (
+            <button
+              type="button"
+              onClick={() => setDiaDetallado((actual) => !actual)}
+              aria-pressed={diaDetallado}
+              aria-label={diaDetallado ? 'Vista detallada (tocar para compactar)' : 'Vista compacta (tocar para agrandar)'}
+              className={cn(styles.botonIconoCabecera, diaDetallado && styles.botonIconoCabeceraActivo)}
+            >
+              <Icono nombre="vistaDetallada" tamano={18} grosor={1.9} />
+            </button>
+          )}
           <button type="button" onClick={irHoyCompleto} className={styles.botonHoy}>
             Hoy
           </button>

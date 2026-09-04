@@ -112,6 +112,10 @@ func (s *Service) ObtenerDesglosePorPaciente(ctx context.Context, anio, mes int)
 	return s.repo.ListarDesglosePorPaciente(ctx, formatearAnioMes(anio, mes))
 }
 
+func (s *Service) ObtenerDetalleMensual(ctx context.Context, anio, mes int) ([]DetalleSesion, error) {
+	return s.repo.ListarDetalleMensual(ctx, formatearAnioMes(anio, mes))
+}
+
 func (s *Service) ObtenerProyeccionMensual(ctx context.Context, anio, mes int) (*ProyeccionMensual, error) {
 	anioMes := formatearAnioMes(anio, mes)
 
@@ -188,37 +192,322 @@ func (s *Service) ExportarExcel(ctx context.Context, anio, mes int) (*excelize.F
 		return nil, err
 	}
 
-	archivo := excelize.NewFile()
-	hoja := "Resumen"
-	archivo.SetSheetName("Sheet1", hoja)
-
-	archivo.SetCellValue(hoja, "A1", "Fecha")
-	archivo.SetCellValue(hoja, "B1", "Paciente")
-	archivo.SetCellValue(hoja, "C1", "Tipo de terapia")
-	archivo.SetCellValue(hoja, "D1", "Valor sesion")
-	archivo.SetCellValue(hoja, "E1", "Copago cobrado")
-
-	fila := 2
-	for _, d := range detalle {
-		archivo.SetCellValue(hoja, fmt.Sprintf("A%d", fila), d.Fecha)
-		archivo.SetCellValue(hoja, fmt.Sprintf("B%d", fila), d.PacienteNombre)
-		archivo.SetCellValue(hoja, fmt.Sprintf("C%d", fila), d.TipoTerapia)
-		archivo.SetCellValue(hoja, fmt.Sprintf("D%d", fila), d.ValorSesion)
-		archivo.SetCellValue(hoja, fmt.Sprintf("E%d", fila), d.CopagoCobrado)
-		fila++
+	desglose, err := s.repo.ListarDesglosePorPaciente(ctx, anioMes)
+	if err != nil {
+		return nil, err
 	}
 
-	filaTotales := fila + 1
-	archivo.SetCellValue(hoja, fmt.Sprintf("A%d", filaTotales), "Sesiones atendidas")
-	archivo.SetCellValue(hoja, fmt.Sprintf("B%d", filaTotales), resumen.SesionesAtendidas)
-	archivo.SetCellValue(hoja, fmt.Sprintf("A%d", filaTotales+1), "Pago neto")
-	archivo.SetCellValue(hoja, fmt.Sprintf("B%d", filaTotales+1), resumen.PagoNeto)
-	archivo.SetCellValue(hoja, fmt.Sprintf("A%d", filaTotales+2), "Copagos recaudados")
-	archivo.SetCellValue(hoja, fmt.Sprintf("B%d", filaTotales+2), resumen.CopagosRecaudados)
-	archivo.SetCellValue(hoja, fmt.Sprintf("A%d", filaTotales+3), "Total")
-	archivo.SetCellValue(hoja, fmt.Sprintf("B%d", filaTotales+3), resumen.Total)
+	archivo := excelize.NewFile()
+
+	estilos, err := crearEstilosExcel(archivo)
+	if err != nil {
+		return nil, fmt.Errorf("crear estilos de excel: %w", err)
+	}
+
+	escribirHojaResumen(archivo, estilos, resumen)
+	escribirHojaDetalle(archivo, estilos, detalle)
+	escribirHojaPorPaciente(archivo, estilos, desglose)
+	escribirHojaPorTipo(archivo, estilos, resumen.PorTipo)
+
+	archivo.DeleteSheet("Sheet1")
+	archivo.SetActiveSheet(0)
 
 	return archivo, nil
+}
+
+type estilosExcel struct {
+	encabezado    int
+	texto         int
+	textoAlt      int
+	moneda        int
+	monedaAlt     int
+	centro        int
+	centroAlt     int
+	totalEtiqueta int
+	totalValor    int
+}
+
+const (
+	colorAcento     = "82272A"
+	colorFilaAlt    = "F7F0EF"
+	colorBorde      = "E6DEDD"
+	formatoMonedaCO = `"$"#,##0`
+)
+
+func crearEstilosExcel(archivo *excelize.File) (*estilosExcel, error) {
+	borde := []excelize.Border{
+		{Type: "top", Color: colorBorde, Style: 1},
+		{Type: "bottom", Color: colorBorde, Style: 1},
+		{Type: "left", Color: colorBorde, Style: 1},
+		{Type: "right", Color: colorBorde, Style: 1},
+	}
+	formatoMoneda := formatoMonedaCO
+
+	encabezado, err := archivo.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "FFFFFF", Size: 11},
+		Fill:      excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{colorAcento}},
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center"},
+		Border:    borde,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	texto, err := archivo.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Size: 10.5},
+		Alignment: &excelize.Alignment{Vertical: "center"},
+		Border:    borde,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	textoAlt, err := archivo.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Size: 10.5},
+		Fill:      excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{colorFilaAlt}},
+		Alignment: &excelize.Alignment{Vertical: "center"},
+		Border:    borde,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	moneda, err := archivo.NewStyle(&excelize.Style{
+		Font:         &excelize.Font{Size: 10.5},
+		Alignment:    &excelize.Alignment{Vertical: "center", Horizontal: "right"},
+		Border:       borde,
+		CustomNumFmt: &formatoMoneda,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	monedaAlt, err := archivo.NewStyle(&excelize.Style{
+		Font:         &excelize.Font{Size: 10.5},
+		Fill:         excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{colorFilaAlt}},
+		Alignment:    &excelize.Alignment{Vertical: "center", Horizontal: "right"},
+		Border:       borde,
+		CustomNumFmt: &formatoMoneda,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	centro, err := archivo.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Size: 10.5},
+		Alignment: &excelize.Alignment{Vertical: "center", Horizontal: "center"},
+		Border:    borde,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	centroAlt, err := archivo.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Size: 10.5},
+		Fill:      excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{colorFilaAlt}},
+		Alignment: &excelize.Alignment{Vertical: "center", Horizontal: "center"},
+		Border:    borde,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	totalEtiqueta, err := archivo.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Size: 10.5, Color: colorAcento},
+		Alignment: &excelize.Alignment{Vertical: "center"},
+		Border:    []excelize.Border{{Type: "top", Color: colorAcento, Style: 2}},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	totalValor, err := archivo.NewStyle(&excelize.Style{
+		Font:         &excelize.Font{Bold: true, Size: 10.5, Color: colorAcento},
+		Alignment:    &excelize.Alignment{Vertical: "center", Horizontal: "right"},
+		Border:       []excelize.Border{{Type: "top", Color: colorAcento, Style: 2}},
+		CustomNumFmt: &formatoMoneda,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &estilosExcel{
+		encabezado:    encabezado,
+		texto:         texto,
+		textoAlt:      textoAlt,
+		moneda:        moneda,
+		monedaAlt:     monedaAlt,
+		centro:        centro,
+		centroAlt:     centroAlt,
+		totalEtiqueta: totalEtiqueta,
+		totalValor:    totalValor,
+	}, nil
+}
+
+// columna describe una columna de una tabla exportada: su encabezado, ancho
+// y si sus valores deben formatearse como moneda.
+type columna struct {
+	titulo string
+	ancho  float64
+	moneda bool
+	centro bool
+}
+
+func prepararHoja(archivo *excelize.File, estilos *estilosExcel, hoja string, columnas []columna) {
+	archivo.NewSheet(hoja)
+	archivo.SetRowHeight(hoja, 1, 22)
+
+	for i, c := range columnas {
+		celda, _ := excelize.CoordinatesToCellName(i+1, 1)
+		archivo.SetCellValue(hoja, celda, c.titulo)
+		letra, _ := excelize.ColumnNumberToName(i + 1)
+		archivo.SetColWidth(hoja, letra, letra, c.ancho)
+	}
+	archivo.SetCellStyle(hoja, "A1", fmt.Sprintf("%s1", letraColumna(len(columnas))), estilos.encabezado)
+	archivo.SetPanes(hoja, &excelize.Panes{Freeze: true, Split: false, XSplit: 0, YSplit: 1, TopLeftCell: "A2", ActivePane: "bottomLeft"})
+}
+
+func letraColumna(indice int) string {
+	letra, _ := excelize.ColumnNumberToName(indice)
+	return letra
+}
+
+func estiloFila(estilos *estilosExcel, columnas []columna, indiceColumna, fila int) int {
+	par := fila%2 == 0
+	c := columnas[indiceColumna]
+	switch {
+	case c.moneda && par:
+		return estilos.monedaAlt
+	case c.moneda:
+		return estilos.moneda
+	case c.centro && par:
+		return estilos.centroAlt
+	case c.centro:
+		return estilos.centro
+	case par:
+		return estilos.textoAlt
+	default:
+		return estilos.texto
+	}
+}
+
+func escribirHojaResumen(archivo *excelize.File, estilos *estilosExcel, resumen *ResumenMensual) {
+	hoja := "Resumen"
+	columnas := []columna{
+		{titulo: "Concepto", ancho: 26},
+		{titulo: "Valor", ancho: 20, centro: true},
+	}
+	prepararHoja(archivo, estilos, hoja, columnas)
+
+	umbralAlcanzado := "No"
+	if resumen.UmbralAlcanzado {
+		umbralAlcanzado = "Si"
+	}
+
+	filas := []struct {
+		etiqueta string
+		valor    any
+		moneda   bool
+	}{
+		{"Mes", formatearAnioMes(resumen.Anio, resumen.Mes), false},
+		{"Sesiones atendidas", resumen.SesionesAtendidas, false},
+		{"Sesiones de trabajo", resumen.SesionesTrabajo, false},
+		{"Umbral de escalon", resumen.UmbralEscalon, false},
+		{"Umbral alcanzado", umbralAlcanzado, false},
+		{"Pago neto", resumen.PagoNeto, true},
+		{"Copagos recaudados", resumen.CopagosRecaudados, true},
+	}
+
+	for i, f := range filas {
+		fila := i + 2
+		archivo.SetCellValue(hoja, fmt.Sprintf("A%d", fila), f.etiqueta)
+		archivo.SetCellValue(hoja, fmt.Sprintf("B%d", fila), f.valor)
+		archivo.SetCellStyle(hoja, fmt.Sprintf("A%d", fila), fmt.Sprintf("A%d", fila), estiloFila(estilos, columnas, 0, fila))
+		estiloValor := estiloFila(estilos, columnas, 1, fila)
+		if f.moneda {
+			if fila%2 == 0 {
+				estiloValor = estilos.monedaAlt
+			} else {
+				estiloValor = estilos.moneda
+			}
+		}
+		archivo.SetCellStyle(hoja, fmt.Sprintf("B%d", fila), fmt.Sprintf("B%d", fila), estiloValor)
+	}
+
+	filaTotal := len(filas) + 2
+	archivo.SetCellValue(hoja, fmt.Sprintf("A%d", filaTotal), "Total")
+	archivo.SetCellValue(hoja, fmt.Sprintf("B%d", filaTotal), resumen.Total)
+	archivo.SetCellStyle(hoja, fmt.Sprintf("A%d", filaTotal), fmt.Sprintf("A%d", filaTotal), estilos.totalEtiqueta)
+	archivo.SetCellStyle(hoja, fmt.Sprintf("B%d", filaTotal), fmt.Sprintf("B%d", filaTotal), estilos.totalValor)
+}
+
+func escribirHojaDetalle(archivo *excelize.File, estilos *estilosExcel, detalle []DetalleSesion) {
+	hoja := "Detalle de sesiones"
+	columnas := []columna{
+		{titulo: "Fecha", ancho: 13, centro: true},
+		{titulo: "Hora", ancho: 9, centro: true},
+		{titulo: "Paciente", ancho: 28},
+		{titulo: "Documento", ancho: 14, centro: true},
+		{titulo: "Tipo de terapia", ancho: 16, centro: true},
+		{titulo: "Origen", ancho: 11, centro: true},
+		{titulo: "Valor sesion", ancho: 14, moneda: true},
+		{titulo: "Copago cobrado", ancho: 15, moneda: true},
+	}
+	prepararHoja(archivo, estilos, hoja, columnas)
+
+	for i, d := range detalle {
+		fila := i + 2
+		fechaTexto, horaTexto := separarFechaHora(d.Fecha)
+		documento := ""
+		if d.Documento != nil {
+			documento = *d.Documento
+		}
+		valores := []any{fechaTexto, horaTexto, d.PacienteNombre, documento, d.TipoTerapia, d.Origen, d.ValorSesion, d.CopagoCobrado}
+		escribirFila(archivo, estilos, hoja, columnas, fila, valores)
+	}
+}
+
+func escribirHojaPorPaciente(archivo *excelize.File, estilos *estilosExcel, desglose []DesglosePaciente) {
+	hoja := "Por paciente"
+	columnas := []columna{
+		{titulo: "Paciente", ancho: 28},
+		{titulo: "Sesiones", ancho: 11, centro: true},
+		{titulo: "Pago neto", ancho: 14, moneda: true},
+		{titulo: "Copagos", ancho: 13, moneda: true},
+		{titulo: "Total", ancho: 14, moneda: true},
+	}
+	prepararHoja(archivo, estilos, hoja, columnas)
+
+	for i, d := range desglose {
+		fila := i + 2
+		valores := []any{d.Nombre, d.Sesiones, d.PagoNeto, d.Copagos, d.Total}
+		escribirFila(archivo, estilos, hoja, columnas, fila, valores)
+	}
+}
+
+func escribirHojaPorTipo(archivo *excelize.File, estilos *estilosExcel, porTipo []ResumenTipo) {
+	hoja := "Por tipo de terapia"
+	columnas := []columna{
+		{titulo: "Tipo de terapia", ancho: 18, centro: true},
+		{titulo: "Sesiones atendidas", ancho: 17, centro: true},
+		{titulo: "Pago neto", ancho: 14, moneda: true},
+		{titulo: "Copagos recaudados", ancho: 17, moneda: true},
+	}
+	prepararHoja(archivo, estilos, hoja, columnas)
+
+	for i, t := range porTipo {
+		fila := i + 2
+		valores := []any{t.TipoTerapia, t.SesionesAtendidas, t.PagoNeto, t.CopagosRecaudados}
+		escribirFila(archivo, estilos, hoja, columnas, fila, valores)
+	}
+}
+
+func escribirFila(archivo *excelize.File, estilos *estilosExcel, hoja string, columnas []columna, fila int, valores []any) {
+	for i, valor := range valores {
+		celda, _ := excelize.CoordinatesToCellName(i+1, fila)
+		archivo.SetCellValue(hoja, celda, valor)
+		archivo.SetCellStyle(hoja, celda, celda, estiloFila(estilos, columnas, i, fila))
+	}
 }
 
 func (s *Service) ObtenerCapacidadMensual(ctx context.Context) (*CapacidadMensual, error) {
@@ -237,6 +526,14 @@ func (s *Service) ObtenerCapacidadMensual(ctx context.Context) (*CapacidadMensua
 		SesionesAutorizadasTotal: sesionesAutorizadasTotal,
 		SesionesRegistradasTotal: sesionesRegistradasTotal,
 	}, nil
+}
+
+func separarFechaHora(inicio string) (fecha, hora string) {
+	analizado, err := time.Parse("2006-01-02T15:04:05", inicio)
+	if err != nil {
+		return inicio, ""
+	}
+	return analizado.Format("2006-01-02"), analizado.Format("15:04")
 }
 
 func formatearAnioMes(anio, mes int) string {
