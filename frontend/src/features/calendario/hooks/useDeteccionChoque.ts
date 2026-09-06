@@ -18,5 +18,14 @@ export function useDeteccionChoque() {
     [],
   )
 
-  return { verificar, verificando }
+  const planificar = useCallback(async (id: number, inicio: string, fin: string) => {
+    setVerificando(true)
+    try {
+      return await citasApi.planificarMovimiento(id, inicio, fin)
+    } finally {
+      setVerificando(false)
+    }
+  }, [])
+
+  return { verificar, planificar, verificando }
 }

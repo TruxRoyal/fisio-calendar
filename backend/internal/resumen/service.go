@@ -344,8 +344,6 @@ func crearEstilosExcel(archivo *excelize.File) (*estilosExcel, error) {
 	}, nil
 }
 
-// columna describe una columna de una tabla exportada: su encabezado, ancho
-// y si sus valores deben formatearse como moneda.
 type columna struct {
 	titulo string
 	ancho  float64

@@ -1,4 +1,4 @@
-# Fisio App
+# Physinow
 
 PWA para gestionar agenda e ingresos de una fisioterapeuta independiente (atención a domicilio, adultos mayores, zona Suba - Bogotá).
 

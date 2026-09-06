@@ -12,27 +12,46 @@ interface PropiedadesBloqueCita {
   cita: Cita
   top: number
   altura: number
+  indiceColumna?: number
+  totalColumnas?: number
   onAbrir: () => void
   onIniciarArrastre: (evento: MouseEvent<HTMLDivElement>) => void
   onIniciarRedimension: (evento: MouseEvent<HTMLDivElement>) => void
 }
 
-export function BloqueCita({ cita, top, altura, onAbrir, onIniciarArrastre, onIniciarRedimension }: PropiedadesBloqueCita) {
+export function BloqueCita({
+  cita,
+  top,
+  altura,
+  indiceColumna = 0,
+  totalColumnas = 1,
+  onAbrir,
+  onIniciarArrastre,
+  onIniciarRedimension,
+}: PropiedadesBloqueCita) {
   const colorTipo = TIPO_TERAPIA_COLOR[cita.tipoTerapia]
   const colorBorde = cita.paciente.color ?? colorTipo.fg ?? 'var(--ac)'
   const colorAvatar = cita.paciente.color ?? colorDesdeTexto(cita.paciente.nombre)
   const compacto = altura < 40
   const duracion = diferenciaMinutos(cita.inicio, cita.fin)
+  const estiloSolape: CSSProperties =
+    totalColumnas > 1
+      ? {
+          left: `calc(${(indiceColumna / totalColumnas) * 100}% + 2px)`,
+          width: `calc(${100 / totalColumnas}% - 4px)`,
+          right: 'auto',
+        }
+      : {}
 
   return (
     <div
       onClick={onAbrir}
       onMouseDown={(evento) => {
-        if (cita.estado !== 'cancelada') onIniciarArrastre(evento)
+        if (cita.estado === 'agendada') onIniciarArrastre(evento)
       }}
       title={cita.paciente.nombre}
       className={cn(styles.bloque, styles[cita.estado], compacto && styles.compacto)}
-      style={{ top, height: Math.max(altura, 24), '--color-borde': colorBorde } as CSSProperties}
+      style={{ top, height: Math.max(altura, 24), ...estiloSolape, '--color-borde': colorBorde } as CSSProperties}
     >
       <div className={styles.filaContenido}>
         <span className={styles.avatar} style={{ background: colorAvatar }}>
@@ -55,7 +74,7 @@ export function BloqueCita({ cita, top, altura, onAbrir, onIniciarArrastre, onIn
         </div>
       </div>
 
-      {altura > 46 && cita.estado !== 'cancelada' && (
+      {altura > 46 && cita.estado === 'agendada' && (
         <div
           onMouseDown={(evento) => {
             evento.stopPropagation()

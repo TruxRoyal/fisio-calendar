@@ -8,6 +8,7 @@ import {
   ChevronRight,
   CircleDollarSign,
   Clock,
+  Download,
   EllipsisVertical,
   ExternalLink,
   FileSpreadsheet,
@@ -55,6 +56,7 @@ export type NombreIcono =
   | 'moneda'
   | 'vistaCompacta'
   | 'vistaDetallada'
+  | 'descargar'
 
 const CONTENIDO_PROPIO: Partial<Record<NombreIcono, ReactElement>> = {
   mapa: (
@@ -99,6 +101,7 @@ const ICONOS_LUCIDE: Partial<Record<NombreIcono, LucideIcon>> = {
   moneda: CircleDollarSign,
   vistaCompacta: Rows3,
   vistaDetallada: Rows2,
+  descargar: Download,
 }
 
 interface PropiedadesIcono extends SVGProps<SVGSVGElement> {

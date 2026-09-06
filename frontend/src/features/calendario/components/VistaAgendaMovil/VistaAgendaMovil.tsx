@@ -10,10 +10,10 @@ import { ALTURA_HORA_COMPACTA, ALTURA_HORA_DETALLADA } from '../GrillaHoraria/Gr
 import { PIXELES_POR_HORA as ANCHO_HORA_SEMANA } from '../GrillaSemanal/GrillaSemanal'
 import { Icono } from '../../../../shared/components/Icono/Icono'
 import { AlertaMensaje } from '../../../../shared/components/AlertaMensaje/AlertaMensaje'
+import { DialogoConfirmacion } from '../../../../shared/components/DialogoConfirmacion/DialogoConfirmacion'
 import { PaletaComandos } from '../../../../shared/components/PaletaComandos/PaletaComandos'
 import { ToggleGroup, ToggleGroupItem } from '../../../../shared/components/ui/toggle-group'
 import { Badge } from '../../../../shared/components/ui/badge'
-import { ErrorPeticion } from '../../../../shared/api/cliente'
 import { VistaMesMovil } from '../VistaMesMovil/VistaMesMovil'
 import { VistaDiaMovil } from '../VistaDiaMovil/VistaDiaMovil'
 import { VistaSemanaMovil } from '../VistaSemanaMovil/VistaSemanaMovil'
@@ -54,8 +54,11 @@ export function VistaAgendaMovil() {
     mensajeError,
     setMensajeError,
     advertencias,
-    verificar,
-    actualizarCita,
+    moverCita,
+    planPendiente,
+    descripcionPlanPendiente,
+    confirmarPlanPendiente,
+    cancelarPlanPendiente,
   } = useGestionCita()
   const [diaSeleccionado, setDiaSeleccionado] = useState(() => new Date())
   const [modoVista, setModoVista] = useState<VistaCalendario>('dia')
@@ -154,25 +157,14 @@ export function VistaAgendaMovil() {
       setCitaArrastrada(null)
       return
     }
-    try {
-      const conflicto = await verificar(posicion.nuevoInicio, posicion.nuevoFin, posicion.citaId)
-      if (conflicto) {
-        setCitaArrastrada(null)
-        setMensajeError('Esta cita choca con otra existente.')
-        return
-      }
-      await actualizarCita(posicion.citaId, {
-        inicio: posicion.nuevoInicio,
-        fin: posicion.nuevoFin,
-        autorizacionId: cita.autorizacionId,
-        tipoTerapia: cita.tipoTerapia,
-        notas: cita.notas,
-      })
-      setCitaArrastrada(null)
-    } catch (error) {
-      setCitaArrastrada(null)
-      setMensajeError(error instanceof ErrorPeticion ? error.message : 'No se pudo mover la cita.')
-    }
+    await moverCita(posicion.citaId, {
+      inicio: posicion.nuevoInicio,
+      fin: posicion.nuevoFin,
+      autorizacionId: cita.autorizacionId,
+      tipoTerapia: cita.tipoTerapia,
+      notas: cita.notas,
+    })
+    setCitaArrastrada(null)
   }
 
   const { iniciarArrastre: iniciarArrastreDia } = useArrastreMovil({
@@ -464,6 +456,14 @@ export function VistaAgendaMovil() {
       )}
 
       <AlertaMensaje mensaje={mensajeError} onCerrar={() => setMensajeError(null)} />
+      <DialogoConfirmacion
+        abierto={planPendiente}
+        onCerrar={cancelarPlanPendiente}
+        onConfirmar={confirmarPlanPendiente}
+        titulo="Reagendar citas siguientes"
+        descripcion={descripcionPlanPendiente}
+        textoConfirmar="Mover todas"
+      />
       <PaletaComandos abierta={buscadorAbierto} onCerrar={() => setBuscadorAbierto(false)} />
     </div>
   )

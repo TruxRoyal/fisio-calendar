@@ -84,6 +84,73 @@ func (r *Repository) ExisteChoque(ctx context.Context, inicio, fin string, exclu
 	return &conflicto, nil
 }
 
+func (r *Repository) ListarActivasMismoDia(ctx context.Context, fechaISO string, excluirCitaID int64) ([]Cita, error) {
+	consulta := consultaBase + " WHERE date(c.inicio) = ? AND c.estado != 'cancelada' AND c.id != ? ORDER BY c.inicio ASC"
+
+	filas, err := r.db.QueryContext(ctx, consulta, fechaISO, excluirCitaID)
+	if err != nil {
+		return nil, fmt.Errorf("listar activas del dia: %w", err)
+	}
+	defer filas.Close()
+
+	citas := []Cita{}
+	for filas.Next() {
+		var c Cita
+		if err := escanearCita(filas, &c); err != nil {
+			return nil, fmt.Errorf("escanear cita: %w", err)
+		}
+		citas = append(citas, c)
+	}
+
+	return citas, filas.Err()
+}
+
+func (r *Repository) ActualizarConEmpuje(ctx context.Context, id int64, solicitud SolicitudActualizarCita, empujadas []CitaEmpujada) (*Cita, []Cita, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, nil, fmt.Errorf("iniciar transaccion: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE cita
+		SET autorizacion_id = ?, tipo_terapia = ?, inicio = ?, fin = ?, notas = ?, actualizado_en = datetime('now')
+		WHERE id = ?
+	`, solicitud.AutorizacionID, solicitud.TipoTerapia, solicitud.Inicio, solicitud.Fin, solicitud.Notas, id); err != nil {
+		return nil, nil, fmt.Errorf("actualizar cita movida: %w", err)
+	}
+
+	for _, empujada := range empujadas {
+		if _, err := tx.ExecContext(ctx, `
+			UPDATE cita SET inicio = ?, fin = ?, actualizado_en = datetime('now') WHERE id = ?
+		`, empujada.InicioNuevo, empujada.FinNuevo, empujada.CitaID); err != nil {
+			return nil, nil, fmt.Errorf("actualizar cita empujada %d: %w", empujada.CitaID, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, nil, fmt.Errorf("confirmar transaccion: %w", err)
+	}
+
+	actualizada, err := r.ObtenerPorID(ctx, id)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	citasEmpujadas := make([]Cita, 0, len(empujadas))
+	for _, empujada := range empujadas {
+		c, err := r.ObtenerPorID(ctx, empujada.CitaID)
+		if err != nil {
+			return nil, nil, err
+		}
+		if c != nil {
+			citasEmpujadas = append(citasEmpujadas, *c)
+		}
+	}
+
+	return actualizada, citasEmpujadas, nil
+}
+
 func (r *Repository) ContarAtendidasAntesEnMes(ctx context.Context, inicio string) (int, error) {
 	consulta := `
 		SELECT COUNT(*) FROM cita c
@@ -119,6 +186,18 @@ func (r *Repository) ObtenerCopagoAutorizacion(ctx context.Context, autorizacion
 		return 0, fmt.Errorf("obtener copago de autorizacion: %w", err)
 	}
 	return copago, nil
+}
+
+func (r *Repository) ObtenerFechaVencimientoAutorizacion(ctx context.Context, autorizacionID int64) (*string, error) {
+	var fechaVencimiento *string
+	err := r.db.QueryRowContext(ctx, "SELECT fecha_vencimiento FROM autorizacion WHERE id = ?", autorizacionID).Scan(&fechaVencimiento)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("obtener fecha de vencimiento de autorizacion: %w", err)
+	}
+	return fechaVencimiento, nil
 }
 
 func (r *Repository) ResolverAutorizacionActiva(ctx context.Context, pacienteID int64, tipoTerapia string) (*int64, error) {

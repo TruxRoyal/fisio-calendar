@@ -62,7 +62,6 @@ func TestExportarExcelGeneraLasCuatroHojasEsperadas(t *testing.T) {
 	if err != nil {
 		t.Fatalf("leer filas de Por tipo de terapia: %v", err)
 	}
-	// encabezado + fisica + respiratoria
 	if len(filasPorTipo) != 3 {
 		t.Fatalf("esperaba 3 filas en Por tipo de terapia (encabezado + 2 tipos), obtuvo %d: %v", len(filasPorTipo), filasPorTipo)
 	}
