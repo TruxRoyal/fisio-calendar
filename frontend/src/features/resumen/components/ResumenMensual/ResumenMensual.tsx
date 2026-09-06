@@ -81,23 +81,39 @@ export function ResumenMensual() {
 
           {resumen && (
             <div className={styles.filaHero}>
-              <div className={styles.etiquetaHero}>Total del mes</div>
-              <div className={styles.filaValorHero}>
-                <span className={styles.valorHero}>{formatearCOP(resumen.total)}</span>
-                {resumen.copagosRecaudados > 0 && (
-                  <span className={styles.badgeCopagos}>
-                    <Icono nombre="moneda" tamano={13} grosor={1.9} />
-                    +{formatearCOP(resumen.copagosRecaudados)} copagos
-                  </span>
-                )}
-                {mesAnterior && (() => {
-                  const delta = calcularDelta(resumen.total, mesAnterior.total)
-                  return delta ? (
-                    <span className={delta.positivo ? styles.deltaHeroPositivo : styles.deltaHeroNegativo}>
-                      {delta.positivo ? '↑' : '↓'} {delta.texto} vs mes anterior
+              <div className={styles.bloqueTotal}>
+                <div className={styles.etiquetaHero}>Total del mes</div>
+                <div className={styles.filaValorHero}>
+                  <span className={styles.valorHero}>{formatearCOP(resumen.total)}</span>
+                  {resumen.copagosRecaudados > 0 && (
+                    <span className={styles.badgeCopagos}>
+                      <Icono nombre="moneda" tamano={13} grosor={1.9} />
+                      +{formatearCOP(resumen.copagosRecaudados)} copagos
                     </span>
-                  ) : null
-                })()}
+                  )}
+                  {mesAnterior && (() => {
+                    const delta = calcularDelta(resumen.total, mesAnterior.total)
+                    return delta ? (
+                      <span className={delta.positivo ? styles.deltaHeroPositivo : styles.deltaHeroNegativo}>
+                        {delta.positivo ? '↑' : '↓'} {delta.texto} vs mes anterior
+                      </span>
+                    ) : null
+                  })()}
+                </div>
+              </div>
+              <div className={styles.columnaCifrasHero}>
+                <TarjetaCifra
+                  etiqueta="Pago neto"
+                  valor={formatearCOP(resumen.pagoNeto)}
+                  color={{ fg: 'var(--okFg)', bg: 'var(--okBg)', bd: 'var(--okBd)' }}
+                  delta={mesAnterior ? calcularDelta(resumen.pagoNeto, mesAnterior.pagoNeto) : null}
+                />
+                <TarjetaCifra
+                  etiqueta="Sesiones atendidas"
+                  valor={String(resumen.sesionesAtendidas)}
+                  color={{ fg: 'var(--t1)', bg: 'var(--s1)', bd: 'var(--bd)' }}
+                  delta={mesAnterior ? calcularDelta(resumen.sesionesAtendidas, mesAnterior.sesionesAtendidas) : null}
+                />
               </div>
             </div>
           )}
@@ -107,24 +123,14 @@ export function ResumenMensual() {
           <p className={styles.textoCargando}>Cargando…</p>
         ) : (
           <>
-            <div className={styles.gridCifras}>
-              <TarjetaCifra
-                etiqueta="Pago neto"
-                valor={formatearCOP(resumen.pagoNeto)}
-                color={{ fg: 'var(--okFg)', bg: 'var(--okBg)', bd: 'var(--okBd)' }}
-                delta={mesAnterior ? calcularDelta(resumen.pagoNeto, mesAnterior.pagoNeto) : null}
-              />
-              <TarjetaCifra
-                etiqueta="Sesiones atendidas"
-                valor={String(resumen.sesionesAtendidas)}
-                color={{ fg: 'var(--t1)', bg: 'var(--s1)', bd: 'var(--bd)' }}
-                delta={mesAnterior ? calcularDelta(resumen.sesionesAtendidas, mesAnterior.sesionesAtendidas) : null}
-              />
-            </div>
-
-            {resumen.porTipo.length > 0 && <PanelPorTipo porTipo={resumen.porTipo} />}
-
-            <PanelPresupuesto resumen={resumen} proyeccion={proyeccion} cargando={cargandoProyeccion} />
+            {resumen.porTipo.length > 0 ? (
+              <div className={styles.filaPaneles}>
+                <PanelPresupuesto resumen={resumen} proyeccion={proyeccion} cargando={cargandoProyeccion} />
+                <PanelPorTipo porTipo={resumen.porTipo} />
+              </div>
+            ) : (
+              <PanelPresupuesto resumen={resumen} proyeccion={proyeccion} cargando={cargandoProyeccion} />
+            )}
 
             {historico.length > 0 && (
               <div className={styles.panelGrafico}>

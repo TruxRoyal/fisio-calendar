@@ -5,6 +5,8 @@ import type {
   Cita,
   PacienteBusqueda,
   PacienteParaDrawer,
+  RespuestaActualizarCita,
+  RespuestaPlanificarMovimiento,
   RespuestaVerificarChoque,
   SolicitudActualizarCita,
   SolicitudCambiarEstado,
@@ -17,11 +19,13 @@ export const citasApi = {
   obtener: (id: number) => clienteApi.get<Cita>(`/citas/${id}`),
   crear: (solicitud: SolicitudCrearCita) => clienteApi.post<Cita>('/citas', solicitud),
   actualizar: (id: number, solicitud: SolicitudActualizarCita) =>
-    clienteApi.put<Cita>(`/citas/${id}`, solicitud),
+    clienteApi.put<RespuestaActualizarCita>(`/citas/${id}`, solicitud),
   cambiarEstado: (id: number, solicitud: SolicitudCambiarEstado) =>
     clienteApi.patch<Cita>(`/citas/${id}/estado`, solicitud),
   verificarChoque: (inicio: string, fin: string, excluirCitaId?: number) =>
     clienteApi.post<RespuestaVerificarChoque>('/citas/verificar-choque', { inicio, fin, excluirCitaId }),
+  planificarMovimiento: (id: number, inicio: string, fin: string) =>
+    clienteApi.post<RespuestaPlanificarMovimiento>(`/citas/${id}/vista-previa-movimiento`, { inicio, fin }),
   eliminar: (id: number) => clienteApi.delete<void>(`/citas/${id}`),
 }
 

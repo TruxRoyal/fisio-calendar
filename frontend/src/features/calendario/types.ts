@@ -60,6 +60,24 @@ export interface RespuestaVerificarChoque {
   conflicto: Conflicto | null
 }
 
+export interface CitaEmpujada {
+  citaId: number
+  inicioAnterior: string
+  finAnterior: string
+  inicioNuevo: string
+  finNuevo: string
+}
+
+export interface RespuestaActualizarCita {
+  cita: Cita
+  empujadas: Cita[]
+}
+
+export interface RespuestaPlanificarMovimiento {
+  conflicto: Conflicto | null
+  empujadas: CitaEmpujada[]
+}
+
 export interface AutorizacionActivaPaciente {
   id: number
   tipoTerapia: TipoTerapia

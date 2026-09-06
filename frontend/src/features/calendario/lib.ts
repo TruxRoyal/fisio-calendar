@@ -56,3 +56,42 @@ export function rangoHorarioDelDia(citas: Cita[], opciones?: OpcionesRangoHorari
 
   return { horaInicio, horaFin }
 }
+
+export interface DisposicionSolape {
+  indiceColumna: number
+  totalColumnas: number
+}
+
+export function calcularDisposicionSolapes(citas: Cita[]): Map<number, DisposicionSolape> {
+  const resultado = new Map<number, DisposicionSolape>()
+  const ordenadas = [...citas].sort((a, b) => a.inicio.localeCompare(b.inicio) || a.fin.localeCompare(b.fin))
+
+  let clusterMiembros: { id: number; indiceColumna: number }[] = []
+  let columnasActivas: { finIso: string; indiceColumna: number }[] = []
+  let finMaximoCluster = ''
+
+  function cerrarCluster() {
+    if (clusterMiembros.length === 0) return
+    const totalColumnas = Math.max(...clusterMiembros.map((m) => m.indiceColumna)) + 1
+    for (const m of clusterMiembros) resultado.set(m.id, { indiceColumna: m.indiceColumna, totalColumnas })
+    clusterMiembros = []
+    columnasActivas = []
+    finMaximoCluster = ''
+  }
+
+  for (const cita of ordenadas) {
+    if (clusterMiembros.length > 0 && cita.inicio >= finMaximoCluster) {
+      cerrarCluster()
+    }
+    columnasActivas = columnasActivas.filter((c) => c.finIso > cita.inicio)
+    const usadas = new Set(columnasActivas.map((c) => c.indiceColumna))
+    let indiceColumna = 0
+    while (usadas.has(indiceColumna)) indiceColumna++
+    columnasActivas.push({ finIso: cita.fin, indiceColumna })
+    clusterMiembros.push({ id: cita.id, indiceColumna })
+    if (finMaximoCluster === '' || cita.fin > finMaximoCluster) finMaximoCluster = cita.fin
+  }
+  cerrarCluster()
+
+  return resultado
+}

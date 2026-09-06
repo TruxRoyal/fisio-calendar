@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react'
 import { useCitas } from '../../hooks/useCitas'
 import { useGestionCita } from '../../hooks/useGestionCita'
-import { MINUTOS_SNAP, contarVisitasPorDia, minutosDesdeHoraBase, snap } from '../../lib'
+import { MINUTOS_SNAP, calcularDisposicionSolapes, contarVisitasPorDia, minutosDesdeHoraBase, snap } from '../../lib'
 import { BloqueCita } from '../BloqueCita/BloqueCita'
 import { PanelPacientes } from '../PanelPacientes/PanelPacientes'
 import { DrawerCita } from '../DrawerCita/DrawerCita'
@@ -10,6 +10,7 @@ import { VistaDia } from '../VistaDia/VistaDia'
 import { VistaMes } from '../VistaMes/VistaMes'
 import { VistaAgendaMovil } from '../VistaAgendaMovil/VistaAgendaMovil'
 import { AlertaMensaje } from '../../../../shared/components/AlertaMensaje/AlertaMensaje'
+import { DialogoConfirmacion } from '../../../../shared/components/DialogoConfirmacion/DialogoConfirmacion'
 import {
   analizarFechaHora,
   combinarFechaHora,
@@ -28,7 +29,6 @@ import { Icono } from '../../../../shared/components/Icono/Icono'
 import type { NombreIcono } from '../../../../shared/components/Icono/Icono'
 import { ToggleGroup, ToggleGroupItem } from '../../../../shared/components/ui/toggle-group'
 import { useEsMovil } from '../../../../shared/hooks/useEsMovil'
-import { ErrorPeticion } from '../../../../shared/api/cliente'
 import { cn } from '../../../../shared/lib/clases'
 import type { Cita, PacienteBusqueda, VistaCalendario } from '../../types'
 import styles from './VistaSemanal.module.css'
@@ -83,8 +83,11 @@ function VistaSemanalEscritorio() {
     mensajeError,
     setMensajeError,
     advertencias,
-    verificar,
-    actualizarCita,
+    moverCita,
+    planPendiente,
+    descripcionPlanPendiente,
+    confirmarPlanPendiente,
+    cancelarPlanPendiente,
   } = useGestionCita()
 
   const [vista, setVista] = useState<VistaCalendario>('semana')
@@ -105,8 +108,6 @@ function VistaSemanalEscritorio() {
 
   const dias = Array.from({ length: 7 }, (_, i) => sumarDias(inicioSemanaActual, i))
 
-  // El rango de horas por defecto cubre el horario habitual, pero se expande
-  // si hay una cita agendada fuera de ese rango para que nunca quede oculta.
   const horaInicio = useMemo(() => {
     let minimo = HORA_INICIO_DEFECTO
     for (const cita of citas) {
@@ -265,25 +266,14 @@ function VistaSemanalEscritorio() {
 
   async function finalizarArrastre(actual: ArrastreActivo) {
     if (actual.inicioPropuesto === actual.inicioOrigen && actual.finPropuesto === actual.finOrigen) return
-
-    const conflicto = await verificar(actual.inicioPropuesto, actual.finPropuesto, actual.citaId)
-    if (conflicto) {
-      setMensajeError('No se puede mover la cita: choca con otra cita existente.')
-      return
-    }
-
     const cita = refCitas.current.find((c) => c.id === actual.citaId)
-    try {
-      await actualizarCita(actual.citaId, {
-        inicio: actual.inicioPropuesto,
-        fin: actual.finPropuesto,
-        autorizacionId: cita?.autorizacionId ?? null,
-        tipoTerapia: cita?.tipoTerapia ?? 'fisica',
-        notas: cita?.notas ?? null,
-      })
-    } catch (error) {
-      if (error instanceof ErrorPeticion) setMensajeError(error.message)
-    }
+    await moverCita(actual.citaId, {
+      inicio: actual.inicioPropuesto,
+      fin: actual.finPropuesto,
+      autorizacionId: cita?.autorizacionId ?? null,
+      tipoTerapia: cita?.tipoTerapia ?? 'fisica',
+      notas: cita?.notas ?? null,
+    })
   }
 
 
@@ -392,20 +382,28 @@ function VistaSemanalEscritorio() {
                         </div>
                       )}
 
-                      {citas
-                        .filter((cita) => cita.inicio.startsWith(formatearFechaISO(dia)))
-                        .filter((cita) => !(arrastre && arrastre.citaId === cita.id))
-                        .map((cita) => (
-                          <BloqueCita
-                            key={cita.id}
-                            cita={cita}
-                            top={(minutosDesdeHoraBase(cita.inicio, horaInicio) / 60) * alturaHora}
-                            altura={(diferenciaMinutos(cita.inicio, cita.fin) / 60) * alturaHora}
-                            onAbrir={() => abrirCitaExistente(cita)}
-                            onIniciarArrastre={(evento) => iniciarArrastre(cita, indiceDia, 'mover', evento)}
-                            onIniciarRedimension={(evento) => iniciarArrastre(cita, indiceDia, 'redimensionar', evento)}
-                          />
-                        ))}
+                      {(() => {
+                        const citasDia = citas
+                          .filter((cita) => cita.inicio.startsWith(formatearFechaISO(dia)))
+                          .filter((cita) => !(arrastre && arrastre.citaId === cita.id))
+                        const disposicion = calcularDisposicionSolapes(citasDia)
+                        return citasDia.map((cita) => {
+                          const solape = disposicion.get(cita.id)
+                          return (
+                            <BloqueCita
+                              key={cita.id}
+                              cita={cita}
+                              top={(minutosDesdeHoraBase(cita.inicio, horaInicio) / 60) * alturaHora}
+                              altura={(diferenciaMinutos(cita.inicio, cita.fin) / 60) * alturaHora}
+                              indiceColumna={solape?.indiceColumna ?? 0}
+                              totalColumnas={solape?.totalColumnas ?? 1}
+                              onAbrir={() => abrirCitaExistente(cita)}
+                              onIniciarArrastre={(evento) => iniciarArrastre(cita, indiceDia, 'mover', evento)}
+                              onIniciarRedimension={(evento) => iniciarArrastre(cita, indiceDia, 'redimensionar', evento)}
+                            />
+                          )
+                        })
+                      })()}
 
                       {arrastre && arrastre.diaPropuesto === indiceDia && (
                         <BloqueCitaFantasma
@@ -484,6 +482,14 @@ function VistaSemanalEscritorio() {
       )}
 
       <AlertaMensaje mensaje={mensajeError} onCerrar={() => setMensajeError(null)} />
+      <DialogoConfirmacion
+        abierto={planPendiente}
+        onCerrar={cancelarPlanPendiente}
+        onConfirmar={confirmarPlanPendiente}
+        titulo="Reagendar citas siguientes"
+        descripcion={descripcionPlanPendiente}
+        textoConfirmar="Mover todas"
+      />
     </div>
   )
 }
