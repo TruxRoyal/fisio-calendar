@@ -101,6 +101,10 @@ function RailIconos({ rutaActiva }: { rutaActiva: string }) {
 
         {paletaAbierta && <PaletaTemas onCerrar={() => setPaletaAbierta(false)} />}
       </div>
+
+      <NavLink to="/ajustes" title="Ajustes">
+        <BotonRail activo={rutaActiva.startsWith('/ajustes')} icono="ajustes" />
+      </NavLink>
     </div>
   )
 }

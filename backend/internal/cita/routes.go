@@ -14,6 +14,7 @@ func RegistrarRutas(h *Handler) httpx.RegistradorRutas {
 			rc.Post("/verificar-choque", h.VerificarChoque)
 			rc.Get("/{id}", h.ObtenerPorID)
 			rc.Put("/{id}", h.Actualizar)
+			rc.Post("/{id}/vista-previa-movimiento", h.PlanificarMovimiento)
 			rc.Patch("/{id}/estado", h.CambiarEstado)
 			rc.Delete("/{id}", h.Eliminar)
 		})

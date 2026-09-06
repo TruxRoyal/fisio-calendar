@@ -1,13 +1,20 @@
 import { useState } from 'react'
 import { useCalendarioStore } from '../store'
 import { useDeteccionChoque } from './useDeteccionChoque'
+import { usePreferenciaConfirmarEmpuje } from './usePreferenciaConfirmarEmpuje'
 import { sumarMinutos } from '../../../shared/lib/fecha'
 import { ErrorPeticion } from '../../../shared/api/cliente'
 import type { TipoTerapia } from '../../../shared/types/comun'
-import type { Cita, CitaBorrador, EstadoCita, PacienteBusqueda } from '../types'
+import type { Cita, CitaBorrador, CitaEmpujada, EstadoCita, PacienteBusqueda, SolicitudActualizarCita } from '../types'
 
 const DURACION_DEFECTO = 30
 const TIPO_TERAPIA_DEFECTO: TipoTerapia = 'fisica'
+
+interface PlanEmpujePendiente {
+  citaId: number
+  cambios: SolicitudActualizarCita
+  empujadas: CitaEmpujada[]
+}
 
 export function citaBorradorVacia(inicio: string, tipoTerapia: TipoTerapia = TIPO_TERAPIA_DEFECTO): CitaBorrador {
   return {
@@ -27,12 +34,22 @@ export function citaBorradorVacia(inicio: string, tipoTerapia: TipoTerapia = TIP
 
 export function useGestionCita() {
   const crearCita = useCalendarioStore((estado) => estado.crearCita)
-  const actualizarCita = useCalendarioStore((estado) => estado.actualizarCita)
+  const actualizarCitaEnStore = useCalendarioStore((estado) => estado.actualizarCita)
   const cambiarEstadoCita = useCalendarioStore((estado) => estado.cambiarEstadoCita)
-  const { verificar } = useDeteccionChoque()
+  const citasStore = useCalendarioStore((estado) => estado.citas)
+  const { verificar, planificar } = useDeteccionChoque()
+  const { confirmarEmpuje } = usePreferenciaConfirmarEmpuje()
   const [citaSeleccionada, setCitaSeleccionada] = useState<CitaBorrador | null>(null)
   const [mensajeError, setMensajeError] = useState<string | null>(null)
   const [advertencias, setAdvertencias] = useState<string[]>([])
+  const [planPendiente, setPlanPendiente] = useState<PlanEmpujePendiente | null>(null)
+
+  const descripcionPlanPendiente = planPendiente
+    ? `Se van a mover ${planPendiente.empujadas.length} cita${planPendiente.empujadas.length === 1 ? '' : 's'} para no chocar: ` +
+      planPendiente.empujadas
+        .map((e) => `${citasStore.find((c) => c.id === e.citaId)?.paciente.nombre ?? 'una cita'} a las ${e.inicioNuevo.slice(11, 16)}`)
+        .join(', ')
+    : ''
 
   function abrirCitaExistente(cita: Cita) {
     setAdvertencias([])
@@ -76,6 +93,54 @@ export function useGestionCita() {
     setAdvertencias([])
   }
 
+  function aplicarResultadoMovimiento(cita: Cita) {
+    setCitaSeleccionada((actual) =>
+      actual && actual.id === cita.id
+        ? { ...actual, inicio: cita.inicio, fin: cita.fin, tipoTerapia: cita.tipoTerapia, notas: cita.notas }
+        : actual,
+    )
+    setAdvertencias(cita.advertencias ?? [])
+  }
+
+  async function moverCita(id: number, cambios: SolicitudActualizarCita): Promise<boolean> {
+    try {
+      if (confirmarEmpuje) {
+        const { conflicto, empujadas } = await planificar(id, cambios.inicio, cambios.fin)
+        if (conflicto) {
+          setMensajeError('No se puede mover la cita: choca con otra cita existente.')
+          return false
+        }
+        if (empujadas.length > 0) {
+          setPlanPendiente({ citaId: id, cambios, empujadas })
+          return false
+        }
+      }
+      const cita = await actualizarCitaEnStore(id, cambios)
+      aplicarResultadoMovimiento(cita)
+      return true
+    } catch (error) {
+      if (error instanceof ErrorPeticion) setMensajeError(error.message)
+      return false
+    }
+  }
+
+  async function confirmarPlanPendiente() {
+    if (!planPendiente) return
+    const { citaId, cambios } = planPendiente
+    try {
+      const cita = await actualizarCitaEnStore(citaId, cambios)
+      aplicarResultadoMovimiento(cita)
+    } catch (error) {
+      if (error instanceof ErrorPeticion) setMensajeError(error.message)
+    } finally {
+      setPlanPendiente(null)
+    }
+  }
+
+  function cancelarPlanPendiente() {
+    setPlanPendiente(null)
+  }
+
   async function onCrear(solicitud: { pacienteId: number; tipoTerapia: TipoTerapia; inicio: string; fin: string; notas?: string | null }) {
     const conflicto = await verificar(solicitud.inicio, solicitud.fin)
     if (conflicto) {
@@ -93,29 +158,14 @@ export function useGestionCita() {
   }
 
   async function onGuardarCampos(id: number, cambios: { inicio: string; fin: string; tipoTerapia: TipoTerapia; notas: string | null }) {
-    const conflicto = await verificar(cambios.inicio, cambios.fin, id)
-    if (conflicto) {
-      setMensajeError('Esta cita choca con otra existente.')
-      return false
-    }
-    try {
-      const tipoCambio = cambios.tipoTerapia !== citaSeleccionada?.tipoTerapia
-      const actualizada = await actualizarCita(id, {
-        inicio: cambios.inicio,
-        fin: cambios.fin,
-        autorizacionId: tipoCambio ? null : (citaSeleccionada?.autorizacionId ?? null),
-        tipoTerapia: cambios.tipoTerapia,
-        notas: cambios.notas,
-      })
-      setAdvertencias(actualizada.advertencias ?? [])
-      setCitaSeleccionada((actual) =>
-        actual ? { ...actual, inicio: actualizada.inicio, fin: actualizada.fin, tipoTerapia: actualizada.tipoTerapia, notas: actualizada.notas } : actual,
-      )
-      return true
-    } catch (error) {
-      if (error instanceof ErrorPeticion) setMensajeError(error.message)
-      return false
-    }
+    const tipoCambio = cambios.tipoTerapia !== citaSeleccionada?.tipoTerapia
+    return moverCita(id, {
+      inicio: cambios.inicio,
+      fin: cambios.fin,
+      autorizacionId: tipoCambio ? null : (citaSeleccionada?.autorizacionId ?? null),
+      tipoTerapia: cambios.tipoTerapia,
+      notas: cambios.notas,
+    })
   }
 
   async function onCambiarEstado(estado: EstadoCita) {
@@ -154,6 +204,10 @@ export function useGestionCita() {
     setMensajeError,
     advertencias,
     verificar,
-    actualizarCita,
+    moverCita,
+    planPendiente: !!planPendiente,
+    descripcionPlanPendiente,
+    confirmarPlanPendiente,
+    cancelarPlanPendiente,
   }
 }

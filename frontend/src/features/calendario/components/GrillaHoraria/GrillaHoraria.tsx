@@ -1,6 +1,6 @@
-import type { PointerEvent as EventoPunteroReact } from 'react'
+import type { CSSProperties, PointerEvent as EventoPunteroReact } from 'react'
 import { TarjetaCitaMovil } from '../TarjetaCitaMovil/TarjetaCitaMovil'
-import { minutosDesdeHoraBase } from '../../lib'
+import { calcularDisposicionSolapes, minutosDesdeHoraBase } from '../../lib'
 import type { RangoHorario } from '../../lib'
 import { diferenciaMinutos, esMismoDia, formatearHora, hoyISO } from '../../../../shared/lib/fecha'
 import { cn } from '../../../../shared/lib/clases'
@@ -78,33 +78,43 @@ export function GrillaHoraria({
                 </div>
               )}
 
-              {columna.citas.map((cita) => {
-                const arrastrandoEstaCita = citaArrastrada?.citaId === cita.id
-                const inicioEfectivo = arrastrandoEstaCita ? citaArrastrada.nuevoInicio : cita.inicio
-                const finEfectivo = arrastrandoEstaCita ? citaArrastrada.nuevoFin : cita.fin
-                const alturaNatural = (diferenciaMinutos(inicioEfectivo, finEfectivo) / 60) * altura
-                // El bloque nunca puede superar su propia franja horaria (alturaNatural), sin
-                // importar cuánto "infle" el piso mínimo, o se monta sobre la siguiente cita.
-                const alturaBloque = Math.min(
-                  Math.max(alturaNatural - ESPACIO_ENTRE_BLOQUES, ALTURA_MINIMA_BLOQUE),
-                  Math.max(alturaNatural - 2, 2),
-                )
-                const top = (minutosDesdeHoraBase(inicioEfectivo, horaInicio) / 60) * altura
-                return (
-                  <TarjetaCitaMovil
-                    key={cita.id}
-                    cita={cita}
-                    autorizacion={autorizaciones[cita.pacienteId]}
-                    onAbrir={() => onAbrirCita(cita)}
-                    variante="grilla"
-                    compacto={alturaBloque < ALTURA_COMPACTA}
-                    ocultarBadges={alturaBloque < ALTURA_CON_BADGES}
-                    arrastrando={arrastrandoEstaCita}
-                    onPointerDown={onIniciarArrastre?.(cita)}
-                    style={{ top, height: alturaBloque }}
-                  />
-                )
-              })}
+              {(() => {
+                const disposicion = calcularDisposicionSolapes(columna.citas)
+                return columna.citas.map((cita) => {
+                  const arrastrandoEstaCita = citaArrastrada?.citaId === cita.id
+                  const inicioEfectivo = arrastrandoEstaCita ? citaArrastrada.nuevoInicio : cita.inicio
+                  const finEfectivo = arrastrandoEstaCita ? citaArrastrada.nuevoFin : cita.fin
+                  const alturaNatural = (diferenciaMinutos(inicioEfectivo, finEfectivo) / 60) * altura
+                  const alturaBloque = Math.min(
+                    Math.max(alturaNatural - ESPACIO_ENTRE_BLOQUES, ALTURA_MINIMA_BLOQUE),
+                    Math.max(alturaNatural - 2, 2),
+                  )
+                  const top = (minutosDesdeHoraBase(inicioEfectivo, horaInicio) / 60) * altura
+                  const solape = disposicion.get(cita.id)
+                  const estiloSolape: CSSProperties =
+                    solape && solape.totalColumnas > 1
+                      ? {
+                          left: `calc(${(solape.indiceColumna / solape.totalColumnas) * 100}% + 2px)`,
+                          width: `calc(${(100 / solape.totalColumnas)}% - 4px)`,
+                          right: 'auto',
+                        }
+                      : {}
+                  return (
+                    <TarjetaCitaMovil
+                      key={cita.id}
+                      cita={cita}
+                      autorizacion={autorizaciones[cita.pacienteId]}
+                      onAbrir={() => onAbrirCita(cita)}
+                      variante="grilla"
+                      compacto={alturaBloque < ALTURA_COMPACTA}
+                      ocultarBadges={alturaBloque < ALTURA_CON_BADGES}
+                      arrastrando={arrastrandoEstaCita}
+                      onPointerDown={onIniciarArrastre?.(cita)}
+                      style={{ top, height: alturaBloque, ...estiloSolape }}
+                    />
+                  )
+                })
+              })()}
 
               {citaArrastrada && columna.citas.some((cita) => cita.id === citaArrastrada.citaId) && (
                 <div

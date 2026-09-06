@@ -46,24 +46,35 @@ export const useCalendarioStore = create<EstadoCalendario>((set, get) => ({
 
   crearCita: async (solicitud) => {
     const creada = await citasApi.crear(solicitud)
-    await get().cargarSemanaActual()
+    set((estado) => ({ citas: [...estado.citas, creada].sort((a, b) => a.inicio.localeCompare(b.inicio)) }))
     return creada
   },
 
   actualizarCita: async (id, solicitud) => {
-    const actualizada = await citasApi.actualizar(id, solicitud)
-    await get().cargarSemanaActual()
+    const { cita: actualizada, empujadas } = await citasApi.actualizar(id, solicitud)
+    set((estado) => {
+      const { desde, hasta } = rangoSemana(estado.inicioSemanaActual)
+      const dentroDeSemana = (c: Cita) => {
+        const fecha = c.inicio.slice(0, 10)
+        return fecha >= desde && fecha <= hasta
+      }
+      const idsTocados = new Set([actualizada.id, ...empujadas.map((c) => c.id)])
+      const sinTocados = estado.citas.filter((cita) => !idsTocados.has(cita.id))
+      const tocadosEnSemana = [actualizada, ...empujadas].filter(dentroDeSemana)
+      const citas = [...sinTocados, ...tocadosEnSemana].sort((a, b) => a.inicio.localeCompare(b.inicio))
+      return { citas }
+    })
     return actualizada
   },
 
   cambiarEstadoCita: async (id, solicitud) => {
     const actualizada = await citasApi.cambiarEstado(id, solicitud)
-    await get().cargarSemanaActual()
+    set((estado) => ({ citas: estado.citas.map((cita) => (cita.id === id ? actualizada : cita)) }))
     return actualizada
   },
 
   eliminarCita: async (id) => {
     await citasApi.eliminar(id)
-    await get().cargarSemanaActual()
+    set((estado) => ({ citas: estado.citas.filter((cita) => cita.id !== id) }))
   },
 }))

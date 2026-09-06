@@ -36,6 +36,7 @@
   border-right-color: var(--dnBd);
   border-bottom-color: var(--dnBd);
   color: var(--t2);
+  cursor: pointer;
 }
 
 .cancelada {

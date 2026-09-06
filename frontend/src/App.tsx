@@ -5,10 +5,12 @@ import { PaginaPacientes } from './features/pacientes/components/PaginaPacientes
 import { ResumenMensual } from './features/resumen/components/ResumenMensual/ResumenMensual'
 import { PaginaMapa } from './features/mapa/components/PaginaMapa/PaginaMapa'
 import { PaginaAjustes } from './shared/components/PaginaAjustes/PaginaAjustes'
+import { BannerInstalarPwa } from './shared/components/BannerInstalarPwa/BannerInstalarPwa'
 
 export function App() {
   return (
     <Router>
+      <BannerInstalarPwa />
       <Layout>
         <Routes>
           <Route path="/" element={<Navigate to="/calendario" replace />} />

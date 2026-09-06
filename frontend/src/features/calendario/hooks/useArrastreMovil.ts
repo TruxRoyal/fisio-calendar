@@ -144,7 +144,7 @@ export function useArrastreMovil(opciones: OpcionesArrastreMovil) {
 
   const iniciarArrastre = useCallback(
     (cita: Cita) => (evento: EventoPunteroReact<HTMLButtonElement>) => {
-      if (cita.estado === 'cancelada') return
+      if (cita.estado !== 'agendada') return
       if (armadoRef.current) return
       quitarListeners()
       limpiarTemporizador()

@@ -31,6 +31,24 @@ type Conflicto struct {
 	Fin    string `json:"fin"`
 }
 
+type AutorizacionVencida struct {
+	AutorizacionID   int64  `json:"autorizacionId"`
+	FechaVencimiento string `json:"fechaVencimiento"`
+}
+
+type CitaEmpujada struct {
+	CitaID         int64  `json:"citaId"`
+	InicioAnterior string `json:"inicioAnterior"`
+	FinAnterior    string `json:"finAnterior"`
+	InicioNuevo    string `json:"inicioNuevo"`
+	FinNuevo       string `json:"finNuevo"`
+}
+
+type SolicitudPlanificarMovimiento struct {
+	Inicio string `json:"inicio"`
+	Fin    string `json:"fin"`
+}
+
 type SolicitudCrearCita struct {
 	PacienteID     int64   `json:"pacienteId"`
 	AutorizacionID *int64  `json:"autorizacionId"`
