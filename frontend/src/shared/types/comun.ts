@@ -12,3 +12,12 @@ export interface ErrorApi {
   mensaje: string
   detalles?: unknown
 }
+
+export type Rol = 'paciente' | 'fisio' | 'admin'
+
+export interface Usuario {
+  id: number
+  nombre: string
+  email: string
+  rol: Rol
+}

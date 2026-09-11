@@ -15,11 +15,32 @@ export class ErrorPeticion extends Error {
   }
 }
 
-async function peticion<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
-  const respuesta = await fetch(`${URL_BASE}${ruta}`, {
+const RUTAS_SIN_REINTENTO = new Set(['/auth/login', '/auth/refresh', '/auth/me'])
+
+async function ejecutarFetch(ruta: string, opciones: RequestInit): Promise<Response> {
+  return fetch(`${URL_BASE}${ruta}`, {
     ...opciones,
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...opciones.headers },
   })
+}
+
+async function refrescarSesion(): Promise<boolean> {
+  const respuesta = await fetch(`${URL_BASE}/auth/refresh`, { method: 'POST', credentials: 'include' })
+  return respuesta.ok
+}
+
+async function peticion<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
+  let respuesta = await ejecutarFetch(ruta, opciones)
+
+  if (respuesta.status === 401 && !RUTAS_SIN_REINTENTO.has(ruta)) {
+    const refrescada = await refrescarSesion()
+    if (refrescada) {
+      respuesta = await ejecutarFetch(ruta, opciones)
+    } else {
+      window.dispatchEvent(new Event('sesion-expirada'))
+    }
+  }
 
   if (respuesta.status === 204) {
     return undefined as T
@@ -44,7 +65,7 @@ export const clienteApi = {
     peticion<T>(ruta, { method: 'PATCH', body: cuerpo ? JSON.stringify(cuerpo) : undefined }),
   delete: <T>(ruta: string) => peticion<T>(ruta, { method: 'DELETE' }),
   descargar: async (ruta: string): Promise<Blob> => {
-    const respuesta = await fetch(`${URL_BASE}${ruta}`)
+    const respuesta = await fetch(`${URL_BASE}${ruta}`, { credentials: 'include' })
     if (!respuesta.ok) {
       throw new Error(`No se pudo descargar el archivo (${respuesta.status})`)
     }

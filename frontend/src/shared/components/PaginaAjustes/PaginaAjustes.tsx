@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTheme } from '../../theme/useTheme'
 import type { IdTema } from '../../theme/paletas'
 import { Icono } from '../Icono/Icono'
@@ -7,6 +8,7 @@ import { cn } from '../../lib/clases'
 import { useEsMovil } from '../../hooks/useEsMovil'
 import { usePreferenciaConfirmarEmpuje } from '../../../features/calendario/hooks/usePreferenciaConfirmarEmpuje'
 import { usePwaInstalable } from '../../pwa/usePwaInstalable'
+import { useAuth } from '../../../features/auth/AuthContext'
 import styles from './PaginaAjustes.module.css'
 
 function centroDe(el: HTMLElement): { x: number; y: number } {
@@ -183,12 +185,29 @@ function SeccionAgenda() {
 
 function SeccionAplicacion() {
   const { puedeInstalar, instalada, esIOS, instalar } = usePwaInstalable()
+  const { logout } = useAuth()
+  const navigate = useNavigate()
+
+  async function alCerrarSesion() {
+    await logout()
+    navigate('/login')
+  }
 
   return (
-    <div className={styles.grupo}>
-      <div className={styles.tituloGrupo}>Instalación</div>
-      <ContenidoInstalacion puedeInstalar={puedeInstalar} instalada={instalada} esIOS={esIOS} instalar={instalar} />
-    </div>
+    <>
+      <div className={styles.grupo}>
+        <div className={styles.tituloGrupo}>Instalación</div>
+        <ContenidoInstalacion puedeInstalar={puedeInstalar} instalada={instalada} esIOS={esIOS} instalar={instalar} />
+      </div>
+
+      <div className={styles.grupo}>
+        <div className={styles.tituloGrupo}>Cuenta</div>
+        <button type="button" onClick={alCerrarSesion} className={styles.botonPeligro}>
+          <Icono nombre="salir" tamano={17} grosor={1.9} />
+          Cerrar sesión
+        </button>
+      </div>
+    </>
   )
 }
 

@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from '../ui/alert-dialog'
 import { Icono } from '../Icono/Icono'
+import type { NombreIcono } from '../Icono/Icono'
 import { cn } from '@/shared/lib/clases'
 
 interface PropiedadesDialogoConfirmacion {
@@ -23,6 +24,7 @@ interface PropiedadesDialogoConfirmacion {
   textoConfirmar?: string
   textoCancelar?: string
   peligro?: boolean
+  icono?: NombreIcono
 }
 
 export function DialogoConfirmacion({
@@ -34,6 +36,7 @@ export function DialogoConfirmacion({
   textoConfirmar = 'Confirmar',
   textoCancelar = 'Cancelar',
   peligro = false,
+  icono = 'check',
 }: PropiedadesDialogoConfirmacion) {
   const [confirmando, setConfirmando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -72,7 +75,7 @@ export function DialogoConfirmacion({
                 : 'border-[var(--acL)] bg-[var(--acS)] text-[var(--acT)]'
             )}
           >
-            <Icono nombre={peligro ? 'papelera' : 'check'} grosor={2} />
+            <Icono nombre={peligro ? 'papelera' : icono} grosor={2} />
           </AlertDialogMedia>
           <AlertDialogTitle>{titulo}</AlertDialogTitle>
           {descripcion && <AlertDialogDescription>{descripcion}</AlertDialogDescription>}

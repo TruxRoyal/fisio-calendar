@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"net/mail"
 	"time"
 )
 
@@ -49,5 +50,17 @@ func Enum(valor string, permitidos []string, campo string, errores Errores) {
 func FechaHoraISO(valor, campo string, errores Errores) {
 	if _, err := time.Parse("2006-01-02T15:04:05", valor); err != nil {
 		errores.Agregar(campo, fmt.Sprintf("%s debe tener formato ISO-8601 (YYYY-MM-DDTHH:MM:SS)", campo))
+	}
+}
+
+func Email(valor, campo string, errores Errores) {
+	if _, err := mail.ParseAddress(valor); err != nil {
+		errores.Agregar(campo, fmt.Sprintf("%s debe ser un email valido", campo))
+	}
+}
+
+func LongitudMinima(valor string, min int, campo string, errores Errores) {
+	if len(valor) < min {
+		errores.Agregar(campo, fmt.Sprintf("%s debe tener al menos %d caracteres", campo, min))
 	}
 }
