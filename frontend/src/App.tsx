@@ -6,21 +6,38 @@ import { ResumenMensual } from './features/resumen/components/ResumenMensual/Res
 import { PaginaMapa } from './features/mapa/components/PaginaMapa/PaginaMapa'
 import { PaginaAjustes } from './shared/components/PaginaAjustes/PaginaAjustes'
 import { BannerInstalarPwa } from './shared/components/BannerInstalarPwa/BannerInstalarPwa'
+import { BannerActualizarPwa } from './shared/components/BannerActualizarPwa/BannerActualizarPwa'
+import { AuthProvider } from './features/auth/AuthContext'
+import { PaginaLogin } from './features/auth/components/PaginaLogin/PaginaLogin'
+import { RutaProtegida } from './features/auth/components/RutaProtegida/RutaProtegida'
 
 export function App() {
   return (
     <Router>
-      <BannerInstalarPwa />
-      <Layout>
+      <AuthProvider>
         <Routes>
-          <Route path="/" element={<Navigate to="/calendario" replace />} />
-          <Route path="/calendario" element={<VistaSemanal />} />
-          <Route path="/pacientes" element={<PaginaPacientes />} />
-          <Route path="/resumen" element={<ResumenMensual />} />
-          <Route path="/mapa" element={<PaginaMapa />} />
-          <Route path="/ajustes" element={<PaginaAjustes />} />
+          <Route path="/login" element={<PaginaLogin />} />
+          <Route
+            path="/*"
+            element={
+              <RutaProtegida>
+                <BannerInstalarPwa />
+                <BannerActualizarPwa />
+                <Layout>
+                  <Routes>
+                    <Route path="/" element={<Navigate to="/calendario" replace />} />
+                    <Route path="/calendario" element={<VistaSemanal />} />
+                    <Route path="/pacientes" element={<PaginaPacientes />} />
+                    <Route path="/resumen" element={<ResumenMensual />} />
+                    <Route path="/mapa" element={<PaginaMapa />} />
+                    <Route path="/ajustes" element={<PaginaAjustes />} />
+                  </Routes>
+                </Layout>
+              </RutaProtegida>
+            }
+          />
         </Routes>
-      </Layout>
+      </AuthProvider>
     </Router>
   )
 }
