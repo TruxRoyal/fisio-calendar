@@ -3,8 +3,6 @@
 name: Go
 
 on:
-  push:
-    branches: [ "prod", "dev" ]
   pull_request:
     branches: [ "prod", "dev" ]
 
