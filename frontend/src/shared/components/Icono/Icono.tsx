@@ -12,6 +12,7 @@ import {
   EllipsisVertical,
   ExternalLink,
   FileSpreadsheet,
+  LogOut,
   MapPin,
   Moon,
   Phone,
@@ -57,6 +58,7 @@ export type NombreIcono =
   | 'vistaCompacta'
   | 'vistaDetallada'
   | 'descargar'
+  | 'salir'
 
 const CONTENIDO_PROPIO: Partial<Record<NombreIcono, ReactElement>> = {
   mapa: (
@@ -102,6 +104,7 @@ const ICONOS_LUCIDE: Partial<Record<NombreIcono, LucideIcon>> = {
   vistaCompacta: Rows3,
   vistaDetallada: Rows2,
   descargar: Download,
+  salir: LogOut,
 }
 
 interface PropiedadesIcono extends SVGProps<SVGSVGElement> {

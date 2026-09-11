@@ -230,7 +230,7 @@ export function DrawerCita({
   }
 
   const direccion = pacienteCompleto?.direccion ?? pacienteInfo.direccion
-  const epsPaga = cita.valorSesion !== null ? cita.valorSesion - copago : null
+  const totalCobrar = cita.valorSesion !== null ? cita.valorSesion + copago : null
   const autorizacion = autorizaciones.find((a) => a.tipoTerapia === tipoTerapia) ?? null
   const tipoTerapiaBloqueada = cita.estado === 'atendida'
   const porcentajeSesiones = autorizacion
@@ -433,10 +433,10 @@ export function DrawerCita({
                     className={styles.inputCopago}
                   />
                 </div>
-                {epsPaga !== null && (
+                {totalCobrar !== null && (
                   <div className={cn(styles.filaTarjeta, styles.filaEpsPaga)}>
-                    <span className={styles.etiquetaChica}>EPS paga</span>
-                    <span className={styles.valorEpsPaga}>{formatearCOP(epsPaga)}</span>
+                    <span className={styles.etiquetaChica}>Total a cobrar</span>
+                    <span className={styles.valorEpsPaga}>{formatearCOP(totalCobrar)}</span>
                   </div>
                 )}
               </div>
