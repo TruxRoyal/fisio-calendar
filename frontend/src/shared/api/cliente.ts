@@ -30,11 +30,20 @@ async function refrescarSesion(): Promise<boolean> {
   return respuesta.ok
 }
 
+let refrescoEnCurso: Promise<boolean> | null = null
+
+function refrescarSesionCompartida(): Promise<boolean> {
+  refrescoEnCurso ??= refrescarSesion().finally(() => {
+    refrescoEnCurso = null
+  })
+  return refrescoEnCurso
+}
+
 async function peticion<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
   let respuesta = await ejecutarFetch(ruta, opciones)
 
   if (respuesta.status === 401 && !RUTAS_SIN_REINTENTO.has(ruta)) {
-    const refrescada = await refrescarSesion()
+    const refrescada = await refrescarSesionCompartida()
     if (refrescada) {
       respuesta = await ejecutarFetch(ruta, opciones)
     } else {
